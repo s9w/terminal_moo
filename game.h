@@ -45,7 +45,6 @@ namespace moo {
       void write_image_at_pos(const Image& image, const int i, const int j);
       void write_screen_text(const std::string& text, const int i, const int j);
       void clear_screen_text();
-      void throttle_framerate();
       void one_pixel(
          const BlockChar& block_char,
          const ColorIndex row_bg_color
@@ -71,7 +70,6 @@ namespace moo {
       std::vector<ColorIndex> m_pixels;
       POINT m_mouse_pos;
       FpsCounter m_fps_counter;
-      std::chrono::time_point<std::chrono::system_clock> m_last_tp;
       int m_frame = 0;
    };
 

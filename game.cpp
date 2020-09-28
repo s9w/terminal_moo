@@ -340,7 +340,6 @@ auto moo::game::run() -> void{
       COORD zero_pos{ 0, 0 };
       SetConsoleCursorPosition(m_output_handle, zero_pos);
       write(m_output_handle, m_string);
-      throttle_framerate();
       m_fps_counter.step();
       ++m_frame;
    }
@@ -448,21 +447,6 @@ void moo::game::write_screen_text(
 
 void moo::game::clear_screen_text(){
    std::fill(m_screen_text.begin(), m_screen_text.end(), '\0');
-}
-
-
-void moo::game::throttle_framerate(){
-   constexpr int target_fps = 60;
-   constexpr double target_frametime = 1000.0 / target_fps;
-
-   auto now = std::chrono::system_clock::now();
-   long long ms = 0;
-   
-   while (ms < target_frametime) {
-      now = std::chrono::system_clock::now();
-      ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_tp).count();
-   }
-   m_last_tp = now;
 }
 
 
