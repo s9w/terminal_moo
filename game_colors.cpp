@@ -51,16 +51,24 @@ auto moo::GameColors::get_rgbs() const -> const std::vector<RGB>&{
    return m_rgbs;
 }
 
+static bool color_loader_instance_exists = false;
+
 moo::ColorLoader::ColorLoader(std::vector<RGB>& game_color_rgbs, ColorRegion& color_region)
    : m_rgbs(game_color_rgbs)
    , m_color_region(color_region)
 {
+   if (color_loader_instance_exists) {
+      printf("ColorLoader instance already exists.\n");
+      std::terminate();
+   }
    m_color_region.start_index = m_rgbs.size();
+   color_loader_instance_exists = true;
 }
 
 
 moo::ColorLoader::~ColorLoader(){
    m_color_region.count = m_rgbs.size() - m_color_region.start_index;
+   color_loader_instance_exists = false;
 }
 
 
