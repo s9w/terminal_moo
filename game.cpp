@@ -257,17 +257,16 @@ auto moo::game::run() -> void{
       std::fill(m_pixels.begin(), m_pixels.end(), -1);
       clear_screen_text();
 
-      GetCursorPos(&m_mouse_pos);
-      const double x_fraction = 1.0 * (m_mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
-      const double y_fraction = 1.0 * (m_mouse_pos.y - m_window_rect.top) / (m_window_rect.bottom - m_window_rect.top);
-      const int mouse_i = std::clamp(static_cast<int>(y_fraction * 2 * m_rows), 0, 2 * m_rows - 1);
-      const int mouse_j = std::clamp(static_cast<int>(x_fraction * 2 * m_columns), 0, 2 * m_columns - 1);
+      POINT mouse_pos;
+      GetCursorPos(&mouse_pos);
+      m_mouse_pos.x_fraction = 1.0 * (mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
+      m_mouse_pos.y_fraction = 1.0 * (mouse_pos.y - m_window_rect.top) / (m_window_rect.bottom - m_window_rect.top);
 
       constexpr double helicopter_anim_frametime = 50.0;
       const size_t anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
-      write_image_at_pos(m_player_image[anim_i], mouse_i, mouse_j);
+      write_image_at_pos(m_player_image[anim_i], m_mouse_pos);
       write_screen_text(fmt::format("FPS: {}", m_fps_counter.m_current_fps), 0, 0);
-      write_screen_text(fmt::format("mouse pos: {} {}", m_mouse_pos.x, m_mouse_pos.y), 1, 0);
+      write_screen_text(fmt::format("mouse pos: {:.2f}, {:.2f}", m_mouse_pos.x_fraction, m_mouse_pos.y_fraction), 1, 0);
 
       write_string();
       COORD zero_pos{ 0, 0 };
@@ -338,17 +337,31 @@ auto moo::game::get_block_char(int i, int j) const -> BlockChar{
    };
 }
 
+
+auto moo::game::get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos{
+   const int i = std::clamp(static_cast<int>(fractional_pos.y_fraction * 2 * m_rows), 0, 2 * m_rows - 1);
+   const int j = std::clamp(static_cast<int>(fractional_pos.x_fraction * 2 * m_columns), 0, 2 * m_columns - 1);
+   return { i, j };
+}
+
+
 void moo::game::write_image_at_pos(
    const Image& image, 
-   const int i_offset, 
-   const int j_offset
+   const FractionalPos& fractional_pos
 ){
-   for (int i = 0; i < image.m_height; ++i) {
-      for (int j = 0; j < image.m_width; ++j) {
-         const int image_index = i * image.m_width + j;
-         const int pixel_index = (i_offset + i) * 2 * m_columns + (j_offset + j);
-         if(pixel_index > m_pixels.size() - 1)
+   const PixelPos center_pos = get_pixel_pos(fractional_pos);
+   PixelPos top_left_pos = center_pos;
+   top_left_pos.j -= image.m_width / 2;
+   top_left_pos.i -= image.m_height / 2;
+   for (int image_i = 0; image_i < image.m_height; ++image_i) {
+      for (int image_j = 0; image_j < image.m_width; ++image_j) {
+         const int image_index = image_i * image.m_width + image_j;
+
+         const int pixel_i = top_left_pos.i + image_i;
+         const int pixel_j = top_left_pos.j + image_j;
+         if(pixel_i < 0 || pixel_i > 2*m_rows - 1 || pixel_j < 0 || pixel_j > 2*m_columns - 1)
             continue;
+         const int pixel_index = pixel_i * 2 * m_columns + pixel_j;
          if (image.m_color_indices[image_index] > 0)
             m_pixels[pixel_index] = image.m_color_indices[image_index];
       }
