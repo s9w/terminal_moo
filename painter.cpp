@@ -12,8 +12,8 @@ moo::Painter::Painter(
 
 
 auto moo::Painter::paint(
-   const ptrdiff_t fg_color,
-   const ptrdiff_t bg_color,
+   const ColorIndex fg_color,
+   const ColorIndex bg_color,
    std::wstring& target_str
 ) -> void
 {
@@ -23,15 +23,15 @@ auto moo::Painter::paint(
 
 
 auto moo::Painter::paint_layer(
-   const ptrdiff_t color, 
+   const ColorIndex color,
    const Layer layer,
    std::wstring& target_str
 ) -> void
 {
-   ptrdiff_t& target_color_memory = (layer == Layer::Front) ? m_last_fg_color : m_last_bg_color;
+   ColorIndex& target_color_memory = (layer == Layer::Front) ? m_last_fg_color : m_last_bg_color;
    const std::vector<std::wstring>& color_strings = (layer == Layer::Front) ? m_fg_color_strings : m_bg_color_strings;
    if (color != target_color_memory) {
-      target_str += color_strings[color];
+      target_str += color_strings[color.index()];
       target_color_memory = color;
    }
 }
