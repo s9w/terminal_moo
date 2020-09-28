@@ -25,11 +25,6 @@ namespace {
 } // namespace {}
 
 
-bool moo::operator==(const RGB& a, const RGB& b){
-   return std::tie(a.r, a.g, a.b) == std::tie(b.r, b.g, b.b);
-}
-
-
 auto moo::get_gradient(
    const RGB& from, 
    const RGB& to,

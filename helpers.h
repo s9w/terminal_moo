@@ -1,5 +1,6 @@
 #pragma once
 
+#include <compare>
 #include <vector>
 #include <iterator>
 
@@ -10,15 +11,8 @@ namespace moo {
       long top;
       long right;
       long bottom;
+      auto operator<=>(const LongRect& other) const = default;
    };
-   bool operator==(const LongRect& a, const LongRect& b);
-   bool operator!=(const LongRect& a, const LongRect& b);
-
-
-   //template <class T>
-   //auto contains(const std::vector<T>& vec, const T& element) -> bool {
-   //   return std::find(std::cbegin(vec), std::cend(vec), element) != std::cend(vec);
-   //}
 
 
    template <class T>
