@@ -220,6 +220,7 @@ moo::game::game(const int columns, const int rows)
    , m_screen_text(m_columns * m_rows, '\0')
    , m_pixels(2 * m_columns * 2 * m_rows, -1)
    , m_fps_counter()
+   , m_t0(std::chrono::system_clock::now())
 {
    m_string.reserve(100000);
    {
@@ -250,6 +251,9 @@ moo::game::game(const int columns, const int rows)
 
 auto moo::game::run() -> void{
    while (true) {
+      const auto now = std::chrono::system_clock::now();
+      const long long ms_since_start = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t0).count();
+
       std::fill(m_pixels.begin(), m_pixels.end(), -1);
       clear_screen_text();
 
@@ -259,7 +263,9 @@ auto moo::game::run() -> void{
       const int mouse_i = std::clamp(static_cast<int>(y_fraction * 2 * m_rows), 0, 2 * m_rows - 1);
       const int mouse_j = std::clamp(static_cast<int>(x_fraction * 2 * m_columns), 0, 2 * m_columns - 1);
 
-      write_image_at_pos(m_player_image[m_frame%m_player_image.size()], mouse_i, mouse_j);
+      constexpr double helicopter_anim_frametime = 50.0;
+      const size_t anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
+      write_image_at_pos(m_player_image[anim_i], mouse_i, mouse_j);
       write_screen_text(fmt::format("FPS: {}", m_fps_counter.m_current_fps), 0, 0);
       write_screen_text(fmt::format("mouse pos: {} {}", m_mouse_pos.x, m_mouse_pos.y), 1, 0);
 

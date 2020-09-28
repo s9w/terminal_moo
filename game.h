@@ -14,9 +14,6 @@
 
 namespace moo {
 
-   
-
-
    struct game {
       game(const int columns, const int rows);
       auto run() -> void;
@@ -50,6 +47,7 @@ namespace moo {
       POINT m_mouse_pos;
       FpsCounter m_fps_counter;
       int m_frame = 0;
+      std::chrono::time_point<std::chrono::system_clock> m_t0;
    };
 
 
