@@ -27,29 +27,24 @@ namespace {
 
    [[nodiscard]] auto load_image(
       const fs::path& path,
-      moo::GameColors& game_colors
+      moo::ColorLoader& color_loader
    ) -> moo::Image
    {
-      moo::Image image;
-      int png_bpp;
-      unsigned char* png_data = stbi_load(path.string().c_str(), &image.width, &image.height, &png_bpp, 0);
+      int png_bpp, png_width, png_height;
+      unsigned char* png_data = stbi_load(path.string().c_str(), &png_width, &png_height, &png_bpp, 0);
       if (png_bpp != 3) {
          printf("Image doesn't have RGB colors. (%s, %ibpp)\n", path.string().c_str(), png_bpp);
          std::terminate();
       }
-      if (image.width % 2 != 0 || image.height % 2 != 0) {
+      if (png_width % 2 != 0 || png_height % 2 != 0) {
          printf("Image (%s) doesn't have even dimensions\n", path.string().c_str());
          std::terminate();
       }
-      image.allocate();
-      for (int i = 0; i < image.width * image.height; ++i) {
-         static_assert(sizeof(moo::RGB::r) == sizeof(stbi_uc)); // making sure the following cast works
-         const moo::RGB color = reinterpret_cast<moo::RGB&>(png_data[i * 3 + 0]);
-         const auto it = std::find(std::cbegin(game_colors.rgbs), std::cend(game_colors.rgbs), color);
-         const size_t color_index = std::distance(std::cbegin(game_colors.rgbs), it);
-         if (it == std::cend(game_colors.rgbs))
-            game_colors.rgbs.emplace_back(color);
-         image.color_indices[i] = color_index;
+      moo::Image image(png_width, png_height);
+      for (int i = 0; i < png_width * png_height; ++i) {
+         static_assert(sizeof(moo::RGB::r) == sizeof(stbi_uc)); // making sure the following cast is elegant instead of evil
+         const moo::RGB rgb_color = reinterpret_cast<moo::RGB&>(png_data[i * 3]);
+         image.m_color_indices[i] = color_loader.get_color_index(rgb_color);
       }
       return image;
    }
@@ -58,17 +53,24 @@ namespace {
 
 
 auto moo::load_images(
-   const fs::path& path_base
-   , GameColors& colors
+   const fs::path& path_base,
+   ColorLoader& color_loader
 ) -> std::vector<Image>
 {
    std::vector<moo::Image> images;
-   int i = 0;
-   while (true) {
+   for(int i=0; true; ++i){
       const fs::path path = get_path_from_base(path_base, i);
       if (!fs::exists(path))
          return images;
-      images.emplace_back(load_image(path, colors));
-      ++i;
+      images.emplace_back(load_image(path, color_loader));
    }
+}
+
+
+moo::Image::Image(const unsigned int width, const unsigned int height)
+   : m_color_indices(width* height, ColorIndex{})
+   , m_width(width)
+   , m_height(height)
+{
+
 }

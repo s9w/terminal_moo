@@ -12,7 +12,7 @@ namespace moo {
       auto operator<=>(const RGB& other) const = default;
    };
 
-   [[nodiscard]] auto get_gradient(const RGB& from, const RGB& to, const int n) -> std::vector<RGB>;
+   [[nodiscard]] auto get_gradient(const RGB& from, const RGB& to, const unsigned int n) -> std::vector<RGB>;
 
    [[nodiscard]] auto get_sky_colors(const int sky_color_count) -> std::vector<moo::RGB>;
    [[nodiscard]] auto get_ground_colors(const int ground_color_count) -> std::vector<moo::RGB>;

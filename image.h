@@ -10,17 +10,17 @@ namespace fs = std::filesystem;
 namespace moo {
 
    struct Image {
-      std::vector<ColorIndex> color_indices;
-      int width = 0;
-      int height = 0;
-      void allocate() {
-         color_indices.resize(width * height);
-      }
+      Image() = default;
+      Image(const unsigned int width, const unsigned int height);
+
+      std::vector<ColorIndex> m_color_indices;
+      int m_width = 0;
+      int m_height = 0;
    };
 
    [[nodiscard]] auto load_images(
       const fs::path& path_base,
-      moo::GameColors& game_colors
+      ColorLoader& color_loader
    ) -> std::vector<moo::Image>;
 
 }

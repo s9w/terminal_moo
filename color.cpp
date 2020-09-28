@@ -5,7 +5,7 @@ namespace {
    [[nodiscard]] auto get_gradient(
       const unsigned char from,
       const unsigned char to,
-      const int n
+      const unsigned int n
    ) -> std::vector<unsigned char>
    {
       if (n < 2) {
@@ -15,7 +15,7 @@ namespace {
       const double delta = 1.0 * (to - from) / (n - 1);
       std::vector<unsigned char> gradient;
       gradient.reserve(n);
-      for (int i = 0; i < n; ++i) {
+      for (unsigned int i = 0; i < n; ++i) {
          const double value = from + i * delta;
          gradient.emplace_back(static_cast<unsigned char>(value));
       }
@@ -28,7 +28,7 @@ namespace {
 auto moo::get_gradient(
    const RGB& from, 
    const RGB& to,
-   const int n
+   const unsigned int n
 ) -> std::vector<RGB>
 {
    const std::vector<unsigned char> r_grad = ::get_gradient(from.r, to.r, n);
@@ -36,7 +36,7 @@ auto moo::get_gradient(
    const std::vector<unsigned char> b_grad = ::get_gradient(from.b, to.b, n);
    std::vector<RGB> gradient;
    gradient.reserve(n);
-   for (int i = 0; i < n; ++i)
+   for (unsigned int i = 0; i < n; ++i)
       gradient.push_back({ r_grad[i], g_grad[i] , b_grad[i] });
    return gradient;
 }

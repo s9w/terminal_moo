@@ -223,22 +223,23 @@ moo::game::game(const int columns, const int rows)
 {
    m_string.reserve(100000);
    {
-      m_game_colors.ship_color_start = m_game_colors.rgbs.size();
-      m_player_image = load_images("player.png", m_game_colors);
-      m_game_colors.ship_color_count = m_game_colors.rgbs.size() - m_game_colors.ship_color_start;
+      {
+         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Ship);
+         m_player_image = load_images("player.png", color_loader);
+      }
 
-      m_game_colors.sky_color_start = m_game_colors.rgbs.size();
-      std::vector<RGB> sky_colors = get_sky_colors(100);
-      append_moved(m_game_colors.rgbs, sky_colors);
-      m_game_colors.sky_color_count = m_game_colors.rgbs.size() - m_game_colors.sky_color_start;
+      {
+         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Sky);
+         color_loader.load_rgbs(get_sky_colors(100));
+      }
 
-      m_game_colors.ground_color_start = m_game_colors.rgbs.size();
-      std::vector<RGB> ground_colors = get_ground_colors(100);
-      append_moved(m_game_colors.rgbs, ground_colors);
-      m_game_colors.ground_color_count = m_game_colors.rgbs.size() - m_game_colors.ground_color_start;
+      {
+         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Ground);
+         color_loader.load_rgbs(get_ground_colors(100));
+      }
 
       m_bg_colors = get_bg_colors(m_columns, m_rows, m_game_colors);
-      m_painter = Painter(get_color_strings(m_game_colors.rgbs, false), get_color_strings(m_game_colors.rgbs, true));
+      m_painter = Painter(get_color_strings(m_game_colors.get_rgbs(), false), get_color_strings(m_game_colors.get_rgbs(), true));
    }
 
    disable_selection();
@@ -336,14 +337,14 @@ void moo::game::write_image_at_pos(
    const int i_offset, 
    const int j_offset
 ){
-   for (int i = 0; i < image.height; ++i) {
-      for (int j = 0; j < image.width; ++j) {
-         const int image_index = i * image.width + j;
+   for (int i = 0; i < image.m_height; ++i) {
+      for (int j = 0; j < image.m_width; ++j) {
+         const int image_index = i * image.m_width + j;
          const int pixel_index = (i_offset + i) * 2 * m_columns + (j_offset + j);
          if(pixel_index > m_pixels.size() - 1)
             continue;
-         if (image.color_indices[image_index] > 0)
-            m_pixels[pixel_index] = image.color_indices[image_index];
+         if (image.m_color_indices[image_index] > 0)
+            m_pixels[pixel_index] = image.m_color_indices[image_index];
       }
    }
 }
