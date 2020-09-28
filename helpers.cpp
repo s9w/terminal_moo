@@ -24,7 +24,10 @@ auto moo::operator+(const FractionalPos& a, const FractionalPos& b) -> Fractiona
 }
 
 auto moo::get_indep_normalized(const FractionalPos& a) -> FractionalPos{
-   return { get_sign(a.x_fraction), get_sign(a.y_fraction) };
+   FractionalPos result;
+   result.x_fraction = is_zero(a.x_fraction) ? 0.0 : get_sign(a.x_fraction);
+   result.y_fraction = is_zero(a.y_fraction) ? 0.0 : get_sign(a.y_fraction);
+   return result;
 }
 
 auto moo::length(const FractionalPos& a) -> double{

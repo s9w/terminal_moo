@@ -30,10 +30,18 @@ namespace moo {
       auto operator<=>(const LongRect& other) const = default;
    };
 
+   template<class T>
+   constexpr T get_tol() {
+      return static_cast<T>(0.001);
+   }
 
    template <typename T>
    T get_sign(const T val) {
       return val < static_cast<T>(0) ? static_cast<T>(-1) : static_cast<T>(1);
+   }
+   template<class T>
+   constexpr bool is_zero(const T number) {
+      return std::abs(number) < get_tol<T>();
    }
 
    template <class T>

@@ -263,7 +263,7 @@ auto moo::game::run() -> void{
       GetCursorPos(&mouse_pos);
       m_mouse_pos.x_fraction = 1.0 * (mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
       m_mouse_pos.y_fraction = 1.0 * (mouse_pos.y - m_window_rect.top) / (m_window_rect.bottom - m_window_rect.top);
-      m_player.move_towards(m_mouse_pos, dt);
+      m_player.move_towards(m_mouse_pos, dt, 2 * m_rows, 2 * m_columns);
 
       constexpr double helicopter_anim_frametime = 50.0;
       const size_t anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
