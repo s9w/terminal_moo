@@ -1,8 +1,9 @@
 #pragma once
 #include "block_char.h"
 #include "color.h"
-#include "helpers.h"
+#include "cow.h"
 #include "fps_counter.h"
+#include "helpers.h"
 #include "image.h"
 #include "painter.h"
 #include "player.h"
@@ -46,7 +47,7 @@ namespace moo {
       std::vector<char> m_screen_text;
       std::wstring m_string;
       std::vector<Image> m_player_image;
-      Image m_cow_image;
+      std::vector<Image> m_cow_image;
       std::vector<ColorIndex> m_pixels;
       FractionalPos m_mouse_pos;
       FpsCounter m_fps_counter;
@@ -54,6 +55,7 @@ namespace moo {
       std::chrono::time_point<std::chrono::system_clock> m_t0;
       std::chrono::time_point<std::chrono::system_clock> m_t_last;
       Player m_player;
+      std::vector<Cow> m_cows;
    };
 
 

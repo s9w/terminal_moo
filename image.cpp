@@ -24,32 +24,36 @@ namespace {
       CHECK(get_path_from_base("test.png", 3) == "test3.png");
    }
 
-
-   [[nodiscard]] auto load_image(
-      const fs::path& path,
-      moo::ColorLoader& color_loader
-   ) -> moo::Image
-   {
-      int png_bpp, png_width, png_height;
-      unsigned char* png_data = stbi_load(path.string().c_str(), &png_width, &png_height, &png_bpp, 0);
-      if (png_bpp != 3) {
-         printf("Image doesn't have RGB colors. (%s, %ibpp)\n", path.string().c_str(), png_bpp);
-         std::terminate();
-      }
-      if (png_width % 2 != 0 || png_height % 2 != 0) {
-         printf("Image (%s) doesn't have even dimensions\n", path.string().c_str());
-         std::terminate();
-      }
-      moo::Image image(png_width, png_height);
-      for (int i = 0; i < png_width * png_height; ++i) {
-         static_assert(sizeof(moo::RGB::r) == sizeof(stbi_uc)); // making sure the following cast is elegant instead of evil
-         const moo::RGB rgb_color = reinterpret_cast<moo::RGB&>(png_data[i * 3]);
-         image.m_color_indices[i] = color_loader.get_color_index(rgb_color);
-      }
-      return image;
-   }
-
 } // namespace {}
+
+
+[[nodiscard]] auto moo::load_image(
+   const fs::path& path,
+   moo::ColorLoader& color_loader
+) -> moo::Image
+{
+   if (!fs::exists(path)) {
+      printf("File doesn't exist (%s).\n", path.string().c_str());
+      std::terminate();
+   }
+   int png_bpp, png_width, png_height;
+   unsigned char* png_data = stbi_load(path.string().c_str(), &png_width, &png_height, &png_bpp, 0);
+   if (png_bpp != 3) {
+      printf("Image doesn't have RGB colors. (%s, %ibpp)\n", path.string().c_str(), png_bpp);
+      std::terminate();
+   }
+   if (png_width % 2 != 0 || png_height % 2 != 0) {
+      printf("Image (%s) doesn't have even dimensions\n", path.string().c_str());
+      std::terminate();
+   }
+   moo::Image image(png_width, png_height);
+   for (int i = 0; i < png_width * png_height; ++i) {
+      static_assert(sizeof(moo::RGB::r) == sizeof(stbi_uc)); // making sure the following cast is elegant instead of evil
+      const moo::RGB rgb_color = reinterpret_cast<moo::RGB&>(png_data[i * 3]);
+      image.m_color_indices[i] = color_loader.get_color_index(rgb_color);
+   }
+   return image;
+}
 
 
 auto moo::load_images(

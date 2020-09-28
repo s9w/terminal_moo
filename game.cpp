@@ -1,5 +1,6 @@
 ﻿#include <filesystem>
 namespace fs = std::filesystem;
+#include <random>
 
 #include "color_index.h"
 #include "game.h"
@@ -223,12 +224,33 @@ moo::game::game(const int columns, const int rows)
    , m_t0(std::chrono::system_clock::now())
    , m_t_last(std::chrono::system_clock::now())
 {
+   {
+      constexpr int cow_count = 5;
+      const auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
+      std::mt19937_64 rng(seed);
+      std::uniform_real_distribution<double> x_distance_variance_dist(-0.1, 0.1);
+      std::uniform_real_distribution<double> y_dist(0.8, 0.95);
+      double x_pos = 0.1;
+
+      std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
+      for (int i = 0; i < cow_count; ++i) {
+         m_cows.emplace_back(FractionalPos{ x_pos, y_dist(rng) }, grazing_progress_dist(rng));
+         x_pos += 0.8 / (cow_count-1) + x_distance_variance_dist(rng);
+      }
+   }
+
    m_string.reserve(100000);
    {
       {
          ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Ship);
+         m_cow_image = load_images("cow.png", color_loader);
+      }
+
+      {
+         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Ship);
          m_player_image = load_images("player.png", color_loader);
       }
+
 
       {
          ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Sky);
@@ -266,8 +288,15 @@ auto moo::game::run() -> void{
       m_player.move_towards(m_mouse_pos, dt, 2 * m_rows, 2 * m_columns);
 
       constexpr double helicopter_anim_frametime = 50.0;
-      const size_t anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
-      write_image_at_pos(m_player_image[anim_i], m_player.m_pos);
+      constexpr double grazing_anim_frametime = 5000.0;
+      const size_t player_anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
+      write_image_at_pos(m_player_image[player_anim_i], m_player.m_pos);
+      for (Cow& cow : m_cows) {
+         const double cow_progress = cow.progress(dt);
+         //const double time_progress = std::fmod(ms_since_start, grazing_anim_frametime) / grazing_anim_frametime;
+         const size_t cow_anim_i = cow_progress > 0.5;
+         write_image_at_pos(m_cow_image[cow_anim_i], cow.m_pos);
+      }
       write_screen_text(fmt::format("FPS: {}", m_fps_counter.m_current_fps), 0, 0);
       write_screen_text(fmt::format("mouse pos: {:.2f}, {:.2f}", m_mouse_pos.x_fraction, m_mouse_pos.y_fraction), 1, 0);
 
