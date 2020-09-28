@@ -3,6 +3,7 @@
 #include "color.h"
 #include "helpers.h"
 #include "fps_counter.h"
+#include "image.h"
 #include "painter.h"
 
 #include <string>
@@ -13,29 +14,7 @@
 
 namespace moo {
 
-   struct Image {
-      std::vector<size_t> color_indices;
-      int width = 0;
-      int height = 0;
-      void allocate() {
-         color_indices.resize(width * height);
-      }
-   };
-
-   struct Colors {
-      Colors();
-      std::vector<RGB> rgbs;
-      [[nodiscard]] size_t get_sky_color(const double fraction) const;
-      [[nodiscard]] size_t get_ground_color(const double fraction) const;
-      [[nodiscard]] size_t get_white() const;
-
-      size_t ship_color_start = 0;
-      size_t ship_color_count = 0;
-      size_t sky_color_start = 0;
-      size_t sky_color_count = 0;
-      size_t ground_color_start = 0;
-      size_t ground_color_count = 0;
-   };
+   
 
 
    struct game {
@@ -60,7 +39,7 @@ namespace moo {
       int m_font_width = 0;
       int m_font_height = 0;
       HANDLE m_output_handle;
-      Colors m_colors;
+      GameColors m_game_colors;
       Painter m_painter;
       std::vector<ColorIndex> m_bg_colors;
       std::vector<char> m_screen_text;

@@ -8,25 +8,8 @@ namespace fs = std::filesystem;
 
 #include <fmt\format.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 
 namespace {
-   
-
-   [[nodiscard]] auto get_sky_colors(const int sky_color_count) -> std::vector<moo::RGB> {
-      constexpr moo::RGB light_blue{ 166, 180, 190 };
-      constexpr moo::RGB dark_blue{ 0, 82, 135 };
-      return get_gradient(light_blue, dark_blue, sky_color_count);
-   }
-
-
-   [[nodiscard]] auto get_ground_colors(const int ground_color_count) -> std::vector<moo::RGB> {
-      constexpr moo::RGB light_green{ 55, 108, 48 };
-      constexpr moo::RGB dark_green{ 21, 42, 31 };
-      return get_gradient(light_green, dark_green, ground_color_count);
-   }
 
 
    std::wstring get_color_string(const moo::RGB& rgb, const bool bg) {
@@ -48,7 +31,7 @@ namespace {
    }
 
 
-   [[nodiscard]] auto get_bg_colors(const int columns, const int rows, const moo::Colors& colors) -> std::vector<moo::ColorIndex> {
+   [[nodiscard]] auto get_bg_colors(const int columns, const int rows, const moo::GameColors& game_colors) -> std::vector<moo::ColorIndex> {
       std::vector<moo::ColorIndex> color_indices(columns * rows, 0);
       constexpr double sky_fraction = 0.8;
       const int sky_height = static_cast<int>(sky_fraction * rows);
@@ -57,14 +40,14 @@ namespace {
          for (int j = 0; j < columns; ++j) {
             const double fraction = 1.0 * i / sky_height;
             const int index = i * columns + j;
-            color_indices[index] = colors.get_sky_color(fraction);
+            color_indices[index] = game_colors.get_sky_color(fraction);
          }
       }
       for (int i = 0; i < ground_height; ++i) {
          for (int j = 0; j < columns; ++j) {
             const double fraction = 1.0 * i / ground_height;
             const int index = (i + sky_height) * columns + j;
-            color_indices[index] = colors.get_ground_color(fraction);
+            color_indices[index] = game_colors.get_ground_color(fraction);
          }
       }
       return color_indices;
@@ -74,63 +57,6 @@ namespace {
    void write(HANDLE& output_handle, const std::wstring str) {
       LPDWORD chars_written = 0;
       WriteConsole(output_handle, str.c_str(), static_cast<DWORD>(str.length()), chars_written, 0);
-   }
-
-
-   [[nodiscard]]  auto load_image(
-      const fs::path& path, 
-      moo::Colors& colors
-   ) -> moo::Image
-   {
-      moo::Image image;
-      int png_bpp;
-      unsigned char* png_data = stbi_load(path.string().c_str(), &image.width, &image.height, &png_bpp, 0);
-      if (png_bpp != 3) {
-         printf("Image doesn't have RGB colors. (%s, %ibpp)\n", path.string().c_str(), png_bpp);
-         std::terminate();
-      }
-      if (image.width % 2 != 0 || image.height % 2 != 0) {
-         printf("Image (%s) doesn't have even dimensions\n", path.string().c_str());
-         std::terminate();
-      }
-      image.allocate();
-      for (int i = 0; i < image.width * image.height; ++i) {
-         static_assert(sizeof(moo::RGB::r) == sizeof(stbi_uc)); // making sure the following cast works
-         const moo::RGB color = reinterpret_cast<moo::RGB&>(png_data[i * 3 + 0]);
-         const auto it = std::find(std::cbegin(colors.rgbs), std::cend(colors.rgbs), color);
-         const size_t color_index = std::distance(std::cbegin(colors.rgbs), it);
-         if (it == std::cend(colors.rgbs))
-            colors.rgbs.emplace_back(color);
-         image.color_indices[i] = color_index;
-      }
-      return image;
-   }
-
-
-   [[nodiscard]] auto get_path_from_base(
-      const fs::path& path_base,
-      const int i) -> fs::path
-   {
-      fs::path path = path_base;
-      path.replace_filename(path.stem().string() + std::to_string(i) + path.extension().string());
-      return path;
-   }
-
-
-   [[nodiscard]]  auto load_images(
-      const fs::path& path_base,
-      moo::Colors& colors
-   ) -> std::vector<moo::Image>
-   {
-      std::vector<moo::Image> images;
-      int i = 0;
-      while (true) {
-         const fs::path path = get_path_from_base(path_base, i);
-         if (!fs::exists(path))
-            return images;
-         images.emplace_back(load_image(path, colors));
-         ++i;
-      }
    }
 
 
@@ -297,22 +223,22 @@ moo::game::game(const int columns, const int rows)
 {
    m_string.reserve(100000);
    {
-      m_colors.ship_color_start = m_colors.rgbs.size();
-      m_player_image = load_images("player.png", m_colors);
-      m_colors.ship_color_count = m_colors.rgbs.size() - m_colors.ship_color_start;
+      m_game_colors.ship_color_start = m_game_colors.rgbs.size();
+      m_player_image = load_images("player.png", m_game_colors);
+      m_game_colors.ship_color_count = m_game_colors.rgbs.size() - m_game_colors.ship_color_start;
 
-      m_colors.sky_color_start = m_colors.rgbs.size();
-      auto sky_colors = get_sky_colors(100);
-      append_moved(m_colors.rgbs, sky_colors);
-      m_colors.sky_color_count = m_colors.rgbs.size() - m_colors.sky_color_start;
+      m_game_colors.sky_color_start = m_game_colors.rgbs.size();
+      std::vector<RGB> sky_colors = get_sky_colors(100);
+      append_moved(m_game_colors.rgbs, sky_colors);
+      m_game_colors.sky_color_count = m_game_colors.rgbs.size() - m_game_colors.sky_color_start;
 
-      m_colors.ground_color_start = m_colors.rgbs.size();
-      auto ground_colors = get_ground_colors(100);
-      append_moved(m_colors.rgbs, ground_colors);
-      m_colors.ground_color_count = m_colors.rgbs.size() - m_colors.ground_color_start;
+      m_game_colors.ground_color_start = m_game_colors.rgbs.size();
+      std::vector<RGB> ground_colors = get_ground_colors(100);
+      append_moved(m_game_colors.rgbs, ground_colors);
+      m_game_colors.ground_color_count = m_game_colors.rgbs.size() - m_game_colors.ground_color_start;
 
-      m_bg_colors = get_bg_colors(m_columns, m_rows, m_colors);
-      m_painter = Painter(get_color_strings(m_colors.rgbs, false), get_color_strings(m_colors.rgbs, true));
+      m_bg_colors = get_bg_colors(m_columns, m_rows, m_game_colors);
+      m_painter = Painter(get_color_strings(m_game_colors.rgbs, false), get_color_strings(m_game_colors.rgbs, true));
    }
 
    disable_selection();
@@ -377,7 +303,7 @@ void moo::game::write_string(){
       m_painter.paint_layer(row_bg_color, Painter::Layer::Back, m_string);
       for (int j = 0; j < m_columns; ++j) {
          if (const char screen_char = m_screen_text[i * m_columns + j]; screen_char != '\0') {
-            m_painter.paint_layer(m_colors.get_white(), Painter::Layer::Front, m_string);
+            m_painter.paint_layer(m_game_colors.get_white(), Painter::Layer::Front, m_string);
             m_string += screen_char;
             continue;
          }
@@ -450,24 +376,7 @@ void moo::game::clear_screen_text(){
 }
 
 
-moo::Colors::Colors(){
-   rgbs.push_back({ 0, 0, 0 }); // black, but used as alpha mask
-   rgbs.push_back({ 255, 255, 255 }); // white
-}
 
-
-size_t moo::Colors::get_sky_color(const double fraction) const{
-   return sky_color_start + static_cast<size_t>(fraction * sky_color_count);
-}
-
-
-size_t moo::Colors::get_ground_color(const double fraction) const{
-   return ground_color_start + static_cast<size_t>(fraction * ground_color_count);
-}
-
-size_t moo::Colors::get_white() const{
-   return 1;
-}
 
 
 // todo
