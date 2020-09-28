@@ -5,6 +5,7 @@
 #include "fps_counter.h"
 #include "image.h"
 #include "painter.h"
+#include "player.h"
 
 #include <string>
 
@@ -14,14 +15,7 @@
 
 namespace moo {
 
-   struct FractionalPos {
-      double x_fraction = 0;
-      double y_fraction = 0;
-   };
-   struct PixelPos {
-      int i = 0;
-      int j = 0;
-   };
+
 
    struct game {
       game(const int columns, const int rows);
@@ -58,6 +52,8 @@ namespace moo {
       FpsCounter m_fps_counter;
       int m_frame = 0;
       std::chrono::time_point<std::chrono::system_clock> m_t0;
+      std::chrono::time_point<std::chrono::system_clock> m_t_last;
+      Player m_player;
    };
 
 

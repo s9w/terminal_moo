@@ -221,6 +221,7 @@ moo::game::game(const int columns, const int rows)
    , m_pixels(2 * m_columns * 2 * m_rows, -1)
    , m_fps_counter()
    , m_t0(std::chrono::system_clock::now())
+   , m_t_last(std::chrono::system_clock::now())
 {
    m_string.reserve(100000);
    {
@@ -252,6 +253,7 @@ moo::game::game(const int columns, const int rows)
 auto moo::game::run() -> void{
    while (true) {
       const auto now = std::chrono::system_clock::now();
+      const double dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t_last).count() / 1000.0; // in fraction of one second
       const long long ms_since_start = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t0).count();
 
       std::fill(m_pixels.begin(), m_pixels.end(), -1);
@@ -261,10 +263,11 @@ auto moo::game::run() -> void{
       GetCursorPos(&mouse_pos);
       m_mouse_pos.x_fraction = 1.0 * (mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
       m_mouse_pos.y_fraction = 1.0 * (mouse_pos.y - m_window_rect.top) / (m_window_rect.bottom - m_window_rect.top);
+      m_player.move_towards(m_mouse_pos, dt);
 
       constexpr double helicopter_anim_frametime = 50.0;
       const size_t anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
-      write_image_at_pos(m_player_image[anim_i], m_mouse_pos);
+      write_image_at_pos(m_player_image[anim_i], m_player.m_pos);
       write_screen_text(fmt::format("FPS: {}", m_fps_counter.m_current_fps), 0, 0);
       write_screen_text(fmt::format("mouse pos: {:.2f}, {:.2f}", m_mouse_pos.x_fraction, m_mouse_pos.y_fraction), 1, 0);
 
@@ -274,6 +277,8 @@ auto moo::game::run() -> void{
       write(m_output_handle, m_string);
       m_fps_counter.step();
       ++m_frame;
+
+      m_t_last = now;
    }
 }
 
