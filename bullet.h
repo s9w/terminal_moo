@@ -7,7 +7,7 @@
 
 namespace moo {
 
-   struct Trail {
+   struct TrailPuff {
       FractionalPos pos;
       ColorIndex color;
    };
@@ -21,7 +21,8 @@ namespace moo {
       FractionalPos m_trajectory;
       FractionalPos m_pos;
       FractionalPos m_initial_pos;
-      std::vector<Trail> m_trail;
+      FractionalPos m_gravity_influence;
+      std::vector<TrailPuff> m_trail;
    };
 
 }

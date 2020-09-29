@@ -437,7 +437,7 @@ auto moo::game::get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t{
 
 
 auto moo::game::draw_bullet(const Bullet& bullet) -> void{
-   for (const Trail& trail : bullet.m_trail) {
+   for (const TrailPuff& trail : bullet.m_trail) {
       if (!trail.pos.is_on_screen())
          continue;
       m_pixels[get_pixel_grid_index(get_pixel_pos(trail.pos))] = trail.color;

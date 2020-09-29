@@ -26,8 +26,11 @@ moo::Bullet::Bullet(const FractionalPos& initial_pos, std::mt19937_64& rng)
    : m_pos(initial_pos)
    , m_initial_pos(initial_pos)
 {
-   constexpr double angle_spread = 0.1 * 2.0 * pi;
-   std::uniform_real_distribution<double> phi_dist(-angle_spread, angle_spread);
+   constexpr double negative_angle_spread = -0.1 * 2.0 * pi;
+   constexpr double positive_angle_spread = - 0.5 * negative_angle_spread; // this points down
+   
+   
+   std::uniform_real_distribution<double> phi_dist(negative_angle_spread, positive_angle_spread);
    const double phi = phi_dist(rng);
    m_trajectory = get_normalized({ std::cos(phi), std::sin(phi) });
 }
@@ -37,7 +40,10 @@ auto moo::Bullet::progress(const double dt, std::mt19937_64& rng, const ColorInd
    expand_trail(rng, smoke_color);
    thin_trail(rng, dt);
    constexpr double bullet_speed = 2.5;
-   m_pos = m_pos + bullet_speed * dt * m_trajectory;
+   constexpr double gravity_strength = 0.01;
+   m_gravity_influence = m_gravity_influence + FractionalPos{0.0, dt * gravity_strength};
+   const FractionalPos pos_change = bullet_speed * dt * m_trajectory + m_gravity_influence;
+   m_pos = m_pos + pos_change;
    return m_trail.empty() && !m_pos.is_on_screen();
 }
 
