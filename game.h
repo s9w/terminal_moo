@@ -1,4 +1,5 @@
 #pragma once
+
 #include "block_char.h"
 #include "color.h"
 #include "cow.h"
@@ -7,6 +8,7 @@
 #include "image.h"
 #include "painter.h"
 #include "player.h"
+#include "ufo.h"
 
 #include <string>
 
@@ -22,9 +24,12 @@ namespace moo {
       game(const int columns, const int rows);
       auto run() -> void;
       void write_string();
-      void write_image_at_pos(const Image& image, const FractionalPos& pos);
+      void write_image_at_pos(const Image& image, const FractionalPos& pos, const std::optional<ColorIndex>& override_color);
       void write_screen_text(const std::string& text, const int i, const int j);
       void clear_screen_text();
+      void refresh_mouse_pos();
+      void refresh_window_rect();
+      void handle_mouse_click();
       void one_pixel(
          const BlockChar& block_char,
          const ColorIndex row_bg_color
@@ -35,7 +40,9 @@ namespace moo {
       [[nodiscard]] auto get_block_char(int i, int j) const -> BlockChar;
       [[nodiscard]] auto get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos;
       [[nodiscard]] auto get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t;
+      auto draw_sky_and_ground() -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
+      auto draw_cows(const Seconds dt) -> void;
       auto draw_shadow(const FractionalPos& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
       auto draw_to_bg(const Image& image, const int i, const int j) -> void;
 
@@ -54,6 +61,7 @@ namespace moo {
       std::vector<Image> m_player_image;
       std::vector<Image> m_cow_image;
       std::vector<Image> m_cloud_images;
+      std::vector<Image> m_ufo_images;
       std::vector<ColorIndex> m_pixels;
       FractionalPos m_mouse_pos;
       FpsCounter m_fps_counter;
@@ -63,6 +71,7 @@ namespace moo {
       Player m_player;
       std::vector<Cow> m_cows;
       std::vector<Bullet> m_bullets;
+      std::vector<Ufo> m_ufos;
       std::mt19937_64 m_rng;
    };
 

@@ -52,6 +52,12 @@ auto moo::GameColors::get_smoke_color(const double fraction) const -> ColorIndex
    return get_region_fraction(m_smoke_color_region, fraction);
 }
 
+
+auto moo::GameColors::get_health_color(const double fraction) const -> ColorIndex{
+   return get_region_fraction(m_health_color_region, fraction);
+}
+
+
 auto moo::GameColors::get_color_loader(const ColorRegions color_region_id) -> ColorLoader{
    if(color_region_id == ColorRegions::Ship)
       return ColorLoader(m_rgbs, m_ship_color_region);
@@ -61,6 +67,8 @@ auto moo::GameColors::get_color_loader(const ColorRegions color_region_id) -> Co
       return ColorLoader(m_rgbs, m_smoke_color_region);
    else if (color_region_id == ColorRegions::Clouds)
       return ColorLoader(m_rgbs, m_cloud_color_region);
+   else if (color_region_id == ColorRegions::Health)
+      return ColorLoader(m_rgbs, m_health_color_region);
    else
       return ColorLoader(m_rgbs, m_ground_color_region);
 }

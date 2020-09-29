@@ -37,19 +37,23 @@ moo::Bullet::Bullet(const FractionalPos& initial_pos, std::mt19937_64& rng)
 
 
 auto moo::Bullet::progress(
-   const double dt, 
+   const Seconds dt, 
    std::mt19937_64& rng,
    const ColorIndex smoke_color
 ) -> bool
 {
-   constexpr double bullet_speed = 2.5;
-   m_gravity_speed = m_gravity_speed + dt * FractionalPos{0.0, moo::get_config().gravity_strength };
-   const FractionalPos pos_change = dt * (bullet_speed * m_trajectory + m_gravity_speed);
-   const FractionalPos new_pos = m_pos + pos_change;
-   m_trail.expand_trail(rng, smoke_color, new_pos, m_pos);
+   if (m_head_alive) {
+      constexpr double bullet_speed = 2.5;
+      m_gravity_speed = m_gravity_speed + dt.m_value * FractionalPos{ 0.0, moo::get_config().gravity_strength };
+      const FractionalPos pos_change = dt.m_value * (bullet_speed * m_trajectory + m_gravity_speed);
+      const FractionalPos new_pos = m_pos + pos_change;
+      m_trail.expand_trail(rng, smoke_color, new_pos, m_pos);
+      m_pos = new_pos;
+   }
    m_trail.thin_trail(rng, dt);
-   m_pos = new_pos;
-   const bool should_be_deleted = m_trail.m_smoke_puffs.empty() && !m_pos.is_on_screen();
+
+   const bool head_can_be_deleted = !m_head_alive || !m_pos.is_on_screen();
+   const bool should_be_deleted = m_trail.m_smoke_puffs.empty() && head_can_be_deleted;
    return should_be_deleted;
 }
 
@@ -61,7 +65,7 @@ auto moo::Bullet::recolor_puffs(const ColorIndex first_smoke_color) -> void{
 
 auto moo::Trail::thin_trail(
    std::mt19937_64& rng,
-   const double dt
+   const Seconds dt
 ) -> void
 {
    std::uniform_real_distribution<double> one_dist(0.0, 1.0);

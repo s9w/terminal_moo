@@ -17,6 +17,7 @@ namespace moo {
 
    [[nodiscard]] auto get_smoke_colors(const int smoke_color_count, std::mt19937_64& rng) -> std::vector<moo::RGB>;
    [[nodiscard]] auto get_sky_colors(const int sky_color_count) -> std::vector<moo::RGB>;
+   [[nodiscard]] auto get_health_colors(const int health_color_count) -> std::vector<moo::RGB>;
    [[nodiscard]] auto get_ground_colors(const int ground_color_count) -> std::vector<moo::RGB>;
 
 }

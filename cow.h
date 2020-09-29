@@ -6,10 +6,10 @@ namespace moo {
 
    struct Cow {
       Cow(const FractionalPos& pos, const double initial_progress);
-      auto progress(const double dt) -> double;
+      auto progress(const Seconds dt) -> double;
 
       FractionalPos m_pos;
-      double m_grazing_time = 0.0;
+      Seconds m_grazing_time = 0.0;
    };
 
 }

@@ -13,7 +13,7 @@ namespace moo {
    };
 
    struct Trail {
-      auto thin_trail(std::mt19937_64& rng, const double dt) -> void;
+      auto thin_trail(std::mt19937_64& rng, const Seconds dt) -> void;
       auto expand_trail(std::mt19937_64& rng, const ColorIndex smoke_color, const FractionalPos& new_bullet_pos, const FractionalPos& old_bullet_pos) -> void;
       auto recolor_puffs(const ColorIndex first_smoke_color, const FractionalPos bullet_pos) -> void;
 
@@ -22,13 +22,14 @@ namespace moo {
 
    struct Bullet {
       Bullet(const FractionalPos& initial_pos, std::mt19937_64& rng);
-      [[nodiscard]] auto progress(const double dt, std::mt19937_64& rng, const ColorIndex smoke_color) -> bool;
+      [[nodiscard]] auto progress(const Seconds dt, std::mt19937_64& rng, const ColorIndex smoke_color) -> bool;
       auto recolor_puffs(const ColorIndex first_smoke_color) -> void;
 
       FractionalPos m_trajectory;
       FractionalPos m_pos;
       FractionalPos m_initial_pos;
       FractionalPos m_gravity_speed;
+      bool m_head_alive = true;
       Trail m_trail;
    };
 

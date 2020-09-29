@@ -8,6 +8,33 @@
 
 namespace moo {
 
+   struct Seconds {
+      constexpr Seconds(const double value)
+         : m_value(value)
+      {
+
+      }
+
+      constexpr auto operator+=(const Seconds& other) -> Seconds& {
+         m_value += other.m_value;
+         return *this;
+      }
+
+      constexpr auto operator<=>(const Seconds& other) const = default;
+
+      double m_value = 0.0;
+   };
+   [[nodiscard]] constexpr auto operator-(const Seconds& a, const Seconds& b) -> Seconds {
+      return Seconds(a.m_value - b.m_value);
+   }
+   [[nodiscard]] constexpr auto operator*(const double factor, const Seconds& sec) -> double {
+      return factor * sec.m_value;
+   }
+   [[nodiscard]] constexpr auto operator/(const Seconds& a, const Seconds& b) -> double {
+      return a.m_value / b.m_value;
+   }
+
+
    struct FractionalPos {
       [[nodiscard]] constexpr auto is_on_screen() const -> bool {
          return x_fraction >= 0.0 &&

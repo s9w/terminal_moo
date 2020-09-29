@@ -43,27 +43,27 @@ namespace {
       return new_pos;
    }
 
-   constexpr double shooting_interval_s = 0.2;
+   constexpr moo::Seconds shooting_interval_s = 0.2;
 
 } // namespace {}
 
 
 auto moo::Player::move_towards(
    const FractionalPos& target_pos,
-   const double dt,
+   const Seconds dt,
    const int rows,
    const int columns
 ) -> void
 {
    const FractionalPos position_diff = get_sanitized_position_diff(target_pos - m_pos, rows, columns);
-   m_pos = get_limited_pos(m_pos + dt * m_speed * get_indep_normalized(position_diff), rows);
+   m_pos = get_limited_pos(m_pos + dt.m_value * m_speed * get_indep_normalized(position_diff), rows);
 
-   m_shooting_cooldown = std::clamp(m_shooting_cooldown - dt, 0.0, shooting_interval_s);
+   m_shooting_cooldown = std::clamp(m_shooting_cooldown - dt, Seconds{ 0.0 }, shooting_interval_s);
 }
 
 
-auto moo::Player::fire(std::mt19937_64& rng) -> std::optional<Bullet> {
-   if (!is_zero(m_shooting_cooldown))
+auto moo::Player::try_to_fire(std::mt19937_64& rng) -> std::optional<Bullet> {
+   if (!is_zero(m_shooting_cooldown.m_value))
       return std::nullopt;
    m_shooting_cooldown = shooting_interval_s;
    FractionalPos initial_bullet_pos = m_pos + FractionalPos{0.05, 0.0};
