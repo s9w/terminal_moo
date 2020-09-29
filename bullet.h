@@ -14,7 +14,7 @@ namespace moo {
 
    struct Trail {
       auto thin_trail(std::mt19937_64& rng, const double dt) -> void;
-      auto expand_trail(std::mt19937_64& rng, const ColorIndex smoke_color, const FractionalPos& bullet_pos) -> void;
+      auto expand_trail(std::mt19937_64& rng, const ColorIndex smoke_color, const FractionalPos& new_bullet_pos, const FractionalPos& old_bullet_pos) -> void;
 
       std::vector<TrailPuff> m_smoke_puffs;
    };

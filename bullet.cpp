@@ -42,12 +42,13 @@ auto moo::Bullet::progress(
    const ColorIndex smoke_color
 ) -> bool
 {
-   m_trail.expand_trail(rng, smoke_color, m_pos);
-   m_trail.thin_trail(rng, dt);
    constexpr double bullet_speed = 2.5;
    m_gravity_speed = m_gravity_speed + dt * FractionalPos{0.0, moo::get_config().gravity_strength };
    const FractionalPos pos_change = dt * (bullet_speed * m_trajectory + m_gravity_speed);
-   m_pos = m_pos + pos_change;
+   const FractionalPos new_pos = m_pos + pos_change;
+   m_trail.expand_trail(rng, smoke_color, new_pos, m_pos);
+   m_trail.thin_trail(rng, dt);
+   m_pos = new_pos;
    const bool should_be_deleted = m_trail.m_smoke_puffs.empty() && !m_pos.is_on_screen();
    return should_be_deleted;
 }
@@ -73,10 +74,26 @@ auto moo::Trail::thin_trail(
 auto moo::Trail::expand_trail(
    std::mt19937_64& rng,
    const ColorIndex smoke_color,
-   const FractionalPos& bullet_pos
+   const FractionalPos& new_bullet_pos,
+   const FractionalPos& old_bullet_pos
 ) -> void
 {
+   if (!new_bullet_pos.is_on_screen())
+      return;
+   
+   if (m_smoke_puffs.empty()) {
+      m_smoke_puffs.push_back({ get_smoke_puff_pos(new_bullet_pos, rng), smoke_color });
+      return;
+   }
+
+   // Trace the path from the new bullet pos to the last one. That way the density of the smoke does not
+   // depend on the framerate.
    constexpr double min_smoke_puff_distance = 0.007;
-   if (m_smoke_puffs.empty() || length(bullet_pos - m_smoke_puffs.back().pos) > min_smoke_puff_distance)
-      m_smoke_puffs.push_back({ get_smoke_puff_pos(bullet_pos, rng), smoke_color });
+   const FractionalPos pos_diff = old_bullet_pos - new_bullet_pos;
+   const FractionalPos norm_pos_diff = get_normalized(pos_diff);
+   const double pos_diff_len = length(pos_diff);
+   for (double trace_progress = 0.0; trace_progress < pos_diff_len; trace_progress += min_smoke_puff_distance) {
+      const FractionalPos pos = new_bullet_pos + trace_progress * norm_pos_diff;
+      m_smoke_puffs.push_back({ get_smoke_puff_pos(pos, rng), smoke_color });
+   }
 }
