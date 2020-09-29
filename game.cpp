@@ -528,7 +528,7 @@ void moo::game::write_image_at_pos(
          if(pixel_i < 0 || pixel_i > 2*m_rows - 1 || pixel_j < 0 || pixel_j > 2*m_columns - 1)
             continue;
          const int pixel_index = pixel_i * 2 * m_columns + pixel_j;
-         if (image.m_color_indices[image_index] > 0)
+         if (image.m_color_indices[image_index] > 0 && m_pixels[pixel_index] == -1)
             m_pixels[pixel_index] = image.m_color_indices[image_index];
       }
    }
