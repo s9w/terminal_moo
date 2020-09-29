@@ -437,10 +437,10 @@ auto moo::game::get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t{
 
 
 auto moo::game::draw_bullet(const Bullet& bullet) -> void{
-   for (const TrailPuff& trail : bullet.m_trail) {
-      if (!trail.pos.is_on_screen())
+   for (const TrailPuff& puff : bullet.m_trail.m_smoke_puffs) {
+      if (!puff.pos.is_on_screen())
          continue;
-      m_pixels[get_pixel_grid_index(get_pixel_pos(trail.pos))] = trail.color;
+      m_pixels[get_pixel_grid_index(get_pixel_pos(puff.pos))] = puff.color;
    }
 
    const FractionalPos bullet_pos = bullet.m_pos;

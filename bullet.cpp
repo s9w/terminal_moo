@@ -1,6 +1,6 @@
 #include "bullet.h"
 
-#if _MSC_VER < 1928
+#if _MSC_VER < 1928 // Visual Studio 2019 version 16.8
 constexpr double pi = 3.14159265359;
 #else
 //#include <numbers>
@@ -29,40 +29,53 @@ moo::Bullet::Bullet(const FractionalPos& initial_pos, std::mt19937_64& rng)
    constexpr double negative_angle_spread = -0.1 * 2.0 * pi;
    constexpr double positive_angle_spread = - 0.5 * negative_angle_spread; // this points down
    
-   
    std::uniform_real_distribution<double> phi_dist(negative_angle_spread, positive_angle_spread);
    const double phi = phi_dist(rng);
    m_trajectory = get_normalized({ std::cos(phi), std::sin(phi) });
 }
 
 
-auto moo::Bullet::progress(const double dt, std::mt19937_64& rng, const ColorIndex smoke_color) -> bool{
-   expand_trail(rng, smoke_color);
-   thin_trail(rng, dt);
+auto moo::Bullet::progress(
+   const double dt, 
+   std::mt19937_64& rng,
+   const ColorIndex smoke_color
+) -> bool
+{
+   m_trail.expand_trail(rng, smoke_color, m_pos);
+   m_trail.thin_trail(rng, dt);
    constexpr double bullet_speed = 2.5;
    constexpr double gravity_strength = 0.01;
-   m_gravity_influence = m_gravity_influence + FractionalPos{0.0, dt * gravity_strength};
-   const FractionalPos pos_change = bullet_speed * dt * m_trajectory + m_gravity_influence;
+   m_gravity_speed = m_gravity_speed + dt * FractionalPos{0.0, gravity_strength };
+   const FractionalPos pos_change = bullet_speed * dt * m_trajectory + m_gravity_speed;
    m_pos = m_pos + pos_change;
-   return m_trail.empty() && !m_pos.is_on_screen();
+   return m_trail.m_smoke_puffs.empty() && !m_pos.is_on_screen();
 }
 
 
-auto moo::Bullet::thin_trail(std::mt19937_64& rng, const double dt) -> void{
-   std::uniform_real_distribution<double> standard(0.0, 1.0);
-   auto it = m_trail.begin();
-   while (it != m_trail.end()) {
+auto moo::Trail::thin_trail(
+   std::mt19937_64& rng,
+   const double dt
+) -> void
+{
+   std::uniform_real_distribution<double> one_dist(0.0, 1.0);
+   auto it = m_smoke_puffs.begin();
+   while (it != m_smoke_puffs.end()) {
       const double elim_threshold = 5.0 * dt;
-      if (standard(rng) < elim_threshold)
-         it = m_trail.erase(it);
+      if (one_dist(rng) < elim_threshold)
+         it = m_smoke_puffs.erase(it);
       else
          ++it;
    }
 }
 
 
-auto moo::Bullet::expand_trail(std::mt19937_64& rng, const ColorIndex smoke_color) -> void{
+auto moo::Trail::expand_trail(
+   std::mt19937_64& rng,
+   const ColorIndex smoke_color,
+   const FractionalPos& bullet_pos
+) -> void
+{
    constexpr double min_smoke_puff_distance = 0.007;
-   if (m_trail.empty() || length(m_pos - m_trail.back().pos) > min_smoke_puff_distance)
-      m_trail.push_back({ get_smoke_puff_pos(m_pos, rng), smoke_color });
+   if (m_smoke_puffs.empty() || length(bullet_pos - m_smoke_puffs.back().pos) > min_smoke_puff_distance)
+      m_smoke_puffs.push_back({ get_smoke_puff_pos(bullet_pos, rng), smoke_color });
 }
