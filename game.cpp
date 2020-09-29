@@ -12,6 +12,7 @@ namespace fs = std::filesystem;
 
 namespace {
 
+   constexpr double sky_fraction = 0.8;
 
    std::wstring get_color_string(const moo::RGB& rgb, const bool bg) {
       if (bg) {
@@ -34,7 +35,6 @@ namespace {
 
    [[nodiscard]] auto get_bg_colors(const int columns, const int rows, const moo::GameColors& game_colors) -> std::vector<moo::ColorIndex> {
       std::vector<moo::ColorIndex> color_indices(columns * rows, 0);
-      constexpr double sky_fraction = 0.8;
       const int sky_height = static_cast<int>(sky_fraction * rows);
       const int ground_height = rows - sky_height;
       for (int i = 0; i < sky_height; ++i) {
@@ -208,6 +208,36 @@ namespace {
          return get_pixel_index(row, column, columns, 1, 1);
    }
 
+
+   [[nodiscard]] auto get_cow_positions(
+      const int cow_count,
+      const double cow_image_width,
+      const double cow_image_height,
+      std::mt19937_64& rng
+   ) -> std::vector<moo::FractionalPos>
+   {
+      const double y_min = sky_fraction - 0.5 * cow_image_height;
+      const double y_max = 1.0 - 0.5 * cow_image_height;
+      const std::uniform_real_distribution<double> y_dist(y_min, y_max);
+
+      const double x_border = 0.5 * cow_image_width;
+      const double x_range = 1.0 - 2.0 * x_border;
+      const double cow_distance = x_range  / (cow_count - 1);
+      const double horiz_dist_var = 0.25 * cow_distance;
+      const std::uniform_real_distribution<double> x_distance_variance_dist(-horiz_dist_var, horiz_dist_var);
+
+      std::vector<moo::FractionalPos> cow_positions;
+      cow_positions.reserve(cow_count);
+      for (int i = 0; i < cow_count; ++i) {
+         double x_pos = x_border + i * cow_distance + x_distance_variance_dist(rng);
+
+         // make sure even the randomness does not push cows outside of the screen
+         x_pos = std::clamp(x_pos, x_border, x_border + x_range);
+         cow_positions.push_back({ x_pos, y_dist(rng) });
+      }
+      return cow_positions;
+   }
+
 } // namespace {}
 
 
@@ -226,19 +256,6 @@ moo::game::game(const int columns, const int rows)
    , m_t_last(std::chrono::system_clock::now())
    , m_rng(std::chrono::system_clock::now().time_since_epoch().count())
 {
-   {
-      constexpr int cow_count = 5;
-      const std::uniform_real_distribution<double> x_distance_variance_dist(-0.1, 0.1);
-      const std::uniform_real_distribution<double> y_dist(0.8, 0.95);
-      double x_pos = 0.1;
-
-      std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
-      for (int i = 0; i < cow_count; ++i) {
-         m_cows.emplace_back(FractionalPos{ x_pos, y_dist(m_rng) }, grazing_progress_dist(m_rng));
-         x_pos += 0.8 / (cow_count-1) + x_distance_variance_dist(m_rng);
-      }
-   }
-
    m_string.reserve(100000);
    {
       {
@@ -268,6 +285,17 @@ moo::game::game(const int columns, const int rows)
 
       m_bg_colors = get_bg_colors(m_columns, m_rows, m_game_colors);
       m_painter = Painter(get_color_strings(m_game_colors.get_rgbs(), false), get_color_strings(m_game_colors.get_rgbs(), true));
+   }
+
+   {
+      constexpr int cow_count = 5;
+      const double cow_width = 1.0 * m_cow_image.front().m_width / (2 * m_columns);
+      const double cow_height = 1.0 * m_cow_image.front().m_height / (2 * m_rows);
+      const std::vector<moo::FractionalPos> cow_positions = get_cow_positions(cow_count, cow_width, cow_height, m_rng);
+
+      std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
+      for (const FractionalPos& pos : cow_positions)
+         m_cows.emplace_back(pos, grazing_progress_dist(m_rng));
    }
 
    disable_selection();
