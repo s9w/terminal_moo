@@ -410,8 +410,8 @@ auto moo::game::get_block_char(int i, int j) const -> BlockChar{
 
 
 auto moo::game::get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos{
-   const int i = std::clamp(static_cast<int>(fractional_pos.y_fraction * 2 * m_rows), 0, 2 * m_rows - 1);
-   const int j = std::clamp(static_cast<int>(fractional_pos.x_fraction * 2 * m_columns), 0, 2 * m_columns - 1);
+   const int i = static_cast<int>(fractional_pos.y_fraction * 2 * m_rows);
+   const int j = static_cast<int>(fractional_pos.x_fraction * 2 * m_columns);
    return { i, j };
 }
 
