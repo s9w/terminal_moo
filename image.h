@@ -18,7 +18,6 @@ namespace moo {
       int m_height = 0;
    };
 
-   [[nodiscard]] auto load_image(const fs::path& path, moo::ColorLoader& color_loader) -> moo::Image;
-   [[nodiscard]] auto load_images(const fs::path& path_base, ColorLoader& color_loader) -> std::vector<moo::Image>;
+   [[nodiscard]] auto load_images(const fs::path& path_base, ColorLoader& color_loader, const bool dimension_checks = true) -> std::vector<moo::Image>;
 
 }

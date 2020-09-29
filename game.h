@@ -37,6 +37,7 @@ namespace moo {
       [[nodiscard]] auto get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t;
       auto draw_bullet(const Bullet& bullet) -> void;
       auto draw_shadow(const FractionalPos& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
+      auto draw_to_bg(const Image& image, const int i, const int j) -> void;
 
       int m_columns = 0;
       int m_rows = 0;
@@ -52,6 +53,7 @@ namespace moo {
       std::wstring m_string;
       std::vector<Image> m_player_image;
       std::vector<Image> m_cow_image;
+      std::vector<Image> m_cloud_images;
       std::vector<ColorIndex> m_pixels;
       FractionalPos m_mouse_pos;
       FpsCounter m_fps_counter;

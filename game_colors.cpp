@@ -38,6 +38,11 @@ auto moo::GameColors::get_sky_color(const double fraction) const -> ColorIndex {
 }
 
 
+auto moo::GameColors::get_cloud_color(const double fraction) const -> ColorIndex{
+   return get_region_fraction(m_cloud_color_region, fraction);
+}
+
+
 auto moo::GameColors::get_ground_color(const double fraction) const -> ColorIndex {
    return get_region_fraction(m_ground_color_region, fraction);
 }
@@ -54,6 +59,8 @@ auto moo::GameColors::get_color_loader(const ColorRegions color_region_id) -> Co
       return ColorLoader(m_rgbs, m_sky_color_region);
    else if (color_region_id == ColorRegions::Smoke)
       return ColorLoader(m_rgbs, m_smoke_color_region);
+   else if (color_region_id == ColorRegions::Clouds)
+      return ColorLoader(m_rgbs, m_cloud_color_region);
    else
       return ColorLoader(m_rgbs, m_ground_color_region);
 }

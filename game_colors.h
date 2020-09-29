@@ -12,13 +12,14 @@ namespace moo {
       size_t count = 0;
    };
 
-   enum class ColorRegions{Ship, Sky, Ground, Smoke};
+   enum class ColorRegions{Ship, Sky, Clouds, Ground, Smoke};
 
    struct ColorLoader;
 
    struct GameColors {
       GameColors();
       [[nodiscard]] auto get_sky_color(const double fraction) const -> ColorIndex;
+      [[nodiscard]] auto get_cloud_color(const double fraction) const -> ColorIndex;
       [[nodiscard]] auto get_ground_color(const double fraction) const -> ColorIndex;
       [[nodiscard]] auto get_smoke_color(const double fraction) const -> ColorIndex;
       [[nodiscard]] auto get_color_loader(const ColorRegions color_region_id) -> ColorLoader;
@@ -36,6 +37,7 @@ namespace moo {
       ColorRegion m_sky_color_region;
       ColorRegion m_ground_color_region;
       ColorRegion m_smoke_color_region;
+      ColorRegion m_cloud_color_region;
    };
 
 

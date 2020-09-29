@@ -258,6 +258,11 @@ moo::game::game(const int columns, const int rows)
    m_string.reserve(100000);
    {
       {
+         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Clouds);
+         constexpr bool dimension_checks = false;
+         m_cloud_images = load_images("cloud.png", color_loader, dimension_checks);
+      }
+      {
          ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Ship);
          m_cow_image = load_images("cow.png", color_loader);
       }
@@ -274,7 +279,7 @@ moo::game::game(const int columns, const int rows)
 
       {
          ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Sky);
-         color_loader.load_rgbs(get_sky_colors(100));
+         color_loader.load_rgbs(get_sky_colors(50));
       }
 
       {
@@ -318,6 +323,8 @@ auto moo::game::run() -> void{
       std::fill(m_pixels.begin(), m_pixels.end(), -1);
       clear_screen_text();
       m_bg_colors = get_bg_colors(m_columns, m_rows, m_game_colors);
+      draw_to_bg(m_cloud_images[0], 1, 5);
+      draw_to_bg(m_cloud_images[1], 0, 50);
 
 
       POINT mouse_pos;
@@ -341,12 +348,6 @@ auto moo::game::run() -> void{
       auto bullet_it = m_bullets.begin();
       while(bullet_it != m_bullets.end()){
          draw_bullet(*bullet_it);
-
-         //ColorIndex smoke_color;
-         //if (bullet_it->m_pos.is_on_screen()) {
-         //   const double dist_fraction = std::clamp(length(bullet_it->m_pos - bullet_it->m_initial_pos) / 1.0, 0.0, 1.0);
-         //   smoke_color = m_game_colors.get_smoke_color(dist_fraction);
-         //}
          bullet_it->recolor_puffs(m_game_colors.get_smoke_color(0.0));
          const bool remove_bullet = bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(0.0));
          if (remove_bullet)
@@ -489,6 +490,23 @@ auto moo::game::draw_shadow(
       const int index = i * m_columns + shadow_j - shadow_width / 2 + j + shadow_x_offset;
       const double color_fraction = 0.5 + 0.5 * height_fraction * get_triangle(1.0 * j / shadow_width);
       m_bg_colors[index] = m_game_colors.get_ground_color(color_fraction);
+   }
+}
+
+
+auto moo::game::draw_to_bg(
+   const Image& image,
+   const int i, 
+   const int j
+) -> void
+{
+   for (int image_i = 0; image_i < image.m_height; ++image_i) {
+      for (int image_j = 0; image_j < image.m_width; ++image_j) {
+         const int image_index = image_i * image.m_width + image_j;
+         const int index = (image_i + i) * m_columns + image_j + j;
+         if (image.m_color_indices[image_index] > 0)
+            m_bg_colors[index] = image.m_color_indices[image_index];
+      }
    }
 }
 
