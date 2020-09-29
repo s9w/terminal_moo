@@ -337,27 +337,10 @@ auto moo::game::run() -> void{
       }
       auto bullet_it = m_bullets.begin();
       while(bullet_it != m_bullets.end()){
-         const FractionalPos bullet_pos = bullet_it->m_pos;
-         if (bullet_pos.is_on_screen()) {
-            // draw bullet
-            const PixelPos bullet_pixel_pos = get_pixel_pos(bullet_pos);
-            m_pixels[get_pixel_grid_index(bullet_pixel_pos)] = m_game_colors.get_red();
-            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 1 })] = m_game_colors.get_red();
-            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 2 })] = m_game_colors.get_red();
-            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 3 })] = m_game_colors.get_red();
-            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 4 })] = m_game_colors.get_red();
-            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 2 })] = m_game_colors.get_red();
-            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 2 })] = m_game_colors.get_red();
-         }
-         
-         for (const Trail& trail : bullet_it->m_trail) {
-            if(!trail.pos.is_on_screen())
-               continue;
-            m_pixels[get_pixel_grid_index(get_pixel_pos(trail.pos))] = trail.color;
-         }
-
+         draw_bullet(*bullet_it);
          const std::uniform_real_distribution<double> smoke_dist(0.0, 1.0);
-         if (bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(smoke_dist(m_rng))))
+         const bool remove_bullet = bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(smoke_dist(m_rng)));
+         if (remove_bullet)
             bullet_it = m_bullets.erase(bullet_it);
          else
             ++bullet_it;
@@ -450,6 +433,33 @@ auto moo::game::get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t{
    sanitized_pixel_pos.j = std::clamp(sanitized_pixel_pos.j, 0, 2 * m_columns - 1);
    const int pixel_index = sanitized_pixel_pos.i * 2 * m_columns + sanitized_pixel_pos.j;
    return pixel_index;
+}
+
+
+auto moo::game::draw_bullet(const Bullet& bullet) -> void{
+   for (const Trail& trail : bullet.m_trail) {
+      if (!trail.pos.is_on_screen())
+         continue;
+      m_pixels[get_pixel_grid_index(get_pixel_pos(trail.pos))] = trail.color;
+   }
+
+   const FractionalPos bullet_pos = bullet.m_pos;
+   if (bullet_pos.is_on_screen()) {
+      /* draw bullet in the shape of
+      █
+      ████
+      █
+      */
+
+      const ColorIndex bullet_color = m_game_colors.get_red();
+      const PixelPos bullet_pixel_pos = get_pixel_pos(bullet_pos);
+      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 0 })] = bullet_color;
+      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 1 })] = bullet_color;
+      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 2 })] = bullet_color;
+      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 3 })] = bullet_color;
+      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 0 })] = bullet_color;
+      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 0 })] = bullet_color;
+   }
 }
 
 

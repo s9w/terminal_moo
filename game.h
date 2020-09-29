@@ -35,6 +35,7 @@ namespace moo {
       [[nodiscard]] auto get_block_char(int i, int j) const -> BlockChar;
       [[nodiscard]] auto get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos;
       [[nodiscard]] auto get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t;
+      auto draw_bullet(const Bullet& bullet) -> void;
 
       int m_columns = 0;
       int m_rows = 0;
