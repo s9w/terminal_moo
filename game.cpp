@@ -218,24 +218,24 @@ moo::game::game(const int columns, const int rows)
    , m_font_width((m_window_rect.right - m_window_rect.left) / m_columns)
    , m_font_height((m_window_rect.bottom - m_window_rect.top) / m_rows)
    , m_output_handle(GetStdHandle(STD_OUTPUT_HANDLE))
+   , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
    , m_screen_text(m_columns * m_rows, '\0')
    , m_pixels(2 * m_columns * 2 * m_rows, -1)
    , m_fps_counter()
    , m_t0(std::chrono::system_clock::now())
    , m_t_last(std::chrono::system_clock::now())
+   , m_rng(std::chrono::system_clock::now().time_since_epoch().count())
 {
    {
       constexpr int cow_count = 5;
-      const auto seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
-      std::mt19937_64 rng(seed);
-      std::uniform_real_distribution<double> x_distance_variance_dist(-0.1, 0.1);
-      std::uniform_real_distribution<double> y_dist(0.8, 0.95);
+      const std::uniform_real_distribution<double> x_distance_variance_dist(-0.1, 0.1);
+      const std::uniform_real_distribution<double> y_dist(0.8, 0.95);
       double x_pos = 0.1;
 
       std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
       for (int i = 0; i < cow_count; ++i) {
-         m_cows.emplace_back(FractionalPos{ x_pos, y_dist(rng) }, grazing_progress_dist(rng));
-         x_pos += 0.8 / (cow_count-1) + x_distance_variance_dist(rng);
+         m_cows.emplace_back(FractionalPos{ x_pos, y_dist(m_rng) }, grazing_progress_dist(m_rng));
+         x_pos += 0.8 / (cow_count-1) + x_distance_variance_dist(m_rng);
       }
    }
 
@@ -251,6 +251,10 @@ moo::game::game(const int columns, const int rows)
          m_player_image = load_images("player.png", color_loader);
       }
 
+      {
+         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Smoke);
+         color_loader.load_rgbs(get_smoke_colors(20));
+      }
 
       {
          ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Sky);
@@ -274,6 +278,12 @@ moo::game::game(const int columns, const int rows)
 
 auto moo::game::run() -> void{
    while (true) {
+      if(GetKeyState(VK_LBUTTON) < 0) {
+         const std::optional<Bullet> bullet = m_player.fire(m_rng);
+         if(bullet.has_value())
+            m_bullets.emplace_back(bullet.value());
+      }
+
       const auto now = std::chrono::system_clock::now();
       const double dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t_last).count() / 1000.0; // in fraction of one second
       const long long ms_since_start = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t0).count();
@@ -293,9 +303,35 @@ auto moo::game::run() -> void{
       write_image_at_pos(m_player_image[player_anim_i], m_player.m_pos);
       for (Cow& cow : m_cows) {
          const double cow_progress = cow.progress(dt);
-         //const double time_progress = std::fmod(ms_since_start, grazing_anim_frametime) / grazing_anim_frametime;
          const size_t cow_anim_i = cow_progress > 0.5;
          write_image_at_pos(m_cow_image[cow_anim_i], cow.m_pos);
+      }
+      auto bullet_it = m_bullets.begin();
+      while(bullet_it != m_bullets.end()){
+         const FractionalPos bullet_pos = bullet_it->m_pos;
+         if (bullet_pos.is_on_screen()) {
+            // draw bullet
+            const PixelPos bullet_pixel_pos = get_pixel_pos(bullet_pos);
+            m_pixels[get_pixel_grid_index(bullet_pixel_pos)] = m_game_colors.get_red();
+            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 1 })] = m_game_colors.get_red();
+            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 2 })] = m_game_colors.get_red();
+            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 3 })] = m_game_colors.get_red();
+            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 4 })] = m_game_colors.get_red();
+            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 2 })] = m_game_colors.get_red();
+            m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 2 })] = m_game_colors.get_red();
+         }
+         
+         for (const Trail& trail : bullet_it->m_trail) {
+            if(!trail.pos.is_on_screen())
+               continue;
+            m_pixels[get_pixel_grid_index(get_pixel_pos(trail.pos))] = trail.color;
+         }
+
+         const std::uniform_real_distribution<double> smoke_dist(0.0, 1.0);
+         if (bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(smoke_dist(m_rng))))
+            bullet_it = m_bullets.erase(bullet_it);
+         else
+            ++bullet_it;
       }
       write_screen_text(fmt::format("FPS: {}", m_fps_counter.m_current_fps), 0, 0);
       write_screen_text(fmt::format("mouse pos: {:.2f}, {:.2f}", m_mouse_pos.x_fraction, m_mouse_pos.y_fraction), 1, 0);
@@ -376,6 +412,15 @@ auto moo::game::get_pixel_pos(const FractionalPos& fractional_pos) const -> Pixe
    const int i = std::clamp(static_cast<int>(fractional_pos.y_fraction * 2 * m_rows), 0, 2 * m_rows - 1);
    const int j = std::clamp(static_cast<int>(fractional_pos.x_fraction * 2 * m_columns), 0, 2 * m_columns - 1);
    return { i, j };
+}
+
+
+auto moo::game::get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t{
+   PixelPos sanitized_pixel_pos = pixel_pos;
+   sanitized_pixel_pos.i = std::clamp(sanitized_pixel_pos.i, 0, 2 * m_rows - 1);
+   sanitized_pixel_pos.j = std::clamp(sanitized_pixel_pos.j, 0, 2 * m_columns - 1);
+   const int pixel_index = sanitized_pixel_pos.i * 2 * m_columns + sanitized_pixel_pos.j;
+   return pixel_index;
 }
 
 

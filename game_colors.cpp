@@ -18,6 +18,7 @@ namespace {
 moo::GameColors::GameColors() {
    m_rgbs.push_back({ 0, 0, 0 }); // black, but used as alpha mask
    m_rgbs.push_back({ 255, 255, 255 }); // white
+   m_rgbs.push_back({ 255, 0, 0 }); // red
 }
 TEST_CASE("Ensure special colors are at right place") {
    using namespace moo;
@@ -37,11 +38,17 @@ auto moo::GameColors::get_ground_color(const double fraction) const -> ColorInde
 }
 
 
+auto moo::GameColors::get_smoke_color(const double fraction) const -> ColorIndex{
+   return get_region_fraction(m_smoke_color_region, fraction);
+}
+
 auto moo::GameColors::get_color_loader(const ColorRegions color_region_id) -> ColorLoader{
    if(color_region_id == ColorRegions::Ship)
       return ColorLoader(m_rgbs, m_ship_color_region);
-   if (color_region_id == ColorRegions::Sky)
+   else if (color_region_id == ColorRegions::Sky)
       return ColorLoader(m_rgbs, m_sky_color_region);
+   else if (color_region_id == ColorRegions::Smoke)
+      return ColorLoader(m_rgbs, m_smoke_color_region);
    else
       return ColorLoader(m_rgbs, m_ground_color_region);
 }

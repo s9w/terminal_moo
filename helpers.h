@@ -7,6 +7,13 @@
 namespace moo {
 
    struct FractionalPos {
+      [[nodiscard]] constexpr auto is_on_screen() const -> bool {
+         return x_fraction >= 0.0 &&
+            x_fraction <= 1.0 &&
+            y_fraction >= 0.0 &&
+            y_fraction <= 1.0;
+      }
+
       double x_fraction = 0.0;
       double y_fraction = 0.0;
    };
@@ -15,12 +22,14 @@ namespace moo {
    auto operator+(const FractionalPos& a, const FractionalPos& b) -> FractionalPos;
    auto get_indep_normalized(const FractionalPos& a) -> FractionalPos;
    auto length(const FractionalPos& a) -> double;
+   auto get_normalized(const FractionalPos& a) -> FractionalPos;
 
 
    struct PixelPos {
       int i = 0;
       int j = 0;
    };
+   auto operator+(const PixelPos& a, const PixelPos& b) -> PixelPos;
 
    struct LongRect {
       long left;

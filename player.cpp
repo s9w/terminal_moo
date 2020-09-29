@@ -1,5 +1,7 @@
 #include "player.h"
 
+#include <algorithm>
+
 namespace {
 
    /// <summary>If the position diff would not result in at least a change of "half" a pixel,
@@ -31,4 +33,15 @@ auto moo::Player::move_towards(
 {
    const FractionalPos position_diff = get_sanitized_position_diff(target_pos - m_pos, rows, columns);
    m_pos = m_pos + dt * m_speed * get_indep_normalized(position_diff);
+
+   m_bullet_wait = std::clamp(m_bullet_wait - dt, 0.0, 1.0);
+}
+
+
+auto moo::Player::fire(std::mt19937_64& rng) -> std::optional<Bullet> {
+   if (!is_zero(m_bullet_wait))
+      return std::nullopt;
+   m_bullet_wait = 1.0;
+   FractionalPos initial_bullet_pos = m_pos + FractionalPos{0.05, 0.0};
+   return Bullet(initial_bullet_pos, rng);
 }

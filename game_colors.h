@@ -12,7 +12,7 @@ namespace moo {
       size_t count = 0;
    };
 
-   enum class ColorRegions{Ship, Sky, Ground};
+   enum class ColorRegions{Ship, Sky, Ground, Smoke};
 
    struct ColorLoader;
 
@@ -20,10 +20,14 @@ namespace moo {
       GameColors();
       [[nodiscard]] auto get_sky_color(const double fraction) const -> ColorIndex;
       [[nodiscard]] auto get_ground_color(const double fraction) const -> ColorIndex;
+      [[nodiscard]] auto get_smoke_color(const double fraction) const -> ColorIndex;
       [[nodiscard]] auto get_color_loader(const ColorRegions color_region_id) -> ColorLoader;
       [[nodiscard]] auto get_rgbs() const -> const std::vector<RGB>&;
       [[nodiscard]] constexpr auto get_white() const -> ColorIndex {
          return ColorIndex{ 1 };
+      }
+      [[nodiscard]] constexpr auto get_red() const -> ColorIndex {
+         return ColorIndex{ 2 };
       }
 
    private:
@@ -31,6 +35,7 @@ namespace moo {
       ColorRegion m_ship_color_region;
       ColorRegion m_sky_color_region;
       ColorRegion m_ground_color_region;
+      ColorRegion m_smoke_color_region;
    };
 
 

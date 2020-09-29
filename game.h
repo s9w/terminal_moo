@@ -34,6 +34,7 @@ namespace moo {
       [[nodiscard]] auto get_pixel(int i, int j) const -> ColorIndex;
       [[nodiscard]] auto get_block_char(int i, int j) const -> BlockChar;
       [[nodiscard]] auto get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos;
+      [[nodiscard]] auto get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t;
 
       int m_columns = 0;
       int m_rows = 0;
@@ -41,6 +42,7 @@ namespace moo {
       int m_font_width = 0;
       int m_font_height = 0;
       HANDLE m_output_handle;
+      HANDLE m_input_handle;
       GameColors m_game_colors;
       Painter m_painter;
       std::vector<ColorIndex> m_bg_colors;
@@ -56,6 +58,8 @@ namespace moo {
       std::chrono::time_point<std::chrono::system_clock> m_t_last;
       Player m_player;
       std::vector<Cow> m_cows;
+      std::vector<Bullet> m_bullets;
+      std::mt19937_64 m_rng;
    };
 
 

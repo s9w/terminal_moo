@@ -35,3 +35,14 @@ auto moo::get_indep_normalized(const FractionalPos& a) -> FractionalPos{
 auto moo::length(const FractionalPos& a) -> double{
    return std::sqrt(a.x_fraction * a.x_fraction + a.y_fraction * a.y_fraction);
 }
+
+auto moo::get_normalized(const FractionalPos& a) -> FractionalPos{
+   const double vec_length = length(a);
+   return 1.0 / vec_length * a;
+}
+
+
+auto moo::operator+(const PixelPos& a, const PixelPos& b) -> PixelPos{
+   return { a.i + b.i, a.j + b.j };
+}
+
