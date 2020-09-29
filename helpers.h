@@ -4,6 +4,8 @@
 #include <vector>
 #include <iterator>
 
+#include <doctest/doctest.h>
+
 namespace moo {
 
    struct FractionalPos {
@@ -23,6 +25,7 @@ namespace moo {
    auto get_indep_normalized(const FractionalPos& a) -> FractionalPos;
    auto length(const FractionalPos& a) -> double;
    auto get_normalized(const FractionalPos& a) -> FractionalPos;
+   [[nodiscard]] auto get_height_fraction(const FractionalPos& pos) -> double;
 
 
    struct PixelPos {
@@ -38,6 +41,13 @@ namespace moo {
       long bottom;
       auto operator<=>(const LongRect& other) const = default;
    };
+
+   template<class T>
+   [[nodiscard]] auto constexpr less(const T first, const T second) -> bool {
+      return first - second <= -get_tol<T>();
+   }
+
+   [[nodiscard]] constexpr auto get_triangle(const double x) -> double;
 
    template<class T>
    constexpr T get_tol() {
@@ -64,4 +74,17 @@ namespace moo {
       }
    }
 
+}
+
+constexpr auto moo::get_triangle(const double x) -> double {
+   if (less(x, 0.5))
+      return 2.0 * x;
+   else
+      return 2.0 - 2.0 * x;
+}
+TEST_CASE("get_triangle()") {
+   using namespace moo;
+   CHECK_EQ(get_triangle(0.0), doctest::Approx(0.0));
+   CHECK_EQ(get_triangle(0.5), doctest::Approx(1.0));
+   CHECK_EQ(get_triangle(1.0), doctest::Approx(0.0));
 }

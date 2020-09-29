@@ -13,8 +13,6 @@ namespace fs = std::filesystem;
 
 namespace {
 
-   constexpr double sky_fraction = 0.8;
-
    std::wstring get_color_string(const moo::RGB& rgb, const bool bg) {
       if (bg) {
          return fmt::format(L"\x1b[48;2;{};{};{}m", rgb.r, rgb.g, rgb.b);
@@ -36,7 +34,7 @@ namespace {
 
    [[nodiscard]] auto get_bg_colors(const int columns, const int rows, const moo::GameColors& game_colors) -> std::vector<moo::ColorIndex> {
       std::vector<moo::ColorIndex> color_indices(columns * rows, 0);
-      const int sky_height = static_cast<int>(sky_fraction * rows);
+      const int sky_height = static_cast<int>(std::round(moo::get_config().sky_fraction * rows));
       const int ground_height = rows - sky_height;
       for (int i = 0; i < sky_height; ++i) {
          for (int j = 0; j < columns; ++j) {
@@ -217,7 +215,7 @@ namespace {
       std::mt19937_64& rng
    ) -> std::vector<moo::FractionalPos>
    {
-      const double y_min = sky_fraction - 0.5 * cow_image_height;
+      const double y_min = moo::get_config().sky_fraction - 0.5 * cow_image_height;
       const double y_max = 1.0 - 0.5 * cow_image_height;
       const std::uniform_real_distribution<double> y_dist(y_min, y_max);
 
@@ -284,7 +282,6 @@ moo::game::game(const int columns, const int rows)
          color_loader.load_rgbs(get_ground_colors(100));
       }
 
-      m_bg_colors = get_bg_colors(m_columns, m_rows, m_game_colors);
       m_painter = Painter(get_color_strings(m_game_colors.get_rgbs(), false), get_color_strings(m_game_colors.get_rgbs(), true));
    }
 
@@ -320,12 +317,17 @@ auto moo::game::run() -> void{
 
       std::fill(m_pixels.begin(), m_pixels.end(), -1);
       clear_screen_text();
+      m_bg_colors = get_bg_colors(m_columns, m_rows, m_game_colors);
+
 
       POINT mouse_pos;
       GetCursorPos(&mouse_pos);
       m_mouse_pos.x_fraction = 1.0 * (mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
       m_mouse_pos.y_fraction = 1.0 * (mouse_pos.y - m_window_rect.top) / (m_window_rect.bottom - m_window_rect.top);
       m_player.move_towards(m_mouse_pos, dt, 2 * m_rows, 2 * m_columns);
+      {
+         draw_shadow(m_player.m_pos, m_player_image.front().m_width / 2, 1);
+      }
 
       constexpr double helicopter_anim_frametime = 50.0;
       constexpr double grazing_anim_frametime = 5000.0;
@@ -387,10 +389,10 @@ void moo::game::write_string(){
    m_string.clear();
 
    for (int i = 0; i < m_rows; ++i) {
-      const size_t row_start_index = i * m_columns;
-      const ColorIndex row_bg_color = m_bg_colors[row_start_index];
-      m_painter.paint_layer(row_bg_color, Painter::Layer::Back, m_string);
       for (int j = 0; j < m_columns; ++j) {
+         const ColorIndex bg_color = m_bg_colors[i * m_columns + j];
+         m_painter.paint_layer(bg_color, Painter::Layer::Back, m_string);
+
          if (const char screen_char = m_screen_text[i * m_columns + j]; screen_char != '\0') {
             m_painter.paint_layer(m_game_colors.get_white(), Painter::Layer::Front, m_string);
             m_string += screen_char;
@@ -398,7 +400,7 @@ void moo::game::write_string(){
          }
          one_pixel(
             get_block_char(i, j),
-            row_bg_color
+            bg_color
          );
       }
    }
@@ -460,6 +462,27 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
       m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 3 })] = bullet_color;
       m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 0 })] = bullet_color;
       m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 0 })] = bullet_color;
+   }
+}
+
+
+auto moo::game::draw_shadow(
+   const FractionalPos& pos,
+   const int max_shadow_width,
+   const int shadow_x_offset
+) -> void
+{
+   const int sky_height = static_cast<int>(get_config().sky_fraction * m_rows);
+   const int ground_height = m_rows - sky_height;
+   const int shadow_j = static_cast<int>(pos.x_fraction * m_columns);
+
+   const double height_fraction = get_height_fraction(pos);
+   const int shadow_width = static_cast<int>(height_fraction * max_shadow_width);
+   for (int j = 0; j < shadow_width; ++j) {
+      const int i = static_cast<int>(sky_height + 0.5 * ground_height);
+      const int index = i * m_columns + shadow_j - shadow_width / 2 + j + shadow_x_offset;
+      const double color_fraction = 0.5 + 0.5 * height_fraction * get_triangle(1.0 * j / shadow_width);
+      m_bg_colors[index] = m_game_colors.get_ground_color(color_fraction);
    }
 }
 

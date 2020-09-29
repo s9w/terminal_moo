@@ -1,7 +1,25 @@
 #include <cmath>
 
+#include "config.h"
 #include "helpers.h"
 
+namespace {
+
+   constexpr auto get_height_fraction(const moo::FractionalPos& pos, const double sky_fraction) -> double {
+      const double ground_fraction = 1.0 - sky_fraction;
+      const double height_range = sky_fraction + 0.5 * ground_fraction;
+      const double height_fraction = pos.y_fraction / height_range;
+      return height_fraction;
+   }
+   TEST_CASE("get_height_fraction()") {
+      using namespace moo;
+      const double sky_fraction = 0.8;
+      constexpr double irrelevant = 0.0;
+      CHECK_EQ(get_height_fraction({irrelevant, 0.0}, sky_fraction), doctest::Approx(0.0));
+      CHECK_EQ(get_height_fraction({irrelevant, 0.9}, sky_fraction), doctest::Approx(1.0));
+   }
+
+}
 
 auto moo::operator*(const double factor, const FractionalPos& pos) -> FractionalPos {
    FractionalPos result = pos;
@@ -41,6 +59,10 @@ auto moo::get_normalized(const FractionalPos& a) -> FractionalPos{
    return 1.0 / vec_length * a;
 }
 
+
+auto moo::get_height_fraction(const FractionalPos& pos) -> double{
+   return ::get_height_fraction(pos, get_config().sky_fraction);
+}
 
 auto moo::operator+(const PixelPos& a, const PixelPos& b) -> PixelPos{
    return { a.i + b.i, a.j + b.j };

@@ -1,6 +1,8 @@
 #include "game_colors.h"
 #include "helpers.h"
 
+#include <algorithm>
+
 
 namespace {
 
@@ -9,7 +11,10 @@ namespace {
          printf("Fraction not between 0 and 1\n");
          std::terminate();
       }
-      return color_region.start_index + static_cast<size_t>(fraction * color_region.count);
+      size_t color = color_region.start_index + static_cast<size_t>(fraction * color_region.count);
+      constexpr size_t zero = 0;
+      color = std::clamp(color, zero, color_region.start_index + color_region.count - 1);
+      return color;
    }
 
 } // namespace {}
@@ -97,8 +102,10 @@ auto moo::ColorLoader::load_rgbs(std::vector<RGB> rgb_colors) -> void{
 TEST_CASE("ColorLoader") {
    using namespace moo;
    GameColors game_colors;
-   ColorLoader color_loader = game_colors.get_color_loader(moo::ColorRegions::Sky);
-   const auto color_index = color_loader.get_color_index({ 10, 20, 30 });
+   {
+      ColorLoader color_loader = game_colors.get_color_loader(moo::ColorRegions::Sky);
+      const auto color_index = color_loader.get_color_index({ 10, 20, 30 });
+   }
 
    CHECK(game_colors.get_rgbs()[game_colors.get_sky_color(0.0).index()] == RGB{ 10, 20, 30 });
    CHECK(game_colors.get_rgbs()[game_colors.get_sky_color(1.0).index()] == RGB{ 10, 20, 30 });

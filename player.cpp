@@ -25,12 +25,21 @@ namespace {
 
    /// <summary>Limits the player position to not go too far off screen. Otherwise it
    /// would take a long time to go 'back' after mouse was somewhere else.</summary>
-   [[nodiscard]] auto get_limited_pos(const moo::FractionalPos& pos) -> moo::FractionalPos {
+   [[nodiscard]] auto get_limited_pos(
+      const moo::FractionalPos& pos,
+      const int rows
+   ) -> moo::FractionalPos
+   {
       const double horiz_cage_padding = moo::get_config().horizontal_cage_padding;
       const double vert_cage_padding = 0.5 * horiz_cage_padding; // pixels are about half as high as they are wide
       moo::FractionalPos new_pos = pos;
       new_pos.x_fraction = std::clamp(new_pos.x_fraction, 0.0 - horiz_cage_padding, 1.0 + horiz_cage_padding);
-      new_pos.y_fraction = std::clamp(new_pos.y_fraction, 0.0 - vert_cage_padding, 1.0 + vert_cage_padding);
+
+      const double helicopter_height = 3.0 / rows;
+      const double lowest_height = moo::get_config().sky_fraction + 0.5 * (1.0 - moo::get_config().sky_fraction);
+      const double y_max = lowest_height - 0.5 * helicopter_height;
+      new_pos.y_fraction = std::clamp(new_pos.y_fraction, 0.0 - vert_cage_padding, y_max);
+
       return new_pos;
    }
 
@@ -47,7 +56,7 @@ auto moo::Player::move_towards(
 ) -> void
 {
    const FractionalPos position_diff = get_sanitized_position_diff(target_pos - m_pos, rows, columns);
-   m_pos = get_limited_pos(m_pos + dt * m_speed * get_indep_normalized(position_diff));
+   m_pos = get_limited_pos(m_pos + dt * m_speed * get_indep_normalized(position_diff), rows);
 
    m_shooting_cooldown = std::clamp(m_shooting_cooldown - dt, 0.0, shooting_interval_s);
 }

@@ -36,6 +36,7 @@ namespace moo {
       [[nodiscard]] auto get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos;
       [[nodiscard]] auto get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t;
       auto draw_bullet(const Bullet& bullet) -> void;
+      auto draw_shadow(const FractionalPos& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
 
       int m_columns = 0;
       int m_rows = 0;
