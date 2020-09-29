@@ -278,6 +278,7 @@ moo::game::game(const int columns, const int rows)
 
 auto moo::game::run() -> void{
    while (true) {
+      m_window_rect = get_window_rect();
       if(GetKeyState(VK_LBUTTON) < 0) {
          const std::optional<Bullet> bullet = m_player.fire(m_rng);
          if(bullet.has_value())
