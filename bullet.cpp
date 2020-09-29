@@ -1,3 +1,4 @@
+#include "config.h"
 #include "bullet.h"
 
 #if _MSC_VER < 1928 // Visual Studio 2019 version 16.8
@@ -14,7 +15,7 @@ namespace {
       std::mt19937_64& rng
    ) -> moo::FractionalPos
    {
-      constexpr double smoke_spread = 0.01;
+      const double smoke_spread = moo::get_config().smoke_puff_spread;
       std::uniform_real_distribution<double> smoke_spread_dist(-smoke_spread, smoke_spread);
       return rocket_pos + moo::FractionalPos{ smoke_spread_dist(rng), smoke_spread_dist(rng) };
    }
@@ -44,11 +45,11 @@ auto moo::Bullet::progress(
    m_trail.expand_trail(rng, smoke_color, m_pos);
    m_trail.thin_trail(rng, dt);
    constexpr double bullet_speed = 2.5;
-   constexpr double gravity_strength = 0.01;
-   m_gravity_speed = m_gravity_speed + dt * FractionalPos{0.0, gravity_strength };
-   const FractionalPos pos_change = bullet_speed * dt * m_trajectory + m_gravity_speed;
+   m_gravity_speed = m_gravity_speed + dt * FractionalPos{0.0, moo::get_config().gravity_strength };
+   const FractionalPos pos_change = dt * (bullet_speed * m_trajectory + m_gravity_speed);
    m_pos = m_pos + pos_change;
-   return m_trail.m_smoke_puffs.empty() && !m_pos.is_on_screen();
+   const bool should_be_deleted = m_trail.m_smoke_puffs.empty() && !m_pos.is_on_screen();
+   return should_be_deleted;
 }
 
 

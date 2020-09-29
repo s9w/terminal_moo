@@ -1,3 +1,4 @@
+#include "config.h"
 #include "player.h"
 
 #include <algorithm>
@@ -22,18 +23,18 @@ namespace {
    }
 
 
-   /// <summary>Limits the actual player position to not go too far off screen. Otherwise it
+   /// <summary>Limits the player position to not go too far off screen. Otherwise it
    /// would take a long time to go 'back' after mouse was somewhere else.</summary>
-   [[nodiscard]] constexpr auto get_limited_pos(const moo::FractionalPos& pos) -> moo::FractionalPos {
-      constexpr double x_limit = 0.1;
-      constexpr double y_limit = 0.5 * x_limit; // pixels are about half as high as they are wide
+   [[nodiscard]] auto get_limited_pos(const moo::FractionalPos& pos) -> moo::FractionalPos {
+      const double horiz_cage_padding = moo::get_config().horizontal_cage_padding;
+      const double vert_cage_padding = 0.5 * horiz_cage_padding; // pixels are about half as high as they are wide
       moo::FractionalPos new_pos = pos;
-      new_pos.x_fraction = std::clamp(new_pos.x_fraction, 0.0 - x_limit, 1.0 + x_limit);
-      new_pos.y_fraction = std::clamp(new_pos.y_fraction, 0.0 - y_limit, 1.0 + y_limit);
+      new_pos.x_fraction = std::clamp(new_pos.x_fraction, 0.0 - horiz_cage_padding, 1.0 + horiz_cage_padding);
+      new_pos.y_fraction = std::clamp(new_pos.y_fraction, 0.0 - vert_cage_padding, 1.0 + vert_cage_padding);
       return new_pos;
    }
 
-   constexpr double bullet_interval_s = 0.2;
+   constexpr double shooting_interval_s = 0.2;
 
 } // namespace {}
 
@@ -48,14 +49,14 @@ auto moo::Player::move_towards(
    const FractionalPos position_diff = get_sanitized_position_diff(target_pos - m_pos, rows, columns);
    m_pos = get_limited_pos(m_pos + dt * m_speed * get_indep_normalized(position_diff));
 
-   m_bullet_wait = std::clamp(m_bullet_wait - dt, 0.0, bullet_interval_s);
+   m_shooting_cooldown = std::clamp(m_shooting_cooldown - dt, 0.0, shooting_interval_s);
 }
 
 
 auto moo::Player::fire(std::mt19937_64& rng) -> std::optional<Bullet> {
-   if (!is_zero(m_bullet_wait))
+   if (!is_zero(m_shooting_cooldown))
       return std::nullopt;
-   m_bullet_wait = bullet_interval_s;
+   m_shooting_cooldown = shooting_interval_s;
    FractionalPos initial_bullet_pos = m_pos + FractionalPos{0.05, 0.0};
    return Bullet(initial_bullet_pos, rng);
 }

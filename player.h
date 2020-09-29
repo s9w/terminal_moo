@@ -13,7 +13,7 @@ namespace moo {
 
       FractionalPos m_pos{0.5, 0.5};
       double m_speed = 0.2;
-      double m_bullet_wait = 0.0;
+      double m_shooting_cooldown = 0.0;
    };
 
 }

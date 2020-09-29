@@ -1,6 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 
+#include "config.h"
 #include "game.h"
 
 auto run_doctest() -> std::optional<int> {
@@ -19,6 +20,8 @@ int main() {
          return doctest_result.value();
 #endif // DEBUG
    }
+
+   moo::setup_config();
 
    HANDLE output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
    CONSOLE_SCREEN_BUFFER_INFO csbi;

@@ -2,6 +2,7 @@
 namespace fs = std::filesystem;
 #include <random>
 
+#include "config.h"
 #include "color_index.h"
 #include "game.h"
 #include "helpers.h"
