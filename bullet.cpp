@@ -36,7 +36,7 @@ moo::Bullet::Bullet(const FractionalPos& initial_pos, std::mt19937_64& rng)
 auto moo::Bullet::progress(const double dt, std::mt19937_64& rng, const ColorIndex smoke_color) -> bool{
    expand_trail(rng, smoke_color);
    thin_trail(rng, dt);
-   constexpr double bullet_speed = 0.5;
+   constexpr double bullet_speed = 2.5;
    m_pos = m_pos + bullet_speed * dt * m_trajectory;
    return m_trail.empty() && !m_pos.is_on_screen();
 }
@@ -56,7 +56,7 @@ auto moo::Bullet::thin_trail(std::mt19937_64& rng, const double dt) -> void{
 
 
 auto moo::Bullet::expand_trail(std::mt19937_64& rng, const ColorIndex smoke_color) -> void{
-   constexpr double min_smoke_puff_distance = 0.002;
+   constexpr double min_smoke_puff_distance = 0.007;
    if (m_trail.empty() || length(m_pos - m_trail.back().pos) > min_smoke_puff_distance)
       m_trail.push_back({ get_smoke_puff_pos(m_pos, rng), smoke_color });
 }
