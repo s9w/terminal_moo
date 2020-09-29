@@ -22,6 +22,36 @@ namespace {
       return gradient;
    }
 
+
+   [[nodiscard]] constexpr auto get_clamped_uchar(
+      const int c
+   ) -> unsigned char
+   {
+      return static_cast<unsigned char>(std::clamp(c, 0, 255));
+   }
+
+
+   [[nodiscard]] auto get_noised_colors(
+      const std::vector<moo::RGB>& colors,
+      std::mt19937_64& rng,
+      const int noise_strength
+   ) -> std::vector<moo::RGB>
+   {
+      std::vector<moo::RGB> noised_colors;
+      noised_colors.reserve(colors.capacity());
+      std::uniform_int_distribution<> noise_dist(-noise_strength, noise_strength);
+      for (const moo::RGB& rgb_color : colors) {
+         const int noise = noise_dist(rng);
+         noised_colors.push_back({
+            get_clamped_uchar(rgb_color.r + noise),
+            get_clamped_uchar(rgb_color.g + noise),
+            get_clamped_uchar(rgb_color.b + noise)
+            });
+      }
+
+      return noised_colors;
+   }
+
 } // namespace {}
 
 
@@ -42,10 +72,14 @@ auto moo::get_gradient(
 }
 
 
-auto moo::get_smoke_colors(const int smoke_color_count) -> std::vector<RGB>{
-   constexpr moo::RGB dark_grey{ 100, 100, 100 };
-   constexpr moo::RGB light_grey{ 230, 230, 230 };
-   return get_gradient(dark_grey, light_grey, smoke_color_count);
+auto moo::get_smoke_colors(
+   const int smoke_color_count,
+   std::mt19937_64& rng
+) -> std::vector<RGB>
+{
+   constexpr moo::RGB orange{ 251, 140, 68 };
+   constexpr moo::RGB grey{ 200, 200, 200};
+   return get_noised_colors(get_gradient(orange, grey, smoke_color_count), rng, 20);
 }
 
 

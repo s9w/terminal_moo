@@ -54,6 +54,11 @@ auto moo::Bullet::progress(
 }
 
 
+auto moo::Bullet::recolor_puffs(const ColorIndex first_smoke_color) -> void{
+   m_trail.recolor_puffs(first_smoke_color, m_pos);
+}
+
+
 auto moo::Trail::thin_trail(
    std::mt19937_64& rng,
    const double dt
@@ -95,5 +100,18 @@ auto moo::Trail::expand_trail(
    for (double trace_progress = 0.0; trace_progress < pos_diff_len; trace_progress += min_smoke_puff_distance) {
       const FractionalPos pos = new_bullet_pos + trace_progress * norm_pos_diff;
       m_smoke_puffs.push_back({ get_smoke_puff_pos(pos, rng), smoke_color });
+   }
+}
+
+
+auto moo::Trail::recolor_puffs(
+   const ColorIndex first_smoke_color, 
+   const FractionalPos bullet_pos
+) -> void{
+   for (int i = 0; i < m_smoke_puffs.size(); ++i) {
+      TrailPuff& puff = m_smoke_puffs[i];
+      const double progress = get_rising(length(puff.pos - bullet_pos), 0.0, 1.0);
+      constexpr int smoke_colors = 100;
+      puff.color = static_cast<ptrdiff_t>(first_smoke_color.index() + progress * (smoke_colors - 1));
    }
 }

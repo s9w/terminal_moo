@@ -269,7 +269,7 @@ moo::game::game(const int columns, const int rows)
 
       {
          ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Smoke);
-         color_loader.load_rgbs(get_smoke_colors(20));
+         color_loader.load_rgbs(get_smoke_colors(100, m_rng));
       }
 
       {
@@ -341,8 +341,14 @@ auto moo::game::run() -> void{
       auto bullet_it = m_bullets.begin();
       while(bullet_it != m_bullets.end()){
          draw_bullet(*bullet_it);
-         const std::uniform_real_distribution<double> smoke_dist(0.0, 1.0);
-         const bool remove_bullet = bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(smoke_dist(m_rng)));
+
+         //ColorIndex smoke_color;
+         //if (bullet_it->m_pos.is_on_screen()) {
+         //   const double dist_fraction = std::clamp(length(bullet_it->m_pos - bullet_it->m_initial_pos) / 1.0, 0.0, 1.0);
+         //   smoke_color = m_game_colors.get_smoke_color(dist_fraction);
+         //}
+         bullet_it->recolor_puffs(m_game_colors.get_smoke_color(0.0));
+         const bool remove_bullet = bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(0.0));
          if (remove_bullet)
             bullet_it = m_bullets.erase(bullet_it);
          else
