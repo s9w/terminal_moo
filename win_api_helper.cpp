@@ -48,3 +48,9 @@ void moo::disable_selection()
    SetConsoleMode(hStdin, ENABLE_EXTENDED_FLAGS |
       (prev_mode & ~ENABLE_QUICK_EDIT_MODE));
 }
+
+
+void moo::write(HANDLE& output_handle, const std::wstring str){
+   LPDWORD chars_written = 0;
+   WriteConsole(output_handle, str.c_str(), static_cast<DWORD>(str.length()), chars_written, 0);
+}

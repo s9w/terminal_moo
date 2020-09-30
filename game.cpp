@@ -32,12 +32,6 @@ namespace {
    }
 
 
-   void write(HANDLE& output_handle, const std::wstring str) {
-      LPDWORD chars_written = 0;
-      WriteConsole(output_handle, str.c_str(), static_cast<DWORD>(str.length()), chars_written, 0);
-   }
-
-
    struct CharAndColor {
       wchar_t ch;
       moo::ColorIndex color;

@@ -19,4 +19,6 @@ namespace moo {
 
    void disable_selection();
 
+   void write(HANDLE& output_handle, const std::wstring str);
+
 }
