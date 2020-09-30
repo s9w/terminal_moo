@@ -34,7 +34,7 @@ namespace {
 
 
    struct CharAndColor {
-      wchar_t ch;
+      wchar_t ch = '\0';
       moo::ColorIndex color;
    };
 
@@ -323,7 +323,6 @@ auto moo::game::run() -> void{
       draw_shadow(m_player.m_pos, m_player_image.front().m_width / 2, 1);
 
       constexpr double helicopter_anim_frametime = 50.0;
-      constexpr double grazing_anim_frametime = 5000.0;
       const size_t player_anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
       write_image_at_pos(m_player_image[player_anim_i], m_player.m_pos, std::nullopt);
       draw_cows(dt);
