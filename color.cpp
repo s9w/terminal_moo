@@ -99,7 +99,7 @@ auto moo::get_health_colors(const int health_color_count) -> std::vector<RGB>{
    constexpr moo::RGB yellow{ 255, 255, 0 };
    constexpr moo::RGB red{ 0, 255, 0 };
    std::vector<RGB> green_to_yellow = get_gradient(green, yellow, first_size);
-   std::vector<RGB> yellow_to_red = get_gradient(yellow, red, first_size);
+   std::vector<RGB> yellow_to_red = get_gradient(yellow, red, second_size);
    std::vector<RGB> health_gradient;
    health_gradient.reserve(health_color_count);
    append_moved(health_gradient, green_to_yellow);
