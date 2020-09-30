@@ -30,6 +30,7 @@ namespace moo {
       void refresh_mouse_pos();
       void refresh_window_rect();
       void handle_mouse_click();
+      void early_test(const bool use_colors);
       void one_pixel(
          const BlockChar& block_char,
          const ColorIndex row_bg_color

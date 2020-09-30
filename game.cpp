@@ -300,9 +300,70 @@ bool does_hit(
 }
 
 
-auto moo::game::run() -> void{
+void moo::game::early_test(const bool use_colors) {
+   constexpr int color_count = 1000;
+   constexpr int color_keep_period = 4;
+   [[maybe_unused]] constexpr int color_changes = 120 * 30 / color_keep_period * 2;
+
+   std::vector<RGB> dark_colors, light_colors;
+   dark_colors.reserve(color_count);
+   light_colors.reserve(color_count);
+   for (int i = 0; i < color_count; ++i) {
+      light_colors.push_back({ 
+         static_cast<unsigned char>(128+rand()%128),
+         static_cast<unsigned char>(128 + rand() % 128),
+         static_cast<unsigned char>(128 + rand() % 128)
+         });
+      dark_colors.push_back({
+         static_cast<unsigned char>(rand() % 128),
+         static_cast<unsigned char>(rand() % 128),
+         static_cast<unsigned char>(rand() % 128)
+         });
+   }
+
+   COORD zero_pos{ 0, 0 };
+   std::wstring str, fps_str;
+   str.reserve(100000);
    while (true) {
-      //refresh_window_rect();
+      {
+         ZoneScopedN("SetConsoleCursorPosition()");
+         SetConsoleCursorPosition(m_output_handle, zero_pos);
+      }
+      str.clear();
+      {
+         ZoneScopedN("fmt()");
+         fps_str = fmt::format(L"FPS: {}    ", m_fps_counter.m_current_fps);
+      }
+      {
+         ZoneScopedN("string building");
+         for (int i = 0; i < m_rows; ++i) {
+            for (int j = 0; j < m_columns; ++j) {
+               const int index = i * m_columns + j;
+               const bool change_color = use_colors && index % color_keep_period == 0;
+               if (change_color) {
+                  str += get_color_string(light_colors[index % color_count], false);
+                  str += get_color_string(dark_colors[index % color_count], true);
+               }
+               if (i == 0 && j < fps_str.length())
+                  str += fps_str[j];
+               else
+                  str += std::to_wstring(rand() % 10);
+            }
+         }
+      }
+      
+      write(m_output_handle, str);
+      m_fps_counter.step();
+      FrameMark;
+   }
+}
+
+
+auto moo::game::run() -> void{
+   //early_test(true);
+
+   while (true) {
+      refresh_window_rect();
       refresh_mouse_pos();
       handle_mouse_click();
 
@@ -378,6 +439,7 @@ auto moo::game::run() -> void{
          ZoneScopedN("SetConsoleCursorPosition()");
          SetConsoleCursorPosition(m_output_handle, zero_pos);
       }
+      //write(m_output_handle, std::to_wstring(m_string[0]));
       write(m_output_handle, m_string);
       m_fps_counter.step();
       ++m_frame;
