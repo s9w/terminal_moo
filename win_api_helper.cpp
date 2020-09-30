@@ -52,7 +52,7 @@ void moo::disable_selection()
 }
 
 
-void moo::write(HANDLE& output_handle, const std::wstring str){
+void moo::write(HANDLE& output_handle, const std::wstring& str){
    ZoneScopedC(0x808080);
    LPDWORD chars_written = 0;
    WriteConsole(output_handle, str.c_str(), static_cast<DWORD>(str.length()), chars_written, 0);
