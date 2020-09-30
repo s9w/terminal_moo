@@ -9,6 +9,7 @@ namespace fs = std::filesystem;
 #include "win_api_helper.h"
 
 #include <fmt\format.h>
+#include <Tracy.hpp>
 
 
 namespace {
@@ -37,7 +38,7 @@ namespace {
       moo::ColorIndex color;
    };
 
-   constexpr wchar_t get_block_char(
+   constexpr wchar_t get_block_char_positive(
       const moo::BlockChar& block_char,
       const moo::ColorIndex positive
    ) {
@@ -83,7 +84,7 @@ namespace {
    }
 
 
-   constexpr wchar_t get_block_char(
+   constexpr wchar_t get_block_char_constexpr(
       const moo::BlockChar& block_char
    ) {
       if (block_char.top_left == -1 && block_char.top_right == -1 && block_char.bottom_left == -1 && block_char.bottom_right == -1)
@@ -135,7 +136,7 @@ namespace {
          return { ' ', moo::ColorIndex{} };
 
       CharAndColor ret;
-      ret.ch = get_block_char(block_char);
+      ret.ch = get_block_char_constexpr(block_char);
       ret.color = block_char.get_max_color();
 
       return ret;
@@ -301,7 +302,7 @@ bool does_hit(
 
 auto moo::game::run() -> void{
    while (true) {
-      refresh_window_rect();
+      //refresh_window_rect();
       refresh_mouse_pos();
       handle_mouse_click();
 
@@ -309,7 +310,10 @@ auto moo::game::run() -> void{
       const Seconds dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t_last).count() / 1000.0;
       const long long ms_since_start = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t0).count();
 
-      std::fill(m_pixels.begin(), m_pixels.end(), -1);
+      {
+         ZoneScopedN("clearing pixels");
+         std::fill(m_pixels.begin(), m_pixels.end(), -1);
+      }
       clear_screen_text();
       draw_sky_and_ground();
       draw_to_bg(m_cloud_images[0], 1, 5);
@@ -326,6 +330,7 @@ auto moo::game::run() -> void{
       
       auto bullet_it = m_bullets.begin();
       while(bullet_it != m_bullets.end()){
+         ZoneScopedN("bullet iteration");
          draw_bullet(*bullet_it);
          bullet_it->recolor_puffs(m_game_colors.get_smoke_color(0.0));
          bool remove_bullet = bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(0.0));
@@ -362,17 +367,24 @@ auto moo::game::run() -> void{
          ufo.progress();
       }
 
-      write_screen_text(fmt::format("FPS: {}", m_fps_counter.m_current_fps), 0, 0);
-      write_screen_text(fmt::format("mouse pos: {:.2f}, {:.2f}", m_mouse_pos.x_fraction, m_mouse_pos.y_fraction), 1, 0);
+      {
+         ZoneScopedN("Drawing GUI");
+         write_screen_text(fmt::format("FPS: {}", m_fps_counter.m_current_fps), 0, 0);
+         write_screen_text(fmt::format("mouse pos: {:.2f}, {:.2f}", m_mouse_pos.x_fraction, m_mouse_pos.y_fraction), 1, 0);
+      }
 
       write_string();
       COORD zero_pos{ 0, 0 };
-      SetConsoleCursorPosition(m_output_handle, zero_pos);
+      {
+         ZoneScopedN("SetConsoleCursorPosition()");
+         SetConsoleCursorPosition(m_output_handle, zero_pos);
+      }
       write(m_output_handle, m_string);
       m_fps_counter.step();
       ++m_frame;
 
       m_t_last = now;
+      FrameMark;
    }
 }
 
@@ -386,7 +398,7 @@ void moo::game::one_pixel(
    if (no_bg_visible) {
       const std::optional<TwoColors> two_colors = block_char.get_two_colors();
       if (two_colors.has_value()) {
-         const wchar_t block_char_char = ::get_block_char(block_char, two_colors.value().first);
+         const wchar_t block_char_char = ::get_block_char_positive(block_char, two_colors.value().first);
          m_painter.paint(two_colors.value().first, two_colors.value().second, m_string);
          m_string += block_char_char;
          return;
@@ -400,6 +412,7 @@ void moo::game::one_pixel(
 
 
 void moo::game::write_string(){
+   ZoneScoped;
    m_string.clear();
 
    for (int i = 0; i < m_rows; ++i) {
@@ -454,6 +467,7 @@ auto moo::game::get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t{
 
 
 auto moo::game::draw_sky_and_ground() -> void{
+   ZoneScoped;
    const int sky_height = static_cast<int>(std::round(moo::get_config().sky_fraction * m_rows));
    const int ground_height = m_rows - sky_height;
    for (int i = 0; i < sky_height; ++i) {
@@ -501,6 +515,7 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
 
 
 auto moo::game::draw_cows(const Seconds dt) -> void{
+   ZoneScoped;
    for (Cow& cow : m_cows) {
       const double cow_progress = cow.progress(dt);
       const size_t cow_anim_i = cow_progress > 0.5;
@@ -515,6 +530,7 @@ auto moo::game::draw_shadow(
    const int shadow_x_offset
 ) -> void
 {
+   ZoneScoped;
    const int sky_height = static_cast<int>(get_config().sky_fraction * m_rows);
    const int ground_height = m_rows - sky_height;
    const int shadow_j = static_cast<int>(pos.x_fraction * m_columns);
@@ -536,6 +552,7 @@ auto moo::game::draw_to_bg(
    const int j
 ) -> void
 {
+   ZoneScoped;
    for (int image_i = 0; image_i < image.m_height; ++image_i) {
       for (int image_j = 0; image_j < image.m_width; ++image_j) {
          const int image_index = image_i * image.m_width + image_j;
@@ -552,6 +569,7 @@ void moo::game::write_image_at_pos(
    const FractionalPos& fractional_pos,
    const std::optional<ColorIndex>& override_color
 ){
+   ZoneScoped;
    const PixelPos center_pos = get_pixel_pos(fractional_pos);
    PixelPos top_left_pos = center_pos;
    top_left_pos.j -= image.m_width / 2;
@@ -581,6 +599,7 @@ void moo::game::write_screen_text(
    const int i, 
    const int j
 ){
+   ZoneScoped;
    for (int i_text = 0; i_text < text.length(); ++i_text) {
       const size_t index = i * m_columns + j + i_text;
       
@@ -604,6 +623,7 @@ void moo::game::clear_screen_text(){
 
 
 void moo::game::refresh_mouse_pos(){
+   ZoneScoped;
    POINT mouse_pos;
    GetCursorPos(&mouse_pos);
    m_mouse_pos.x_fraction = 1.0 * (mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
@@ -612,6 +632,7 @@ void moo::game::refresh_mouse_pos(){
 
 
 void moo::game::refresh_window_rect(){
+   ZoneScoped;
    m_window_rect = get_window_rect();
 }
 

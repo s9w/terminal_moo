@@ -1,5 +1,7 @@
 #include "win_api_helper.h"
 
+#include <Tracy.hpp>
+
 void moo::ShowConsoleCursor(bool show){
    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
    CONSOLE_CURSOR_INFO     cursorInfo;
@@ -51,6 +53,7 @@ void moo::disable_selection()
 
 
 void moo::write(HANDLE& output_handle, const std::wstring str){
+   ZoneScopedC(0x808080);
    LPDWORD chars_written = 0;
    WriteConsole(output_handle, str.c_str(), static_cast<DWORD>(str.length()), chars_written, 0);
 }

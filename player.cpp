@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+#include <Tracy.hpp>
+
 namespace {
 
    /// <summary>If the position diff would not result in at least a change of "half" a pixel,
@@ -55,6 +57,7 @@ auto moo::Player::move_towards(
    const int columns
 ) -> void
 {
+   ZoneScoped;
    const FractionalPos position_diff = get_sanitized_position_diff(target_pos - m_pos, rows, columns);
    m_pos = get_limited_pos(m_pos + dt.m_value * m_speed * get_indep_normalized(position_diff), rows);
 
