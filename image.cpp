@@ -35,7 +35,7 @@ namespace {
          printf("File doesn't exist (%s).\n", path.string().c_str());
          std::terminate();
       }
-      int png_bpp, png_width, png_height;
+      int png_bpp = -1, png_width = -1, png_height = -1;
       unsigned char* png_data = stbi_load(path.string().c_str(), &png_width, &png_height, &png_bpp, 0);
       if (png_bpp != 3) {
          printf("Image doesn't have RGB colors. (%s, %ibpp)\n", path.string().c_str(), png_bpp);
