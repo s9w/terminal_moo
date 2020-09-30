@@ -70,6 +70,11 @@ namespace moo {
    };
 
    template<class T>
+   constexpr T get_tol() {
+      return static_cast<T>(0.001);
+   }
+
+   template<class T>
    [[nodiscard]] auto constexpr less(const T first, const T second) -> bool {
       return first - second <= -get_tol<T>();
    }
@@ -78,11 +83,6 @@ namespace moo {
 
    [[nodiscard]] constexpr auto get_triangle(const double x) -> double;
    [[nodiscard]] constexpr auto get_rising(const double x, const double start, const double end) -> double;
-
-   template<class T>
-   constexpr T get_tol() {
-      return static_cast<T>(0.001);
-   }
 
    template <typename T>
    T get_sign(const T val) {
