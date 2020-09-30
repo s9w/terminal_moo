@@ -112,7 +112,7 @@ auto moo::Trail::recolor_puffs(
    const ColorIndex first_smoke_color, 
    const FractionalPos bullet_pos
 ) -> void{
-   for (int i = 0; i < m_smoke_puffs.size(); ++i) {
+   for (size_t i = 0; i < m_smoke_puffs.size(); ++i) {
       TrailPuff& puff = m_smoke_puffs[i];
       const double progress = get_rising(length(puff.pos - bullet_pos), 0.0, 1.0);
       constexpr int smoke_colors = 100;
