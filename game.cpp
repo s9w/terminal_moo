@@ -154,10 +154,10 @@ namespace {
 
 
    [[nodiscard]] auto get_keyboard_intention() -> std::optional<moo::FractionalPos> {
-      const bool a_pressed = GetKeyState(0x41) < 0;
-      const bool d_pressed = GetKeyState(0x44) < 0;
-      const bool w_pressed = GetKeyState(0x57) < 0;
-      const bool s_pressed = GetKeyState(0x53) < 0;
+      const bool a_pressed = GetKeyState(0x41) < 0 || GetKeyState(VK_LEFT) < 0;
+      const bool d_pressed = GetKeyState(0x44) < 0 || GetKeyState(VK_RIGHT) < 0;;
+      const bool w_pressed = GetKeyState(0x57) < 0 || GetKeyState(VK_UP) < 0;;
+      const bool s_pressed = GetKeyState(0x53) < 0 || GetKeyState(VK_DOWN) < 0;;
 
       moo::FractionalPos intention;
       constexpr double intention_span = 0.1;
