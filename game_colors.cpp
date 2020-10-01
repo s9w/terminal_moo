@@ -3,24 +3,22 @@
 
 #include <algorithm>
 
-
 namespace {
 
-   auto get_region_fraction(
-      const std::vector<moo::RGB>& gradient,
-      const double fraction
-   ) -> moo::RGB 
-   {
-      const size_t index = static_cast<size_t>(std::round(fraction * (gradient.size() - 1)));
-      if (index < 0 || index > (gradient.size() - 1)) {
-         printf("Fraction not in [0.0, 1.0]\n");
-         std::terminate();
-      }
-      return gradient[index];
+
+   TEST_CASE("get_gradient_at_fraction()") {
+      using namespace moo;
+      constexpr RGB first{ 255, 0, 0 };
+      constexpr RGB second{ 0, 255, 0 };
+      constexpr RGB third{ 0, 0, 255 };
+      std::vector<RGB> gradient{ first, second, third };
+
+      CHECK(get_gradient_at_fraction(gradient.data(), gradient.size(), 0.0) == first);
+      CHECK(get_gradient_at_fraction(gradient.data(), gradient.size(), 0.5) == second);
+      CHECK(get_gradient_at_fraction(gradient.data(), gradient.size(), 1.0) == third);
    }
 
-} // namespace {}
-
+}
 
 moo::GameColors::GameColors(std::mt19937_64& rng)
    : m_sky_colors(get_sky_colors(50))
@@ -32,26 +30,6 @@ moo::GameColors::GameColors(std::mt19937_64& rng)
 }
 
 
-auto moo::GameColors::get_sky_color(const double fraction) const -> RGB {
-   return get_region_fraction(m_sky_colors, fraction);
-}
-
-
-auto moo::GameColors::get_ground_color(const double fraction) const -> RGB {
-   return get_region_fraction(m_ground_colors, fraction);
-}
-
-
-auto moo::GameColors::get_smoke_color(const double fraction) const -> RGB {
-   return get_region_fraction(m_smoke_colors, fraction);
-}
-
-
-auto moo::GameColors::get_smoke_colors_ref() const -> const std::vector<moo::RGB>&{
+auto moo::GameColors::get_smoke_colors_ref() const -> const std::vector<moo::RGB>& {
    return m_smoke_colors;
-}
-
-
-auto moo::GameColors::get_health_color(const double fraction) const -> RGB {
-   return get_region_fraction(m_health_colors, fraction);
 }
