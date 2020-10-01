@@ -198,6 +198,66 @@ namespace {
          return mouse_target;
    }
 
+
+   /// <summary>Yields a random positive integer that is changed in varying intervals.</summary>
+   struct SporadocRandomOffseter {
+      SporadocRandomOffseter(
+         const int noise_strength, 
+         const int min_interval,
+         const int max_interval, 
+         std::mt19937_64& rng
+      )
+         : m_rng_ref(rng)
+         , m_noise_dist(-noise_strength, noise_strength)
+         , m_interval_dist(min_interval, max_interval)
+      {
+         reshuffle_noise();
+      }
+
+      [[nodiscard]] auto yield() -> int {
+         if (m_uses_left == 0)
+            reshuffle_noise();
+         --m_uses_left;
+         return m_current_noise;
+      }
+
+   private:
+      auto reshuffle_noise() -> void {
+         m_uses_left = m_interval_dist(m_rng_ref);
+         m_current_noise = m_noise_dist(m_rng_ref);
+      }
+
+      std::mt19937_64& m_rng_ref;
+      std::uniform_int_distribution<> m_noise_dist;
+      std::uniform_int_distribution<> m_interval_dist;
+      int m_current_noise = 0;
+      int m_uses_left = 0;
+   };
+
+
+   [[nodiscard]] auto get_ground_row_height(const int rows) -> int {
+      const int sky_height = static_cast<int>(std::round(moo::get_config().sky_fraction * rows));
+      return rows - sky_height;
+   }
+
+
+   [[nodiscard]] auto get_bg_noise_offsets(
+      const int colums,
+      const int rows,
+      const int noise_strength,
+      std::mt19937_64& rng
+   ) -> std::vector<int>
+   {
+      SporadocRandomOffseter noise_generator(noise_strength, 4, 8, rng);
+      std::vector<int> bg_noise_offsets;
+      bg_noise_offsets.reserve(colums * rows);
+
+      for (int i = 0; i < rows * colums; ++i)
+         bg_noise_offsets.emplace_back(noise_generator.yield());
+
+      return bg_noise_offsets;
+   }
+
 } // namespace {}
 
 
@@ -212,6 +272,7 @@ moo::game::game(const int columns, const int rows)
    , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
    , m_game_colors(m_rng)
    , m_bg_colors(m_columns * m_rows)
+   , m_grass_offsets(get_bg_noise_offsets(m_columns, get_ground_row_height(m_rows), 5, m_rng))
    , m_screen_text(m_columns * m_rows, '\0')
    , m_pixels(2 * m_columns * 2 * m_rows, RGB{})
    , m_fps_counter()
@@ -489,17 +550,26 @@ auto moo::game::draw_sky_and_ground() -> void{
    ZoneScoped;
    const int sky_height = static_cast<int>(std::round(moo::get_config().sky_fraction * m_rows));
    const int ground_height = m_rows - sky_height;
+   const int ground_start_index = sky_height * m_columns;
    double fraction = 0.0;
+   
    for (int i = 0; i < m_rows; ++i) {
       const bool is_sky = i < sky_height;
       if (is_sky)
          fraction = 1.0 * i / sky_height;
       else
          fraction = 1.0 * (i - sky_height) / ground_height;
-      const RGB color = is_sky ? m_game_colors.get_sky_color(fraction) : m_game_colors.get_ground_color(fraction);
+      RGB color;
+      if (is_sky)
+         color = m_game_colors.get_sky_color(fraction);
+      else
+         color = m_game_colors.get_ground_color(fraction);
       for (int j = 0; j < m_columns; ++j) {
          const int index = i * m_columns + j;
-         m_bg_colors[index] = color;
+         if (is_sky)
+            m_bg_colors[index] = color;
+         else
+            m_bg_colors[index] = get_offsetted_color(color, m_grass_offsets[index - ground_start_index]);
       }
    }
 }

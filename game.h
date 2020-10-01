@@ -56,6 +56,7 @@ namespace moo {
       GameColors m_game_colors;
       Painter m_painter;
       std::vector<RGB> m_bg_colors;
+      std::vector<int> m_grass_offsets;
       std::vector<char> m_screen_text;
       std::wstring m_string;
       std::vector<Image> m_player_image;

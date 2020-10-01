@@ -19,7 +19,9 @@ namespace moo {
 
    using TwoColors = std::pair<RGB, RGB>;
 
-   [[nodiscard]] constexpr auto is_color_visible(const moo::RGB& color);
+   [[nodiscard]] constexpr auto is_color_visible(const moo::RGB& color) -> bool;
+   [[nodiscard]] auto get_noised_color(const moo::RGB& color, const int noise_strength, std::mt19937_64& rng) -> RGB;
+   [[nodiscard]] constexpr auto get_offsetted_color(const moo::RGB& color, const int noise) -> RGB;
    [[nodiscard]] auto get_gradient(const RGB& from, const RGB& to, const unsigned int n) -> std::vector<RGB>;
    [[nodiscard]] constexpr auto get_color_mix(const RGB& a, const RGB& b) -> RGB;
    [[nodiscard]] constexpr auto get_color_mix(const RGB& a, const RGB& b, const double factor) -> RGB;
@@ -36,7 +38,7 @@ constexpr auto moo::RGB::is_visible() const -> bool {
    return r != 0 || g != 0 || b != 0;
 }
 
-constexpr auto moo::is_color_visible(const moo::RGB& color) {
+constexpr auto moo::is_color_visible(const moo::RGB& color) -> bool {
    return color.is_visible();
 }
 
@@ -74,5 +76,26 @@ constexpr auto moo::get_color_mix(
       get_uc_mix(a.r, b.r, factor),
       get_uc_mix(a.g, b.g, factor),
       get_uc_mix(a.b, b.b, factor)
+   };
+}
+
+
+[[nodiscard]] constexpr auto get_clamped_uchar(
+   const int c
+) -> unsigned char
+{
+   return static_cast<unsigned char>(std::clamp(c, 0, 255));
+}
+
+
+constexpr auto moo::get_offsetted_color(
+   const moo::RGB& color,
+   const int noise
+) -> moo::RGB
+{
+   return {
+      get_clamped_uchar(color.r + noise),
+      get_clamped_uchar(color.g + noise),
+      get_clamped_uchar(color.b + noise)
    };
 }

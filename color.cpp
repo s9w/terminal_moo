@@ -24,14 +24,6 @@ namespace {
    }
 
 
-   [[nodiscard]] constexpr auto get_clamped_uchar(
-      const int c
-   ) -> unsigned char
-   {
-      return static_cast<unsigned char>(std::clamp(c, 0, 255));
-   }
-
-
    [[nodiscard]] auto get_noised_colors(
       const std::vector<moo::RGB>& colors,
       std::mt19937_64& rng,
@@ -43,17 +35,29 @@ namespace {
       std::uniform_int_distribution<> noise_dist(-noise_strength, noise_strength);
       for (const moo::RGB& rgb_color : colors) {
          const int noise = noise_dist(rng);
-         noised_colors.push_back({
-            get_clamped_uchar(rgb_color.r + noise),
-            get_clamped_uchar(rgb_color.g + noise),
-            get_clamped_uchar(rgb_color.b + noise)
-            });
+         noised_colors.push_back(moo::get_offsetted_color(rgb_color, noise));
       }
 
       return noised_colors;
    }
 
 } // namespace {}
+
+
+auto moo::get_noised_color(
+   const RGB& color, 
+   const int noise_strength,
+   std::mt19937_64& rng
+) -> RGB
+{
+   std::uniform_int_distribution<> noise_dist(-noise_strength, noise_strength);
+   const int noise = noise_dist(rng);
+   return {
+      get_clamped_uchar(color.r + noise),
+      get_clamped_uchar(color.g + noise),
+      get_clamped_uchar(color.b + noise)
+      };
+}
 
 
 auto moo::get_gradient(
