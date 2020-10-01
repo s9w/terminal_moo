@@ -6,122 +6,52 @@
 
 namespace {
 
-   auto get_region_fraction(const moo::ColorRegion& color_region, const double fraction) -> moo::ColorIndex {
-      if (fraction < 0.0 || fraction > 1.0) {
-         printf("Fraction not between 0 and 1\n");
+   auto get_region_fraction(
+      const std::vector<moo::RGB>& gradient,
+      const double fraction
+   ) -> moo::RGB 
+   {
+      const size_t index = static_cast<size_t>(std::round(fraction * (gradient.size() - 1)));
+      if (index < 0 || index > (gradient.size() - 1)) {
+         printf("Fraction not in [0.0, 1.0]\n");
          std::terminate();
       }
-      size_t color = color_region.start_index + static_cast<size_t>(fraction * color_region.count);
-      constexpr size_t zero = 0;
-      color = std::clamp(color, zero, color_region.start_index + color_region.count - 1);
-      return color;
+      return gradient[index];
    }
 
 } // namespace {}
 
 
-moo::GameColors::GameColors() {
-   m_rgbs.push_back({ 0, 0, 0 }); // black, but used as alpha mask
-   m_rgbs.push_back({ 255, 255, 255 }); // white
-   m_rgbs.push_back({ 255, 0, 0 }); // red
-}
-TEST_CASE("Ensure special colors are at right place") {
-   using namespace moo;
-   GameColors game_colors;
-   CHECK(game_colors.get_rgbs()[0] == RGB{0, 0, 0});
-   CHECK(game_colors.get_rgbs()[game_colors.get_white().index()] == RGB{255, 255, 255});
-}
-
-
-auto moo::GameColors::get_sky_color(const double fraction) const -> ColorIndex {
-   return get_region_fraction(m_sky_color_region, fraction);
-}
-
-
-auto moo::GameColors::get_cloud_color(const double fraction) const -> ColorIndex{
-   return get_region_fraction(m_cloud_color_region, fraction);
-}
-
-
-auto moo::GameColors::get_ground_color(const double fraction) const -> ColorIndex {
-   return get_region_fraction(m_ground_color_region, fraction);
-}
-
-
-auto moo::GameColors::get_smoke_color(const double fraction) const -> ColorIndex{
-   return get_region_fraction(m_smoke_color_region, fraction);
-}
-
-
-auto moo::GameColors::get_health_color(const double fraction) const -> ColorIndex{
-   return get_region_fraction(m_health_color_region, fraction);
-}
-
-
-auto moo::GameColors::get_color_loader(const ColorRegions color_region_id) -> ColorLoader{
-   if(color_region_id == ColorRegions::Ship)
-      return ColorLoader(m_rgbs, m_ship_color_region);
-   else if (color_region_id == ColorRegions::Sky)
-      return ColorLoader(m_rgbs, m_sky_color_region);
-   else if (color_region_id == ColorRegions::Smoke)
-      return ColorLoader(m_rgbs, m_smoke_color_region);
-   else if (color_region_id == ColorRegions::Clouds)
-      return ColorLoader(m_rgbs, m_cloud_color_region);
-   else if (color_region_id == ColorRegions::Health)
-      return ColorLoader(m_rgbs, m_health_color_region);
-   else
-      return ColorLoader(m_rgbs, m_ground_color_region);
-}
-
-
-auto moo::GameColors::get_rgbs() const -> const std::vector<RGB>&{
-   return m_rgbs;
-}
-
-static bool color_loader_instance_exists = false;
-
-moo::ColorLoader::ColorLoader(std::vector<RGB>& game_color_rgbs, ColorRegion& color_region)
-   : m_rgbs(game_color_rgbs)
-   , m_color_region(color_region)
+moo::GameColors::GameColors(std::mt19937_64& rng)
+   : m_sky_colors(get_sky_colors(50))
+   , m_ground_colors(get_ground_colors(50))
+   , m_smoke_colors(get_smoke_colors(100, rng))
+   , m_health_colors(get_health_colors(50))
 {
-   if (color_loader_instance_exists) {
-      printf("ColorLoader instance already exists.\n");
-      std::terminate();
-   }
-   m_color_region.start_index = m_rgbs.size();
-   color_loader_instance_exists = true;
+   
 }
 
 
-moo::ColorLoader::~ColorLoader(){
-   m_color_region.count = m_rgbs.size() - m_color_region.start_index;
-   color_loader_instance_exists = false;
+auto moo::GameColors::get_sky_color(const double fraction) const -> RGB {
+   return get_region_fraction(m_sky_colors, fraction);
 }
 
 
-auto moo::ColorLoader::get_color_index(const RGB rgb_color) const -> ColorIndex{
-   const auto it = std::find(std::cbegin(m_rgbs), std::cend(m_rgbs), rgb_color);
-   if (it != std::cend(m_rgbs))
-      return std::distance(std::cbegin(m_rgbs), it);
-   else {
-      m_rgbs.emplace_back(rgb_color);
-      return m_rgbs.size() - 1;
-   }
+auto moo::GameColors::get_ground_color(const double fraction) const -> RGB {
+   return get_region_fraction(m_ground_colors, fraction);
 }
 
 
-auto moo::ColorLoader::load_rgbs(std::vector<RGB> rgb_colors) -> void{
-   append_moved(m_rgbs, rgb_colors);
+auto moo::GameColors::get_smoke_color(const double fraction) const -> RGB {
+   return get_region_fraction(m_smoke_colors, fraction);
 }
 
-TEST_CASE("ColorLoader") {
-   using namespace moo;
-   GameColors game_colors;
-   {
-      ColorLoader color_loader = game_colors.get_color_loader(moo::ColorRegions::Sky);
-      const auto color_index = color_loader.get_color_index({ 10, 20, 30 });
-   }
 
-   CHECK(game_colors.get_rgbs()[game_colors.get_sky_color(0.0).index()] == RGB{ 10, 20, 30 });
-   CHECK(game_colors.get_rgbs()[game_colors.get_sky_color(1.0).index()] == RGB{ 10, 20, 30 });
+auto moo::GameColors::get_smoke_colors_ref() const -> const std::vector<moo::RGB>&{
+   return m_smoke_colors;
+}
+
+
+auto moo::GameColors::get_health_color(const double fraction) const -> RGB {
+   return get_region_fraction(m_health_colors, fraction);
 }

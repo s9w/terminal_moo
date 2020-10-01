@@ -24,7 +24,7 @@ namespace moo {
       game(const int columns, const int rows);
       auto run() -> void;
       void write_string();
-      void write_image_at_pos(const Image& image, const FractionalPos& pos, const std::optional<ColorIndex>& override_color);
+      void write_image_at_pos(const Image& image, const FractionalPos& pos, const std::optional<RGB>& override_color);
       void write_screen_text(const std::string& text, const int i, const int j);
       void clear_screen_text();
       void refresh_mouse_pos();
@@ -33,11 +33,11 @@ namespace moo {
       void early_test(const bool use_colors);
       void one_pixel(
          const BlockChar& block_char,
-         const ColorIndex row_bg_color
+         const RGB row_bg_color
       );
 
       template<typename T>
-      [[nodiscard]] auto get_pixel(int i, int j) const -> ColorIndex;
+      [[nodiscard]] auto get_pixel(int i, int j) const -> RGB;
       [[nodiscard]] auto get_block_char(int i, int j) const -> BlockChar;
       [[nodiscard]] auto get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos;
       [[nodiscard]] auto get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t;
@@ -47,6 +47,7 @@ namespace moo {
       auto draw_shadow(const FractionalPos& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
       auto draw_to_bg(const Image& image, const int i, const int j) -> void;
 
+      std::mt19937_64 m_rng;
       int m_columns = 0;
       int m_rows = 0;
       LongRect m_window_rect;
@@ -56,14 +57,14 @@ namespace moo {
       HANDLE m_input_handle;
       GameColors m_game_colors;
       Painter m_painter;
-      std::vector<ColorIndex> m_bg_colors;
+      std::vector<RGB> m_bg_colors;
       std::vector<char> m_screen_text;
       std::wstring m_string;
       std::vector<Image> m_player_image;
       std::vector<Image> m_cow_image;
       std::vector<Image> m_cloud_images;
       std::vector<Image> m_ufo_images;
-      std::vector<ColorIndex> m_pixels;
+      std::vector<RGB> m_pixels;
       FractionalPos m_mouse_pos;
       FpsCounter m_fps_counter;
       int m_frame = 0;
@@ -73,7 +74,6 @@ namespace moo {
       std::vector<Cow> m_cows;
       std::vector<Bullet> m_bullets;
       std::vector<Ufo> m_ufos;
-      std::mt19937_64 m_rng;
    };
 
 

@@ -3,56 +3,29 @@
 #include <vector>
 
 #include "color.h"
-#include "color_index.h"
 
 namespace moo {
 
-   struct ColorRegion {
-      size_t start_index = 0;
-      size_t count = 0;
-   };
-
-   enum class ColorRegions{Ship, Sky, Clouds, Ground, Smoke, Health};
-
-   struct ColorLoader;
-
    struct GameColors {
-      GameColors();
-      [[nodiscard]] auto get_sky_color(const double fraction) const -> ColorIndex;
-      [[nodiscard]] auto get_cloud_color(const double fraction) const -> ColorIndex;
-      [[nodiscard]] auto get_ground_color(const double fraction) const -> ColorIndex;
-      [[nodiscard]] auto get_smoke_color(const double fraction) const -> ColorIndex;
-      [[nodiscard]] auto get_health_color(const double fraction) const -> ColorIndex;
-      [[nodiscard]] auto get_color_loader(const ColorRegions color_region_id) -> ColorLoader;
-      [[nodiscard]] auto get_rgbs() const -> const std::vector<RGB>&;
-      [[nodiscard]] constexpr auto get_white() const -> ColorIndex {
-         return ColorIndex{ 1 };
+      GameColors(std::mt19937_64& rng);
+      [[nodiscard]] auto get_sky_color(const double fraction) const -> RGB;
+      [[nodiscard]] auto get_ground_color(const double fraction) const -> RGB;
+      [[nodiscard]] auto get_smoke_color(const double fraction) const -> RGB;
+      [[nodiscard]] auto get_smoke_colors_ref() const -> const std::vector<moo::RGB>&;
+      [[nodiscard]] auto get_health_color(const double fraction) const -> RGB;
+      [[nodiscard]] constexpr auto get_white() const -> RGB {
+         return { 255, 255, 255 };
       }
-      [[nodiscard]] constexpr auto get_red() const -> ColorIndex {
-         return ColorIndex{ 2 };
+      [[nodiscard]] constexpr auto get_red() const -> RGB {
+         return { 255, 0, 0 };
       }
 
    private:
-      std::vector<RGB> m_rgbs;
-      ColorRegion m_ship_color_region;
-      ColorRegion m_sky_color_region;
-      ColorRegion m_ground_color_region;
-      ColorRegion m_smoke_color_region;
-      ColorRegion m_cloud_color_region;
-      ColorRegion m_health_color_region;
+      std::vector<moo::RGB> m_sky_colors;
+      std::vector<moo::RGB> m_ground_colors;
+      std::vector<moo::RGB> m_smoke_colors;
+      std::vector<moo::RGB> m_health_colors;
    };
 
-
-   /// <summary>Wraps the loading of new colors so that the color region indices are setup correctly.</summary>
-   struct ColorLoader {
-      ColorLoader(std::vector<RGB>& game_color_rgbs, ColorRegion& color_region);
-      ~ColorLoader();
-      [[nodiscard]] auto get_color_index(const RGB rgb_color) const -> ColorIndex;
-      auto load_rgbs(std::vector<RGB> rgb_colors) -> void;
-
-   private:
-      std::vector<RGB>& m_rgbs;
-      ColorRegion& m_color_region;
-   };
 
 }

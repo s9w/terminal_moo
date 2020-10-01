@@ -3,7 +3,6 @@ namespace fs = std::filesystem;
 #include <random>
 
 #include "config.h"
-#include "color_index.h"
 #include "game.h"
 #include "helpers.h"
 #include "win_api_helper.h"
@@ -14,116 +13,54 @@ namespace fs = std::filesystem;
 
 namespace {
 
-   std::wstring get_color_string(const moo::RGB& rgb, const bool bg) {
-      if (bg) {
-         return fmt::format(L"\x1b[48;2;{};{};{}m", rgb.r, rgb.g, rgb.b);
-      }
-      else {
-         return fmt::format(L"\x1b[38;2;{};{};{}m", rgb.r, rgb.g, rgb.b);
-      }
-   }
-
-
-   [[nodiscard]] auto get_color_strings(const std::vector<moo::RGB>& rgb_colors, const bool bg) -> std::vector<std::wstring> {
-      std::vector<std::wstring> color_strings;
-      color_strings.reserve(rgb_colors.size());
-      for (const moo::RGB& rgb : rgb_colors)
-         color_strings.emplace_back(get_color_string(rgb, bg));
-      return color_strings;
-   }
-
-
    struct CharAndColor {
       wchar_t ch = '\0';
-      moo::ColorIndex color;
+      moo::RGB color;
    };
+   
 
-   constexpr wchar_t get_block_char_positive(
+   template<typename T>
+   constexpr wchar_t get_block_glyph(
       const moo::BlockChar& block_char,
-      const moo::ColorIndex positive
+      const T& pred
    ) {
-      if (block_char.top_left != positive && block_char.top_right != positive && block_char.bottom_left != positive && block_char.bottom_right != positive)
+      if (!pred(block_char.top_left) && !pred(block_char.top_right) && !pred(block_char.bottom_left) && !pred(block_char.bottom_right))
          return L' ';
-      if (block_char.top_left == positive && block_char.top_right == positive && block_char.bottom_left == positive && block_char.bottom_right == positive)
+      if (pred(block_char.top_left) && pred(block_char.top_right) && pred(block_char.bottom_left) && pred(block_char.bottom_right))
          return L'█';
 
-      else if (block_char.top_left != positive && block_char.top_right != positive && block_char.bottom_left != positive && block_char.bottom_right == positive)
+      else if (!pred(block_char.top_left) && !pred(block_char.top_right) && !pred(block_char.bottom_left) && pred(block_char.bottom_right))
          return L'▗';
-      else if (block_char.top_left != positive && block_char.top_right != positive && block_char.bottom_left == positive && block_char.bottom_right != positive)
+      else if (!pred(block_char.top_left) && !pred(block_char.top_right) && pred(block_char.bottom_left) && !pred(block_char.bottom_right))
          return L'▖';
-      else if (block_char.top_left != positive && block_char.top_right == positive && block_char.bottom_left != positive && block_char.bottom_right != positive)
+      else if (!pred(block_char.top_left) && pred(block_char.top_right) && !pred(block_char.bottom_left) && !pred(block_char.bottom_right))
          return L'▝';
-      else if (block_char.top_left == positive && block_char.top_right != positive && block_char.bottom_left != positive && block_char.bottom_right != positive)
+      else if (pred(block_char.top_left) && !pred(block_char.top_right) && !pred(block_char.bottom_left) && !pred(block_char.bottom_right))
          return L'▘';
 
-      else if (block_char.top_left == positive && block_char.top_right != positive && block_char.bottom_left != positive && block_char.bottom_right == positive)
+      else if (pred(block_char.top_left) && !pred(block_char.top_right) && !pred(block_char.bottom_left) && pred(block_char.bottom_right))
          return L'▚';
-      else if (block_char.top_left != positive && block_char.top_right == positive && block_char.bottom_left == positive && block_char.bottom_right != positive)
+      else if (!pred(block_char.top_left) && pred(block_char.top_right) && pred(block_char.bottom_left) && !pred(block_char.bottom_right))
          return L'▞';
 
-      else if (block_char.top_left == positive && block_char.top_right == positive && block_char.bottom_left != positive && block_char.bottom_right != positive)
+      else if (pred(block_char.top_left) && pred(block_char.top_right) && !pred(block_char.bottom_left) && !pred(block_char.bottom_right))
          return L'▀';
-      else if (block_char.top_left != positive && block_char.top_right != positive && block_char.bottom_left == positive && block_char.bottom_right == positive)
+      else if (!pred(block_char.top_left) && !pred(block_char.top_right) && pred(block_char.bottom_left) && pred(block_char.bottom_right))
          return L'▄';
-      else if (block_char.top_left == positive && block_char.top_right != positive && block_char.bottom_left == positive && block_char.bottom_right != positive)
+      else if (pred(block_char.top_left) && !pred(block_char.top_right) && pred(block_char.bottom_left) && !pred(block_char.bottom_right))
          return L'▌';
-      else if (block_char.top_left != positive && block_char.top_right == positive && block_char.bottom_left != positive && block_char.bottom_right == positive)
+      else if (!pred(block_char.top_left) && pred(block_char.top_right) && !pred(block_char.bottom_left) && pred(block_char.bottom_right))
          return L'▐';
 
-      else if (block_char.top_left == positive && block_char.top_right == positive && block_char.bottom_left == positive && block_char.bottom_right != positive)
+      else if (pred(block_char.top_left) && pred(block_char.top_right) && pred(block_char.bottom_left) && !pred(block_char.bottom_right))
          return L'▛';
-      else if (block_char.top_left == positive && block_char.top_right == positive && block_char.bottom_left != positive && block_char.bottom_right == positive)
+      else if (pred(block_char.top_left) && pred(block_char.top_right) && !pred(block_char.bottom_left) && pred(block_char.bottom_right))
          return L'▜';
-      else if (block_char.top_left == positive && block_char.top_right != positive && block_char.bottom_left == positive && block_char.bottom_right == positive)
+      else if (pred(block_char.top_left) && !pred(block_char.top_right) && pred(block_char.bottom_left) && pred(block_char.bottom_right))
          return L'▙';
-      else if (block_char.top_left != positive && block_char.top_right == positive && block_char.bottom_left == positive && block_char.bottom_right == positive)
+      else if (!pred(block_char.top_left) && pred(block_char.top_right) && pred(block_char.bottom_left) && pred(block_char.bottom_right))
          return L'▟';
 
-      printf("This shouldn't happen\n");
-      std::terminate();
-   }
-
-
-   constexpr wchar_t get_block_char_constexpr(
-      const moo::BlockChar& block_char
-   ) {
-      if (block_char.top_left == -1 && block_char.top_right == -1 && block_char.bottom_left == -1 && block_char.bottom_right == -1)
-         return L' ';
-      if (block_char.top_left != -1 && block_char.top_right != -1 && block_char.bottom_left != -1 && block_char.bottom_right != -1)
-         return L'█';
-
-      else if (block_char.top_left == -1 && block_char.top_right == -1 && block_char.bottom_left == -1 && block_char.bottom_right != -1)
-         return L'▗';
-      else if (block_char.top_left == -1 && block_char.top_right == -1 && block_char.bottom_left != -1 && block_char.bottom_right == -1)
-         return L'▖';
-      else if (block_char.top_left == -1 && block_char.top_right != -1 && block_char.bottom_left == -1 && block_char.bottom_right == -1)
-         return L'▝';
-      else if (block_char.top_left != -1 && block_char.top_right == -1 && block_char.bottom_left == -1 && block_char.bottom_right == -1)
-         return L'▘';
-
-      else if (block_char.top_left != -1 && block_char.top_right == -1 && block_char.bottom_left == -1 && block_char.bottom_right != -1)
-         return L'▚';
-      else if (block_char.top_left == -1 && block_char.top_right != -1 && block_char.bottom_left != -1 && block_char.bottom_right == -1)
-         return L'▞';
-
-      else if (block_char.top_left != -1 && block_char.top_right != -1 && block_char.bottom_left == -1 && block_char.bottom_right == -1)
-         return L'▀';
-      else if (block_char.top_left == -1 && block_char.top_right == -1 && block_char.bottom_left != -1 && block_char.bottom_right != -1)
-         return L'▄';
-      else if (block_char.top_left != -1 && block_char.top_right == -1 && block_char.bottom_left != -1 && block_char.bottom_right == -1)
-         return L'▌';
-      else if (block_char.top_left == -1 && block_char.top_right != -1 && block_char.bottom_left == -1 && block_char.bottom_right != -1)
-         return L'▐';
-
-      else if (block_char.top_left != -1 && block_char.top_right != -1 && block_char.bottom_left != -1 && block_char.bottom_right == -1)
-         return L'▛';
-      else if (block_char.top_left != -1 && block_char.top_right != -1 && block_char.bottom_left == -1 && block_char.bottom_right != -1)
-         return L'▜';
-      else if (block_char.top_left != -1 && block_char.top_right == -1 && block_char.bottom_left != -1 && block_char.bottom_right != -1)
-         return L'▙';
-      else if (block_char.top_left == -1 && block_char.top_right != -1 && block_char.bottom_left != -1 && block_char.bottom_right != -1)
-         return L'▟';
-      
       printf("This shouldn't happen\n");
       std::terminate();
    }
@@ -133,11 +70,11 @@ namespace {
       const moo::BlockChar& block_char
    ) {
       if (block_char.is_all_invisible())
-         return { ' ', moo::ColorIndex{} };
+         return { ' ', moo::RGB{} };
 
       CharAndColor ret;
-      ret.ch = get_block_char_constexpr(block_char);
-      ret.color = block_char.get_max_color();
+      ret.ch = get_block_glyph(block_char, moo::is_color_visible);
+      ret.color = block_char.get_best_color();
 
       return ret;
    }
@@ -214,56 +151,31 @@ namespace {
 
 
 moo::game::game(const int columns, const int rows)
-   : m_columns(columns)
+   : m_rng(std::chrono::system_clock::now().time_since_epoch().count())
+   , m_columns(columns)
    , m_rows(rows)
    , m_window_rect(get_window_rect())
    , m_font_width((m_window_rect.right - m_window_rect.left) / m_columns)
    , m_font_height((m_window_rect.bottom - m_window_rect.top) / m_rows)
    , m_output_handle(GetStdHandle(STD_OUTPUT_HANDLE))
    , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
+   , m_game_colors(m_rng)
    , m_bg_colors(m_columns * m_rows)
    , m_screen_text(m_columns * m_rows, '\0')
-   , m_pixels(2 * m_columns * 2 * m_rows, -1)
+   , m_pixels(2 * m_columns * 2 * m_rows, RGB{})
    , m_fps_counter()
    , m_t0(std::chrono::system_clock::now())
    , m_t_last(std::chrono::system_clock::now())
-   , m_rng(std::chrono::system_clock::now().time_since_epoch().count())
 {
    m_string.reserve(100000);
    {
       {
-         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Clouds);
          constexpr bool dimension_checks = false;
-         m_cloud_images = load_images("cloud.png", color_loader, dimension_checks);
+         m_cloud_images = load_images("cloud.png", dimension_checks);
       }
-      {
-         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Ship);
-         m_cow_image = load_images("cow.png", color_loader);
-         m_player_image = load_images("player.png", color_loader);
-         m_ufo_images = load_images("ufo.png", color_loader);
-      }
-
-      {
-         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Smoke);
-         color_loader.load_rgbs(get_smoke_colors(100, m_rng));
-      }
-
-      {
-         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Sky);
-         color_loader.load_rgbs(get_sky_colors(50));
-      }
-
-      {
-         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Health);
-         color_loader.load_rgbs(get_health_colors(10));
-      }
-
-      {
-         ColorLoader color_loader = m_game_colors.get_color_loader(ColorRegions::Ground);
-         color_loader.load_rgbs(get_ground_colors(100));
-      }
-
-      m_painter = Painter(get_color_strings(m_game_colors.get_rgbs(), false), get_color_strings(m_game_colors.get_rgbs(), true));
+      m_cow_image = load_images("cow.png");
+      m_player_image = load_images("player.png");
+      m_ufo_images = load_images("ufo.png");
    }
 
    {
@@ -341,8 +253,8 @@ void moo::game::early_test(const bool use_colors) {
                const int index = i * m_columns + j;
                const bool change_color = use_colors && index % color_keep_period == 0;
                if (change_color) {
-                  str += get_color_string(light_colors[index % color_count], false);
-                  str += get_color_string(dark_colors[index % color_count], true);
+                  insert_color_string(light_colors[index % color_count], Layer::Front, str);
+                  insert_color_string(dark_colors[index % color_count], Layer::Back, str);
                }
                if (i == 0 && j < fps_str.length())
                   str += fps_str[j];
@@ -373,7 +285,7 @@ auto moo::game::run() -> void{
 
       {
          ZoneScopedN("clearing pixels");
-         std::fill(m_pixels.begin(), m_pixels.end(), -1);
+         std::fill(m_pixels.begin(), m_pixels.end(), RGB{});
       }
       clear_screen_text();
       draw_sky_and_ground();
@@ -392,7 +304,7 @@ auto moo::game::run() -> void{
       while(bullet_it != m_bullets.end()){
          ZoneScopedN("bullet iteration");
          draw_bullet(*bullet_it);
-         bullet_it->recolor_puffs(m_game_colors.get_smoke_color(0.0));
+         bullet_it->recolor_puffs(m_game_colors.get_smoke_colors_ref());
          bool remove_bullet = bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(0.0));
          if (!remove_bullet) {
             const double ufo_width = m_ufo_images.front().m_width / (2.0 * m_columns);
@@ -416,7 +328,7 @@ auto moo::game::run() -> void{
             ++bullet_it;
       }
       for (const Ufo& ufo : m_ufos) {
-         ColorIndex ufo_color;
+         RGB ufo_color;
          if (ufo.m_is_hit)
             ufo_color = m_game_colors.get_white();
          else
@@ -452,20 +364,21 @@ auto moo::game::run() -> void{
 
 void moo::game::one_pixel(
    const BlockChar& block_char,
-   const ColorIndex row_bg_color
+   const RGB row_bg_color
 ) {
+   // the char is without BG at this point. That gets added later in this fun
    const CharAndColor char_and_col = get_cell_char(block_char);
    const bool no_bg_visible = block_char.is_all_visible();
    if (no_bg_visible) {
       const std::optional<TwoColors> two_colors = block_char.get_two_colors();
       if (two_colors.has_value()) {
-         const wchar_t block_char_char = ::get_block_char_positive(block_char, two_colors.value().first);
+         const wchar_t block_char_char = get_block_glyph(block_char, [&](const RGB& color) {return color == two_colors.value().first; });
          m_painter.paint(two_colors.value().first, two_colors.value().second, m_string);
          m_string += block_char_char;
          return;
       }
    }
-   const bool has_nontranssparent_color = char_and_col.color != -1;
+   const bool has_nontranssparent_color = char_and_col.color.is_visible();
    if (has_nontranssparent_color)
       m_painter.paint(char_and_col.color, row_bg_color, m_string);
    m_string += char_and_col.ch;
@@ -478,11 +391,11 @@ void moo::game::write_string(){
 
    for (int i = 0; i < m_rows; ++i) {
       for (int j = 0; j < m_columns; ++j) {
-         const ColorIndex bg_color = m_bg_colors[i * m_columns + j];
-         m_painter.paint_layer(bg_color, Painter::Layer::Back, m_string);
+         const RGB bg_color = m_bg_colors[i * m_columns + j];
+         m_painter.paint_layer(bg_color, Layer::Back, m_string);
 
          if (const char screen_char = m_screen_text[i * m_columns + j]; screen_char != '\0') {
-            m_painter.paint_layer(m_game_colors.get_white(), Painter::Layer::Front, m_string);
+            m_painter.paint_layer(m_game_colors.get_white(), Layer::Front, m_string);
             m_string += screen_char;
             continue;
          }
@@ -496,7 +409,7 @@ void moo::game::write_string(){
 
 
 template<typename T>
-[[nodiscard]] auto moo::game::get_pixel(int i, int j) const -> ColorIndex{
+[[nodiscard]] auto moo::game::get_pixel(int i, int j) const -> RGB{
    return m_pixels[get_pixel_index<T>(i, j, m_columns)];
 }
 
@@ -563,7 +476,7 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
       █
       */
 
-      const ColorIndex bullet_color = m_game_colors.get_red();
+      const RGB bullet_color = m_game_colors.get_red();
       const PixelPos bullet_pixel_pos = get_pixel_pos(bullet_pos);
       m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 0 })] = bullet_color;
       m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 1 })] = bullet_color;
@@ -618,8 +531,8 @@ auto moo::game::draw_to_bg(
       for (int image_j = 0; image_j < image.m_width; ++image_j) {
          const int image_index = image_i * image.m_width + image_j;
          const int index = (image_i + i) * m_columns + image_j + j;
-         if (image.m_color_indices[image_index] > 0)
-            m_bg_colors[index] = image.m_color_indices[image_index];
+         if (image.m_pixels[image_index].is_visible())
+            m_bg_colors[index] = image.m_pixels[image_index];
       }
    }
 }
@@ -628,7 +541,7 @@ auto moo::game::draw_to_bg(
 void moo::game::write_image_at_pos(
    const Image& image, 
    const FractionalPos& fractional_pos,
-   const std::optional<ColorIndex>& override_color
+   const std::optional<RGB>& override_color
 ){
    ZoneScoped;
    const PixelPos center_pos = get_pixel_pos(fractional_pos);
@@ -644,11 +557,11 @@ void moo::game::write_image_at_pos(
          if(pixel_i < 0 || pixel_i > 2*m_rows - 1 || pixel_j < 0 || pixel_j > 2*m_columns - 1)
             continue;
          const int pixel_index = pixel_i * 2 * m_columns + pixel_j;
-         if (image.m_color_indices[image_index] > 0 && m_pixels[pixel_index] == -1) {
+         if (image.m_pixels[image_index].is_visible() && !m_pixels[pixel_index].is_visible()) {
             if (override_color.has_value())
                m_pixels[pixel_index] = override_color.value();
             else
-               m_pixels[pixel_index] = image.m_color_indices[image_index];
+               m_pixels[pixel_index] = image.m_pixels[image_index];
          }
       }
    }

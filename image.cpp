@@ -27,7 +27,6 @@ namespace {
 
    [[nodiscard]] auto load_image(
       const fs::path& path,
-      moo::ColorLoader& color_loader,
       const bool dimension_checks
    ) -> moo::Image
    {
@@ -48,8 +47,8 @@ namespace {
       moo::Image image(png_width, png_height);
       for (int i = 0; i < png_width * png_height; ++i) {
          static_assert(sizeof(moo::RGB::r) == sizeof(stbi_uc)); // making sure the following cast is elegant instead of evil
-         const moo::RGB rgb_color = reinterpret_cast<moo::RGB&>(png_data[i * 3]);
-         image.m_color_indices[i] = color_loader.get_color_index(rgb_color);
+         moo::RGB rgb_color = reinterpret_cast<moo::RGB&>(png_data[i * 3]);
+         image.m_pixels[i] = rgb_color;
       }
       return image;
    }
@@ -59,7 +58,6 @@ namespace {
 
 auto moo::load_images(
    const fs::path& path_base,
-   ColorLoader& color_loader,
    const bool dimension_checks
 ) -> std::vector<Image>
 {
@@ -68,13 +66,13 @@ auto moo::load_images(
       const fs::path path = get_path_from_base(path_base, i);
       if (!fs::exists(path))
          return images;
-      images.emplace_back(load_image(path, color_loader, dimension_checks));
+      images.emplace_back(load_image(path, dimension_checks));
    }
 }
 
 
 moo::Image::Image(const unsigned int width, const unsigned int height)
-   : m_color_indices(width* height, ColorIndex{})
+   : m_pixels(width* height, RGB{})
    , m_width(width)
    , m_height(height)
 {

@@ -4,7 +4,6 @@
 namespace fs = std::filesystem;
 #include <vector>
 
-#include "color_index.h"
 #include "game_colors.h"
 
 namespace moo {
@@ -13,11 +12,11 @@ namespace moo {
       Image() = default;
       Image(const unsigned int width, const unsigned int height);
 
-      std::vector<ColorIndex> m_color_indices;
+      std::vector<RGB> m_pixels;
       int m_width = 0;
       int m_height = 0;
    };
 
-   [[nodiscard]] auto load_images(const fs::path& path_base, ColorLoader& color_loader, const bool dimension_checks = true) -> std::vector<moo::Image>;
+   [[nodiscard]] auto load_images(const fs::path& path_base, const bool dimension_checks = true) -> std::vector<moo::Image>;
 
 }

@@ -39,7 +39,7 @@ moo::Bullet::Bullet(const FractionalPos& initial_pos, std::mt19937_64& rng)
 auto moo::Bullet::progress(
    const Seconds dt, 
    std::mt19937_64& rng,
-   const ColorIndex smoke_color
+   const RGB smoke_color
 ) -> bool
 {
    if (m_head_alive) {
@@ -58,8 +58,8 @@ auto moo::Bullet::progress(
 }
 
 
-auto moo::Bullet::recolor_puffs(const ColorIndex first_smoke_color) -> void{
-   m_trail.recolor_puffs(first_smoke_color, m_pos);
+auto moo::Bullet::recolor_puffs(const std::vector<RGB>& smoke_colors) -> void{
+   m_trail.recolor_puffs(smoke_colors, m_pos);
 }
 
 
@@ -82,7 +82,7 @@ auto moo::Trail::thin_trail(
 
 auto moo::Trail::expand_trail(
    std::mt19937_64& rng,
-   const ColorIndex smoke_color,
+   const RGB smoke_color,
    const FractionalPos& new_bullet_pos,
    const FractionalPos& old_bullet_pos
 ) -> void
@@ -109,13 +109,13 @@ auto moo::Trail::expand_trail(
 
 
 auto moo::Trail::recolor_puffs(
-   const ColorIndex first_smoke_color, 
+   const std::vector<RGB>& smoke_colors,
    const FractionalPos bullet_pos
 ) -> void{
    for (size_t i = 0; i < m_smoke_puffs.size(); ++i) {
       TrailPuff& puff = m_smoke_puffs[i];
       const double progress = get_rising(length(puff.pos - bullet_pos), 0.0, 1.0);
-      constexpr int smoke_colors = 100;
-      puff.color = static_cast<ptrdiff_t>(first_smoke_color.index() + progress * (smoke_colors - 1));
+      const size_t color_index = static_cast<int>(progress * (smoke_colors.size() - 1));
+      puff.color = smoke_colors[color_index];
    }
 }
