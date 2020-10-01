@@ -43,7 +43,7 @@ namespace moo {
       auto draw_bullet(const Bullet& bullet) -> void;
       auto draw_cows(const Seconds dt) -> void;
       auto draw_shadow(const FractionalPos& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
-      auto draw_to_bg(const Image& image, const int i, const int j) -> void;
+      auto draw_to_bg(const Image& image, const int i, const int j, const double alpha) -> void;
 
       std::mt19937_64 m_rng;
       int m_columns = 0;

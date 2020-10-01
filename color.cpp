@@ -113,3 +113,15 @@ auto moo::get_ground_colors(const int ground_color_count) -> std::vector<RGB>{
    constexpr moo::RGB dark_green{ 21, 42, 31 };
    return get_gradient(light_green, dark_green, ground_color_count);
 }
+
+
+TEST_CASE("get_color_mix()") {
+   using namespace moo;
+   constexpr RGB white{ 200, 200, 200};
+   constexpr RGB gray{ 100, 100, 100 };
+   constexpr RGB black{ 0, 0, 0 };
+   
+   CHECK(get_color_mix(black, white, 0.0) == black);
+   CHECK(get_color_mix(black, white, 0.5) == gray);
+   CHECK(get_color_mix(black, white, 1.0) == white);
+}

@@ -340,8 +340,8 @@ auto moo::game::run() -> void{
       }
       clear_screen_text();
       draw_sky_and_ground();
-      draw_to_bg(m_cloud_images[0], 1, 5);
-      draw_to_bg(m_cloud_images[1], 0, 50);
+      draw_to_bg(m_cloud_images[0], 1, 5, 0.5);
+      draw_to_bg(m_cloud_images[1], 0, 50, 0.5);
 
       m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * m_rows, 2 * m_columns);
       draw_shadow(m_player.m_pos, m_player_image.front().m_width / 2, 1);
@@ -567,7 +567,8 @@ auto moo::game::draw_shadow(
 auto moo::game::draw_to_bg(
    const Image& image,
    const int i, 
-   const int j
+   const int j,
+   const double alpha
 ) -> void
 {
    ZoneScoped;
@@ -575,8 +576,9 @@ auto moo::game::draw_to_bg(
       for (int image_j = 0; image_j < image.m_width; ++image_j) {
          const int image_index = image_i * image.m_width + image_j;
          const int index = (image_i + i) * m_columns + image_j + j;
-         if (image.m_pixels[image_index].is_visible())
-            m_bg_colors[index] = image.m_pixels[image_index];
+         if (image.m_pixels[image_index].is_visible()) {
+            m_bg_colors[index] = get_color_mix(m_bg_colors[index], image.m_pixels[image_index], alpha);
+         }
       }
    }
 }
