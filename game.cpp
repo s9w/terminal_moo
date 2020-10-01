@@ -152,6 +152,52 @@ namespace {
       return cow_positions;
    }
 
+
+   [[nodiscard]] auto get_keyboard_intention() -> std::optional<moo::FractionalPos> {
+      const bool a_pressed = GetKeyState(0x41) < 0;
+      const bool d_pressed = GetKeyState(0x44) < 0;
+      const bool w_pressed = GetKeyState(0x57) < 0;
+      const bool s_pressed = GetKeyState(0x53) < 0;
+
+      moo::FractionalPos intention;
+      constexpr double intention_span = 0.1;
+      bool something_pressed = false;
+      if (a_pressed) {
+         intention.x_fraction -= intention_span;
+         something_pressed = true;
+      }
+      if (d_pressed) {
+         intention.x_fraction += intention_span;
+         something_pressed = true;
+      }
+      if (w_pressed) {
+         intention.y_fraction -= intention_span;
+         something_pressed = true;
+      }
+      if (s_pressed) {
+         intention.y_fraction += intention_span;
+         something_pressed = true;
+      }
+      if (!something_pressed)
+         return std::nullopt;
+      return intention;
+   }
+
+
+   [[nodiscard]] auto get_player_target(
+      const std::optional<moo::FractionalPos>& keyboard_intention,
+      const moo::FractionalPos& mouse_target,
+      const moo::FractionalPos& player_pos
+   ) -> moo::FractionalPos
+   {
+      if (keyboard_intention.has_value())
+         return player_pos + keyboard_intention.value();
+      else if (!moo::get_config().enable_mouse)
+         return player_pos;
+      else
+         return mouse_target;
+   }
+
 } // namespace {}
 
 
@@ -296,8 +342,8 @@ auto moo::game::run() -> void{
       draw_sky_and_ground();
       draw_to_bg(m_cloud_images[0], 1, 5);
       draw_to_bg(m_cloud_images[1], 0, 50);
-      
-      m_player.move_towards(m_mouse_pos, dt, 2 * m_rows, 2 * m_columns);
+
+      m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * m_rows, 2 * m_columns);
       draw_shadow(m_player.m_pos, m_player_image.front().m_width / 2, 1);
 
       constexpr double helicopter_anim_frametime = 50.0;
@@ -400,7 +446,7 @@ void moo::game::write_string(){
          m_painter.paint_layer(bg_color, Layer::Back, m_string);
 
          if (const char screen_char = m_screen_text[i * m_columns + j]; screen_char != '\0') {
-            m_painter.paint_layer(m_game_colors.get_white(), Layer::Front, m_string);
+            m_painter.paint_layer(m_game_colors.get_red(), Layer::Front, m_string);
             m_string += screen_char;
             continue;
          }
@@ -610,8 +656,9 @@ void moo::game::refresh_window_rect(){
 
 
 void moo::game::handle_mouse_click(){
-   const bool lmb_clicked = GetKeyState(VK_LBUTTON) < 0;
-   if (!lmb_clicked)
+   const bool lmb_clicked = get_config().enable_mouse && GetKeyState(VK_LBUTTON) < 0;
+   const bool space_clicked = GetKeyState(VK_SPACE) < 0;
+   if (!lmb_clicked && !space_clicked)
       return;
    const std::optional<Bullet> bullet = m_player.try_to_fire(m_rng);
    if (bullet.has_value())
