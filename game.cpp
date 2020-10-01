@@ -238,7 +238,7 @@ void moo::game::early_test(const bool use_colors) {
    str.reserve(100000);
    while (true) {
       {
-         ZoneScopedN("SetConsoleCursorPosition()");
+         ZoneScopedNC("SetConsoleCursorPosition()", 0x0000ff);
          SetConsoleCursorPosition(m_output_handle, zero_pos);
       }
       str.clear();
@@ -348,7 +348,7 @@ auto moo::game::run() -> void{
       write_string();
       COORD zero_pos{ 0, 0 };
       {
-         ZoneScopedN("SetConsoleCursorPosition()");
+         ZoneScopedNC("SetConsoleCursorPosition()", 0x0000ff);
          SetConsoleCursorPosition(m_output_handle, zero_pos);
       }
       //write(m_output_handle, std::to_wstring(m_string[0]));
@@ -597,7 +597,7 @@ void moo::game::clear_screen_text(){
 
 
 void moo::game::refresh_mouse_pos(){
-   ZoneScoped;
+   ZoneScopedC(0x0000ff);
    POINT mouse_pos;
    GetCursorPos(&mouse_pos);
    m_mouse_pos.x_fraction = 1.0 * (mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
@@ -606,7 +606,7 @@ void moo::game::refresh_mouse_pos(){
 
 
 void moo::game::refresh_window_rect(){
-   ZoneScoped;
+   ZoneScopedC(0x0000ff);
    m_window_rect = get_window_rect();
 }
 
