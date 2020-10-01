@@ -24,41 +24,46 @@ namespace {
       const moo::BlockChar& block_char,
       const T& pred
    ) {
-      if (!pred(block_char.top_left) && !pred(block_char.top_right) && !pred(block_char.bottom_left) && !pred(block_char.bottom_right))
+      const bool tl = pred(block_char.top_left);
+      const bool tr = pred(block_char.top_right);
+      const bool bl = pred(block_char.bottom_left);
+      const bool br = pred(block_char.bottom_right);
+
+      if (!tl && !tr && !bl && !br)
          return L' ';
-      if (pred(block_char.top_left) && pred(block_char.top_right) && pred(block_char.bottom_left) && pred(block_char.bottom_right))
+      else if (tl && tr && bl && br)
          return L'█';
 
-      else if (!pred(block_char.top_left) && !pred(block_char.top_right) && !pred(block_char.bottom_left) && pred(block_char.bottom_right))
+      else if (!tl && !tr && !bl && br)
          return L'▗';
-      else if (!pred(block_char.top_left) && !pred(block_char.top_right) && pred(block_char.bottom_left) && !pred(block_char.bottom_right))
+      else if (!tl && !tr && bl && !br)
          return L'▖';
-      else if (!pred(block_char.top_left) && pred(block_char.top_right) && !pred(block_char.bottom_left) && !pred(block_char.bottom_right))
+      else if (!tl && tr && !bl && !br)
          return L'▝';
-      else if (pred(block_char.top_left) && !pred(block_char.top_right) && !pred(block_char.bottom_left) && !pred(block_char.bottom_right))
+      else if (tl && !tr && !bl && !br)
          return L'▘';
 
-      else if (pred(block_char.top_left) && !pred(block_char.top_right) && !pred(block_char.bottom_left) && pred(block_char.bottom_right))
+      else if (tl && !tr && !bl && br)
          return L'▚';
-      else if (!pred(block_char.top_left) && pred(block_char.top_right) && pred(block_char.bottom_left) && !pred(block_char.bottom_right))
+      else if (!tl && tr && bl && !br)
          return L'▞';
 
-      else if (pred(block_char.top_left) && pred(block_char.top_right) && !pred(block_char.bottom_left) && !pred(block_char.bottom_right))
+      else if (tl && tr && !bl && !br)
          return L'▀';
-      else if (!pred(block_char.top_left) && !pred(block_char.top_right) && pred(block_char.bottom_left) && pred(block_char.bottom_right))
+      else if (!tl && !tr && bl && br)
          return L'▄';
-      else if (pred(block_char.top_left) && !pred(block_char.top_right) && pred(block_char.bottom_left) && !pred(block_char.bottom_right))
+      else if (tl && !tr && bl && !br)
          return L'▌';
-      else if (!pred(block_char.top_left) && pred(block_char.top_right) && !pred(block_char.bottom_left) && pred(block_char.bottom_right))
+      else if (!tl && tr && !bl && br)
          return L'▐';
 
-      else if (pred(block_char.top_left) && pred(block_char.top_right) && pred(block_char.bottom_left) && !pred(block_char.bottom_right))
+      else if (tl && tr && bl && !br)
          return L'▛';
-      else if (pred(block_char.top_left) && pred(block_char.top_right) && !pred(block_char.bottom_left) && pred(block_char.bottom_right))
+      else if (tl && tr && !bl && br)
          return L'▜';
-      else if (pred(block_char.top_left) && !pred(block_char.top_right) && pred(block_char.bottom_left) && pred(block_char.bottom_right))
+      else if (tl && !tr && bl && br)
          return L'▙';
-      else if (!pred(block_char.top_left) && pred(block_char.top_right) && pred(block_char.bottom_left) && pred(block_char.bottom_right))
+      else if (!tl && tr && bl && br)
          return L'▟';
 
       printf("This shouldn't happen\n");
@@ -438,18 +443,17 @@ auto moo::game::draw_sky_and_ground() -> void{
    ZoneScoped;
    const int sky_height = static_cast<int>(std::round(moo::get_config().sky_fraction * m_rows));
    const int ground_height = m_rows - sky_height;
-   for (int i = 0; i < sky_height; ++i) {
+   double fraction = 0.0;
+   for (int i = 0; i < m_rows; ++i) {
+      const bool is_sky = i < sky_height;
+      if (is_sky)
+         fraction = 1.0 * i / sky_height;
+      else
+         fraction = 1.0 * (i - sky_height) / ground_height;
+      const RGB color = is_sky ? m_game_colors.get_sky_color(fraction) : m_game_colors.get_ground_color(fraction);
       for (int j = 0; j < m_columns; ++j) {
-         const double fraction = 1.0 * i / sky_height;
          const int index = i * m_columns + j;
-         m_bg_colors[index] = m_game_colors.get_sky_color(fraction);
-      }
-   }
-   for (int i = 0; i < ground_height; ++i) {
-      for (int j = 0; j < m_columns; ++j) {
-         const double fraction = 1.0 * i / ground_height;
-         const int index = (i + sky_height) * m_columns + j;
-         m_bg_colors[index] = m_game_colors.get_ground_color(fraction);
+         m_bg_colors[index] = color;
       }
    }
 }
