@@ -36,8 +36,6 @@ namespace moo {
          const RGB row_bg_color
       );
 
-      template<typename T>
-      [[nodiscard]] auto get_pixel(int i, int j) const -> RGB;
       [[nodiscard]] auto get_block_char(int i, int j) const -> BlockChar;
       [[nodiscard]] auto get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos;
       [[nodiscard]] auto get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t;

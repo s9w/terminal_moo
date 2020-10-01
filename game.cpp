@@ -408,18 +408,12 @@ void moo::game::write_string(){
 }
 
 
-template<typename T>
-[[nodiscard]] auto moo::game::get_pixel(int i, int j) const -> RGB{
-   return m_pixels[get_pixel_index<T>(i, j, m_columns)];
-}
-
-
 auto moo::game::get_block_char(int i, int j) const -> BlockChar{
    return {
-      get_pixel<TopLeft>(i, j),
-      get_pixel<TopRight>(i, j),
-      get_pixel<BottomLeft>(i, j),
-      get_pixel<BottomRight>(i, j),
+      m_pixels[get_pixel_index<TopLeft>(i, j, m_columns)],
+      m_pixels[get_pixel_index<TopRight>(i, j, m_columns)],
+      m_pixels[get_pixel_index<BottomLeft>(i, j, m_columns)],
+      m_pixels[get_pixel_index<BottomRight>(i, j, m_columns)]
    };
 }
 
