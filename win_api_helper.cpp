@@ -2,11 +2,55 @@
 
 #include <Tracy.hpp>
 
-void moo::ShowConsoleCursor(bool show){
+auto moo::get_console_state() -> ConsoleState {
+   const HANDLE input_handle = GetStdHandle(STD_INPUT_HANDLE);
+   const HANDLE output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+   ConsoleState console_state;
+   GetConsoleMode(input_handle, &console_state.input_mode);
+   GetConsoleMode(output_handle, &console_state.output_mode);
+
+   CONSOLE_SCREEN_BUFFER_INFO info;
+   if (!GetConsoleScreenBufferInfo(output_handle, &info)) {
+      printf("GetConsoleScreenBufferInfo() fail.\n");
+      std::terminate();
+   }
+   console_state.output_wattributes = info.wAttributes;
+
+   GetConsoleCursorInfo(output_handle, &console_state.cursor_info);
+
+   return console_state;
+}
+
+
+auto moo::set_console_state(const ConsoleState& console_state) -> void{
+   const HANDLE input_handle = GetStdHandle(STD_INPUT_HANDLE);
+   const HANDLE output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+   SetConsoleMode(input_handle, console_state.input_mode);
+   SetConsoleMode(output_handle, console_state.output_mode);
+   SetConsoleTextAttribute(output_handle, console_state.output_wattributes);
+   SetConsoleCursorInfo(output_handle, &console_state.cursor_info);
+}
+
+
+auto moo::clear_screen() -> void{
+   COORD tl = { 0,0 };
+   CONSOLE_SCREEN_BUFFER_INFO s;
+   HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+   GetConsoleScreenBufferInfo(console, &s);
+   DWORD written, cells = s.dwSize.X * s.dwSize.Y;
+   FillConsoleOutputCharacter(console, ' ', cells, tl, &written);
+   FillConsoleOutputAttribute(console, s.wAttributes, cells, tl, &written);
+   SetConsoleCursorPosition(console, tl);
+}
+
+
+void moo::disable_console_cursor(){
    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
    CONSOLE_CURSOR_INFO     cursorInfo;
    GetConsoleCursorInfo(out, &cursorInfo);
-   cursorInfo.bVisible = show; // set the cursor visibility
+   cursorInfo.bVisible = false; // set the cursor visibility
    SetConsoleCursorInfo(out, &cursorInfo);
 }
 
@@ -17,7 +61,6 @@ void moo::enable_vt_mode(HANDLE output_handle){
    DWORD consoleMode;
    GetConsoleMode(output_handle, &consoleMode);
    consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-   //consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
 
    if (!SetConsoleMode(output_handle, consoleMode))
    {
@@ -42,8 +85,7 @@ bool moo::UnadjustWindowRectEx(LPRECT prc, DWORD dwStyle, BOOL fMenu, DWORD dwEx
 }
 
 
-void moo::disable_selection()
-{
+void moo::disable_selection(){
    DWORD prev_mode;
    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
    GetConsoleMode(hStdin, &prev_mode);

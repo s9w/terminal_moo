@@ -10,6 +10,7 @@
 #include "painter.h"
 #include "player.h"
 #include "ufo.h"
+#include "win_api_helper.h"
 
 #include <string>
 
@@ -45,6 +46,7 @@ namespace moo {
       auto draw_shadow(const FractionalPos& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
       auto draw_to_bg(const Image& image, const int center_i, const int center_j, const double alpha) -> void;
 
+      ConsoleState m_initial_console_state;
       std::mt19937_64 m_rng;
       int m_columns = 0;
       int m_rows = 0;

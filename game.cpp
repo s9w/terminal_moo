@@ -5,7 +5,6 @@ namespace fs = std::filesystem;
 #include "config.h"
 #include "game.h"
 #include "helpers.h"
-#include "win_api_helper.h"
 
 #include <fmt\format.h>
 #include <Tracy.hpp>
@@ -153,6 +152,12 @@ namespace {
    }
 
 
+   auto should_exit() -> bool {
+      const bool esc_pressed = GetKeyState(VK_ESCAPE) < 0;
+      return esc_pressed;
+   }
+
+
    [[nodiscard]] auto get_keyboard_intention() -> std::optional<moo::FractionalPos> {
       const bool a_pressed = GetKeyState(0x41) < 0 || GetKeyState(VK_LEFT) < 0;
       const bool d_pressed = GetKeyState(0x44) < 0 || GetKeyState(VK_RIGHT) < 0;;
@@ -262,7 +267,8 @@ namespace {
 
 
 moo::game::game(const int columns, const int rows)
-   : m_rng(std::chrono::system_clock::now().time_since_epoch().count())
+   : m_initial_console_state(get_console_state())
+   , m_rng(std::chrono::system_clock::now().time_since_epoch().count())
    , m_columns(columns)
    , m_rows(rows)
    , m_window_rect(get_window_rect())
@@ -307,7 +313,7 @@ moo::game::game(const int columns, const int rows)
    }
 
    disable_selection();
-   ShowConsoleCursor(false);
+   disable_console_cursor();
    enable_vt_mode(m_output_handle);
 }
 
@@ -389,6 +395,11 @@ auto moo::game::run() -> void{
    //early_test(true);
 
    while (true) {
+      if (should_exit()) {
+         set_console_state(m_initial_console_state);
+         clear_screen();
+         return;
+      }
       refresh_window_rect();
       refresh_mouse_pos();
       handle_mouse_click();
