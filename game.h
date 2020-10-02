@@ -2,6 +2,7 @@
 
 #include "block_char.h"
 #include "color.h"
+#include "cloud.h"
 #include "cow.h"
 #include "fps_counter.h"
 #include "helpers.h"
@@ -18,8 +19,6 @@
 
 namespace moo {
 
-
-
    struct game {
       game(const int columns, const int rows);
       auto run() -> void;
@@ -30,6 +29,7 @@ namespace moo {
       void refresh_mouse_pos();
       void refresh_window_rect();
       void handle_mouse_click();
+      void add_clouds(const int n, const bool off_screen);
       void early_test(const bool use_colors);
       void one_pixel(
          const BlockChar& block_char,
@@ -43,7 +43,7 @@ namespace moo {
       auto draw_bullet(const Bullet& bullet) -> void;
       auto draw_cows(const Seconds dt) -> void;
       auto draw_shadow(const FractionalPos& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
-      auto draw_to_bg(const Image& image, const int i, const int j, const double alpha) -> void;
+      auto draw_to_bg(const Image& image, const int center_i, const int center_j, const double alpha) -> void;
 
       std::mt19937_64 m_rng;
       int m_columns = 0;
@@ -62,6 +62,7 @@ namespace moo {
       std::vector<Image> m_player_image;
       std::vector<Image> m_cow_image;
       std::vector<Image> m_cloud_images;
+      std::vector<Cloud> m_clouds;
       std::vector<Image> m_ufo_images;
       std::vector<RGB> m_pixels;
       FractionalPos m_mouse_pos;

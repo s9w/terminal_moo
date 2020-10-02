@@ -5,3 +5,4 @@ gravity = 5
 horizontal_cage_padding = 0.02 #How far outside of the visible screen the player position can go; in screen units
 smoke_puff_spread = 0.01 #Spread of smoke puffs off bullet trajectory; in screen units
 enable_mouse = true
+cloud_count = 3

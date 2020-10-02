@@ -8,6 +8,7 @@ namespace moo {
       double smoke_puff_spread = 0.0;
       double sky_fraction = 1.0 * 23 / 30;
       bool enable_mouse = true;
+      int cloud_count = 3;
    };
 
    auto setup_config() -> void;

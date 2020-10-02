@@ -290,6 +290,8 @@ moo::game::game(const int columns, const int rows)
       m_ufo_images = load_images("ufo.png");
    }
 
+   add_clouds(get_config().cloud_count, false);
+
    {
       constexpr int cow_count = 5;
       const double cow_width = 1.0 * m_cow_image.front().m_width / (2 * m_columns);
@@ -401,8 +403,11 @@ auto moo::game::run() -> void{
       }
       clear_screen_text();
       draw_sky_and_ground();
-      draw_to_bg(m_cloud_images[0], 1, 5, 0.5);
-      draw_to_bg(m_cloud_images[1], 0, 50, 0.5);
+      for (const Cloud& cloud : m_clouds) {
+         const int i = static_cast<int>(cloud.m_pos.y_fraction * m_rows);
+         const int j = static_cast<int>(cloud.m_pos.x_fraction * m_columns);
+         draw_to_bg(m_cloud_images[cloud.m_image_index], i, j, cloud.m_alpha);
+      }
 
       m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * m_rows, 2 * m_columns);
       draw_shadow(m_player.m_pos, m_player_image.front().m_width / 2, 1);
@@ -450,6 +455,20 @@ auto moo::game::run() -> void{
       for (Ufo& ufo : m_ufos) {
          ufo.progress();
       }
+      {
+         auto cloud_it = m_clouds.begin();
+         int add_count = 0;
+         while (cloud_it != m_clouds.end()) {
+            if (cloud_it->progress(dt)) {
+               ++add_count;
+               cloud_it = m_clouds.erase(cloud_it);
+            }
+            else
+               ++cloud_it;
+         }
+         add_clouds(add_count, true);
+      }
+         
 
       {
          ZoneScopedN("Drawing GUI");
@@ -636,8 +655,8 @@ auto moo::game::draw_shadow(
 
 auto moo::game::draw_to_bg(
    const Image& image,
-   const int i, 
-   const int j,
+   const int center_i,
+   const int center_j,
    const double alpha
 ) -> void
 {
@@ -645,7 +664,11 @@ auto moo::game::draw_to_bg(
    for (int image_i = 0; image_i < image.m_height; ++image_i) {
       for (int image_j = 0; image_j < image.m_width; ++image_j) {
          const int image_index = image_i * image.m_width + image_j;
-         const int index = (image_i + i) * m_columns + image_j + j;
+         const int i = image_i + center_i - image.m_height / 2;
+         const int j = image_j + center_j - image.m_width / 2;
+         if (i<0 || i>(m_rows - 1) || j < 0 || j >(m_columns - 1))
+            continue;
+         const int index = i * m_columns + j;
          if (image.m_pixels[image_index].is_visible()) {
             m_bg_colors[index] = get_color_mix(m_bg_colors[index], image.m_pixels[image_index], alpha);
          }
@@ -735,4 +758,22 @@ void moo::game::handle_mouse_click(){
    const std::optional<Bullet> bullet = m_player.try_to_fire(m_rng);
    if (bullet.has_value())
       m_bullets.emplace_back(bullet.value());
+}
+
+
+void moo::game::add_clouds(const int n, const bool off_screen){
+   const double max_y_pos = get_config().sky_fraction - 0.1;
+   std::uniform_real_distribution<double> x_pos_dist(0.0, 1.0);
+   std::uniform_real_distribution<double> y_pos_dist(0.0, max_y_pos);
+   std::uniform_real_distribution<double> alpha_dist(0.1, 0.2);
+   for (int i = 0; i < n; ++i) {
+      const size_t image_index = rand() % m_cloud_images.size();
+      const double fractional_width = 1.0 * m_cloud_images[image_index].m_width / m_columns;
+      FractionalPos cloud_pos{ x_pos_dist(m_rng), y_pos_dist(m_rng) };
+      if (off_screen)
+         cloud_pos.x_fraction = 1.0 + 0.5 * fractional_width;
+      const double speed_factor = 1.0;
+      //const double speed_factor = 1.0 + 3.0 * get_falling(cloud_pos.y_fraction, 0.0, max_y_pos);
+      m_clouds.push_back({ cloud_pos, image_index, fractional_width, speed_factor, alpha_dist(m_rng) });
+   }
 }

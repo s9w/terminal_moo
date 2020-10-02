@@ -1,5 +1,6 @@
 #include "config.h"
 #include "bullet.h"
+#include "tweening.h"
 
 #if _MSC_VER < 1928 // Visual Studio 2019 version 16.8
 constexpr double pi = 3.14159265359;
