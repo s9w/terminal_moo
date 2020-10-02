@@ -724,7 +724,7 @@ void moo::game::write_screen_text(
    const int j
 ){
    ZoneScoped;
-   for (int i_text = 0; i_text < text.length(); ++i_text) {
+   for (size_t i_text = 0; i_text < text.length(); ++i_text) {
       const size_t index = i * m_columns + j + i_text;
       
       if ((index + text.length()) > m_screen_text.size() - 1) {
