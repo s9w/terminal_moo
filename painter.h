@@ -18,10 +18,13 @@ namespace moo {
       Painter() = default;
       auto paint(const RGB& fg_color, const RGB& bg_color, std::wstring& target_str) -> void;
       auto paint_layer(const RGB, const Layer layer, std::wstring& target_str) -> void;
+      auto reset_paint_count() -> void;
+      auto get_paint_count() -> unsigned int;
 
    private:
       RGB m_last_fg_color{255, 255, 255};
       RGB m_last_bg_color{0, 0, 0};
+      unsigned int m_color_changes = 0;
    };
 
 }

@@ -483,8 +483,7 @@ auto moo::game::run() -> void{
 
       {
          ZoneScopedN("Drawing GUI");
-         write_screen_text(fmt::format("FPS: {}", m_fps_counter.m_current_fps), 0, 0);
-         write_screen_text(fmt::format("mouse pos: {:.2f}, {:.2f}", m_mouse_pos.x_fraction, m_mouse_pos.y_fraction), 1, 0);
+         write_screen_text(fmt::format("FPS: {}, color changes: {}", m_fps_counter.m_current_fps, m_painter.get_paint_count()), 0, 0);
       }
 
       write_string();
@@ -530,6 +529,7 @@ void moo::game::one_pixel(
 void moo::game::write_string(){
    ZoneScoped;
    m_string.clear();
+   m_painter.reset_paint_count();
 
    for (int i = 0; i < m_rows; ++i) {
       for (int j = 0; j < m_columns; ++j) {

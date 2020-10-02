@@ -41,6 +41,17 @@ auto moo::Painter::paint_layer(
    if (color != target_color_memory) {
       insert_color_string(color, layer, target_str);
       target_color_memory = color;
+      ++m_color_changes;
    }
+}
+
+
+auto moo::Painter::reset_paint_count() -> void{
+   m_color_changes = 0;
+}
+
+
+auto moo::Painter::get_paint_count() -> unsigned int{
+   return m_color_changes;
 }
 
