@@ -39,25 +39,26 @@ namespace moo {
    }
 
 
-   struct FractionalPos {
+   struct ScreenFraction {
       [[nodiscard]] constexpr auto is_on_screen() const -> bool {
-         return x_fraction >= 0.0 &&
-            x_fraction <= 1.0 &&
-            y_fraction >= 0.0 &&
-            y_fraction <= 1.0;
+         return x >= 0.0 &&
+            x <= 1.0 &&
+            y >= 0.0 &&
+            y <= 1.0;
       }
 
-      double x_fraction = 0.0;
-      double y_fraction = 0.0;
+      double x = 0.0;
+      double y = 0.0;
    };
-   auto operator*(const double factor, const FractionalPos& pos) -> FractionalPos;
-   auto operator-(const FractionalPos& a, const FractionalPos& b) -> FractionalPos;
-   auto operator+(const FractionalPos& a, const FractionalPos& b) -> FractionalPos;
-   auto get_indep_normalized(const FractionalPos& a) -> FractionalPos;
-   auto length(const FractionalPos& a) -> double;
-   auto get_normalized(const FractionalPos& a) -> FractionalPos;
-   [[nodiscard]] auto get_height_fraction(const FractionalPos& pos) -> double;
+   auto operator*(const double factor, const ScreenFraction& pos) -> ScreenFraction;
+   auto operator-(const ScreenFraction& a, const ScreenFraction& b) -> ScreenFraction;
+   auto operator+(const ScreenFraction& a, const ScreenFraction& b) -> ScreenFraction;
+   auto get_indep_normalized(const ScreenFraction& a) -> ScreenFraction;
+   auto length(const ScreenFraction& a) -> double;
+   auto get_normalized(const ScreenFraction& a) -> ScreenFraction;
+   [[nodiscard]] auto get_height_fraction(const ScreenFraction& pos) -> double;
    [[nodiscard]] auto get_lane_speed(const int lane, const int rows, const Seconds& dt) -> double;
+   [[nodiscard]] constexpr bool is_hit(const ScreenFraction& bullet_pos, const ScreenFraction& target_pos, const double target_width, const double target_height);
 
 
    struct PixelPos {
@@ -131,4 +132,19 @@ TEST_CASE("less_equal()") {
 
 constexpr auto moo::greater_equal(const double first, const double second) -> bool {
    return first - second > -get_tol<double>();
+}
+
+
+[[nodiscard]] constexpr auto moo::is_hit(
+   const ScreenFraction& bullet_pos, 
+   const ScreenFraction& target_pos,
+   const double target_width, 
+   const double target_height
+) -> bool
+{
+   const bool is_x_in = moo::greater_equal(bullet_pos.x, target_pos.x - 0.5 * target_width) &&
+   moo::less_equal(bullet_pos.x, target_pos.x + 0.5 * target_width);
+   const bool is_y_in = moo::greater_equal(bullet_pos.y, target_pos.y - 0.5 * target_height) &&
+   moo::less_equal(bullet_pos.y, target_pos.y + 0.5 * target_height);
+   return is_x_in && is_y_in;
 }

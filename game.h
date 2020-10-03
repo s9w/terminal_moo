@@ -1,5 +1,6 @@
 #pragma once
 
+#include "aliens.h"
 #include "block_char.h"
 #include "color.h"
 #include "cloud.h"
@@ -9,7 +10,6 @@
 #include "image.h"
 #include "painter.h"
 #include "player.h"
-#include "ufo.h"
 #include "win_api_helper.h"
 
 #include <string>
@@ -32,7 +32,7 @@ namespace moo {
       game(const int columns, const int rows);
       auto run() -> void;
       void write_string();
-      void write_image_at_pos(const ImageWrapper& image, const FractionalPos& pos, const WriteAlignment write_alignment, const std::optional<RGB>& override_color);
+      void write_image_at_pos(const ImageWrapper& image, const ScreenFraction& pos, const WriteAlignment write_alignment, const std::optional<RGB>& override_color);
       void write_screen_text(const std::string& text, const int i, const int j);
       void clear_screen_text();
       void refresh_mouse_pos();
@@ -47,12 +47,12 @@ namespace moo {
       );
 
       [[nodiscard]] auto get_block_char(int i, int j) const -> BlockChar;
-      [[nodiscard]] auto get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos;
+      [[nodiscard]] auto get_pixel_pos(const ScreenFraction& screen_pos) const -> PixelPos;
       [[nodiscard]] auto get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t;
       auto draw_sky_and_ground(const Seconds dt) -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
       auto draw_cows(const Seconds dt) -> void;
-      auto draw_shadow(const FractionalPos& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
+      auto draw_shadow(const ScreenFraction& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
       auto draw_to_bg(const SingleImage& image, const int center_i, const int center_j, const double alpha) -> void;
 
       ConsoleState m_initial_console_state;
@@ -77,14 +77,14 @@ namespace moo {
       std::vector<Cloud> m_clouds;
       Animation m_ufo_animation;
       std::vector<RGB> m_pixels;
-      FractionalPos m_mouse_pos;
+      ScreenFraction m_mouse_pos;
       FpsCounter m_fps_counter;
       std::chrono::time_point<std::chrono::system_clock> m_t0;
       std::chrono::time_point<std::chrono::system_clock> m_t_last;
       Player m_player;
       std::vector<Cow> m_cows;
       std::vector<Bullet> m_bullets;
-      std::vector<Ufo> m_ufos;
+      Aliens m_aliens;
    };
 
 

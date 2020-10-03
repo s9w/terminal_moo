@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "bullet.h"
 #include "color.h"
 
 namespace moo {
@@ -9,12 +10,10 @@ namespace moo {
    [[nodiscard]] constexpr auto get_gradient_at_fraction(const RGB* const gradient, const size_t gradient_size, const double fraction) -> RGB;
 
    struct GameColors {
-      GameColors(std::mt19937_64& rng);
+      GameColors();
       [[nodiscard]] constexpr auto get_sky_color(const double fraction) const -> RGB;
       [[nodiscard]] constexpr auto get_ground_color(const double fraction) const -> RGB;
-      [[nodiscard]] constexpr auto get_smoke_color(const double fraction) const -> RGB;
-      [[nodiscard]] constexpr auto get_health_color(const double fraction) const->RGB;
-      [[nodiscard]] auto get_smoke_colors_ref() const -> const std::vector<moo::RGB>&;
+      [[nodiscard]] constexpr auto get_shot_trail_start_color(const Bullet::Style& style) const -> RGB;
 
       [[nodiscard]] constexpr auto get_white() const -> RGB {
          return { 255, 255, 255 };
@@ -26,8 +25,7 @@ namespace moo {
    private:
       std::vector<moo::RGB> m_sky_colors;
       std::vector<moo::RGB> m_ground_colors;
-      std::vector<moo::RGB> m_smoke_colors;
-      std::vector<moo::RGB> m_health_colors;
+      moo::RGB m_rocket_smoke_color;
    };
 
 }
@@ -58,11 +56,12 @@ constexpr auto moo::GameColors::get_ground_color(const double fraction) const ->
 }
 
 
-constexpr auto moo::GameColors::get_smoke_color(const double fraction) const -> RGB {
-   return get_gradient_at_fraction(m_smoke_colors.data(), m_smoke_colors.size(), fraction);
-}
 
-
-constexpr auto moo::GameColors::get_health_color(const double fraction) const -> RGB {
-   return get_gradient_at_fraction(m_health_colors.data(), m_health_colors.size(), fraction);
+constexpr auto moo::GameColors::get_shot_trail_start_color(const Bullet::Style& bullet_style) const -> RGB {
+   constexpr RGB purple{ 255, 0, 255 };
+   constexpr RGB rocket_orange{ 239, 147, 0 };
+   if (bullet_style == Bullet::Style::Rocket)
+      return rocket_orange;
+   else
+      return purple;
 }

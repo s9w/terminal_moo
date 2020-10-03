@@ -129,29 +129,29 @@ namespace {
    }
 
 
-   [[nodiscard]] auto get_keyboard_intention() -> std::optional<moo::FractionalPos> {
+   [[nodiscard]] auto get_keyboard_intention() -> std::optional<moo::ScreenFraction> {
       const bool a_pressed = GetKeyState(0x41) < 0 || GetKeyState(VK_LEFT) < 0;
       const bool d_pressed = GetKeyState(0x44) < 0 || GetKeyState(VK_RIGHT) < 0;;
       const bool w_pressed = GetKeyState(0x57) < 0 || GetKeyState(VK_UP) < 0;;
       const bool s_pressed = GetKeyState(0x53) < 0 || GetKeyState(VK_DOWN) < 0;;
 
-      moo::FractionalPos intention;
+      moo::ScreenFraction intention;
       constexpr double intention_span = 0.1;
       bool something_pressed = false;
       if (a_pressed) {
-         intention.x_fraction -= intention_span;
+         intention.x -= intention_span;
          something_pressed = true;
       }
       if (d_pressed) {
-         intention.x_fraction += intention_span;
+         intention.x += intention_span;
          something_pressed = true;
       }
       if (w_pressed) {
-         intention.y_fraction -= intention_span;
+         intention.y -= intention_span;
          something_pressed = true;
       }
       if (s_pressed) {
-         intention.y_fraction += intention_span;
+         intention.y += intention_span;
          something_pressed = true;
       }
       if (!something_pressed)
@@ -161,10 +161,10 @@ namespace {
 
 
    [[nodiscard]] auto get_player_target(
-      const std::optional<moo::FractionalPos>& keyboard_intention,
-      const moo::FractionalPos& mouse_target,
-      const moo::FractionalPos& player_pos
-   ) -> moo::FractionalPos
+      const std::optional<moo::ScreenFraction>& keyboard_intention,
+      const moo::ScreenFraction& mouse_target,
+      const moo::ScreenFraction& player_pos
+   ) -> moo::ScreenFraction
    {
       if (keyboard_intention.has_value())
          return player_pos + keyboard_intention.value();
@@ -188,7 +188,7 @@ moo::game::game(const int columns, const int rows)
    , m_font_height((m_window_rect.bottom - m_window_rect.top) / m_rows)
    , m_output_handle(GetStdHandle(STD_OUTPUT_HANDLE))
    , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
-   , m_game_colors(m_rng)
+   , m_game_colors()
    , m_bg_colors(m_columns * m_rows)
    , m_grass_noise(get_ground_row_height(m_rows), m_columns, m_rng)
    , m_screen_text(m_columns * m_rows, '\0')
@@ -200,6 +200,7 @@ moo::game::game(const int columns, const int rows)
    , m_fps_counter()
    , m_t0(std::chrono::system_clock::now())
    , m_t_last(std::chrono::system_clock::now())
+   , m_aliens({ m_ufo_animation.m_width / (2.0 * m_columns), m_ufo_animation.m_height / (2.0 * m_rows) })
 {
    m_string.reserve(100000);
    {
@@ -214,29 +215,11 @@ moo::game::game(const int columns, const int rows)
       std::uniform_int_distribution<> variant_dist(0, 2);
       if(const auto cow_pos = cow_spawner(); cow_pos.has_value())
          m_cows.emplace_back(cow_pos.value(), grazing_progress_dist(m_rng), variant_dist(m_rng));
-
-      m_ufos.emplace_back(FractionalPos{ 0.8, 0.3 }, 0.0);
-      m_ufos.emplace_back(FractionalPos{ 0.9, 0.5 }, 0.5);
-      m_ufos.emplace_back(FractionalPos{ 0.6, 0.6 }, 1.0);
    }
 
    disable_selection();
    disable_console_cursor();
    enable_vt_mode(m_output_handle);
-}
-
-
-bool does_hit(
-   const moo::FractionalPos bullet_pos,
-   const moo::FractionalPos ufo_pos,
-   const double ufo_width,
-   const double ufo_height
-) {
-   const bool is_x_in = moo::greater_equal(bullet_pos.x_fraction, ufo_pos.x_fraction - 0.5 * ufo_width) &&
-      moo::less_equal(bullet_pos.x_fraction, ufo_pos.x_fraction + 0.5 * ufo_width);
-   const bool is_y_in = moo::greater_equal(bullet_pos.y_fraction, ufo_pos.y_fraction - 0.5 * ufo_height) &&
-      moo::less_equal(bullet_pos.y_fraction, ufo_pos.y_fraction + 0.5 * ufo_height);
-   return is_x_in && is_y_in;
 }
 
 
@@ -323,8 +306,8 @@ auto moo::game::run() -> void{
       clear_screen_text();
       draw_sky_and_ground(dt);
       for (const Cloud& cloud : m_clouds) {
-         const int i = static_cast<int>(cloud.m_pos.y_fraction * m_rows);
-         const int j = static_cast<int>(cloud.m_pos.x_fraction * m_columns);
+         const int i = static_cast<int>(cloud.m_pos.y * m_rows);
+         const int j = static_cast<int>(cloud.m_pos.x * m_columns);
          draw_to_bg(m_cloud_images[cloud.m_image_index], i, j, cloud.m_alpha);
       }
 
@@ -345,36 +328,23 @@ auto moo::game::run() -> void{
       while(bullet_it != m_bullets.end()){
          ZoneScopedN("bullet iteration");
          draw_bullet(*bullet_it);
-         bullet_it->recolor_puffs(m_game_colors.get_smoke_colors_ref());
-         bool remove_bullet = bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(0.0));
-         if (!remove_bullet) {
-            const double ufo_width = m_ufo_animation.m_width / (2.0 * m_columns);
-            const double ufo_height = m_ufo_animation.m_height / (2.0 * m_rows);
-            auto ufo_it = m_ufos.begin();
-            while(ufo_it != m_ufos.end()){
-               bool ufo_killed = false;
-               if (bullet_it->m_head_alive && does_hit(bullet_it->m_pos, ufo_it->m_pos, ufo_width, ufo_height)) {
-                  bullet_it->m_head_alive = false;
-                  ufo_killed = ufo_it->hit();
-               }
-               if (ufo_killed)
-                  ufo_it = m_ufos.erase(ufo_it);
-               else
-                  ++ufo_it;
-            }
-         }
+         const RGB bullet_trail_color = m_game_colors.get_shot_trail_start_color(bullet_it->m_style);
+         bullet_it->recolor_puffs(bullet_trail_color);
+         bool remove_bullet = bullet_it->progress(dt, m_rng, bullet_trail_color);
+         if (!remove_bullet)
+            m_aliens.process_bullets(*bullet_it);
          if (remove_bullet)
             bullet_it = m_bullets.erase(bullet_it);
          else
             ++bullet_it;
       }
-      for (const Ufo& ufo : m_ufos) {
+      for (const Ufo& ufo : m_aliens.m_ufos) {
          std::optional<RGB> override_color;
-         if (ufo.is_hit())
+         if (ufo.is_invul())
             override_color = m_game_colors.get_white();
          write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, override_color);
       }
-      for (Ufo& ufo : m_ufos) {
+      for (Ufo& ufo : m_aliens.m_ufos) {
          ufo.progress(dt);
       }
       m_player_anim_frame.progress(dt);
@@ -474,9 +444,9 @@ auto moo::game::get_block_char(int i, int j) const -> BlockChar{
 }
 
 
-auto moo::game::get_pixel_pos(const FractionalPos& fractional_pos) const -> PixelPos{
-   const int i = static_cast<int>(fractional_pos.y_fraction * 2 * m_rows);
-   const int j = static_cast<int>(fractional_pos.x_fraction * 2 * m_columns);
+auto moo::game::get_pixel_pos(const ScreenFraction& screen_pos) const -> PixelPos{
+   const int i = static_cast<int>(screen_pos.y * 2 * m_rows);
+   const int j = static_cast<int>(screen_pos.x * 2 * m_columns);
    return { i, j };
 }
 
@@ -538,22 +508,46 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
       m_pixels[index] = get_color_mix(m_bg_colors[bg_index], puff.color, 0.7);
    }
 
-   const FractionalPos bullet_pos = bullet.m_pos;
+   const ScreenFraction bullet_pos = bullet.m_pos;
    if (bullet.m_head_alive && bullet_pos.is_on_screen()) {
-      /* draw bullet in the shape of
-      █
-      ████
-      █
-      */
+
 
       const RGB bullet_color = m_game_colors.get_red();
       const PixelPos bullet_pixel_pos = get_pixel_pos(bullet_pos);
-      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 0 })] = bullet_color;
-      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 1 })] = bullet_color;
-      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 2 })] = bullet_color;
-      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 3 })] = bullet_color;
-      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 0 })] = bullet_color;
-      m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 0 })] = bullet_color;
+
+      if (bullet.m_style == Bullet::Style::Rocket) {
+         /* draw bullet in the shape of
+         █
+         ████
+         █
+         */
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 0 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 1 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 2 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 3 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 0 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 0 })] = bullet_color;
+      }
+      else {
+         /* draw bullet in the shape of
+          ███
+         █████
+          ███
+         */
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 0 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 1 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 2 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, -1 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, -2 })] = bullet_color;
+
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, -1 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 0 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 1 })] = bullet_color;
+
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, -1 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 0 })] = bullet_color;
+         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 1 })] = bullet_color;
+      }
    }
 }
 
@@ -565,7 +559,7 @@ auto moo::game::draw_cows(const Seconds dt) -> void{
       const size_t animation_index = cow.m_animation_frame.get_index();
       write_image_at_pos(
          m_cow_animations[cow.m_variant][animation_index],
-         cow.m_pos.get_fractional_pos(m_rows),
+         cow.m_pos.get_screen_pos(m_rows),
          WriteAlignment::BottomCenter,
          std::nullopt
       );
@@ -574,7 +568,7 @@ auto moo::game::draw_cows(const Seconds dt) -> void{
 
 
 auto moo::game::draw_shadow(
-   const FractionalPos& pos,
+   const ScreenFraction& pos,
    const int max_shadow_width,
    const int shadow_x_offset
 ) -> void
@@ -583,7 +577,7 @@ auto moo::game::draw_shadow(
    const int sky_height = get_sky_row_height(m_rows);
    const int ground_height = m_rows - sky_height;
    const int i = static_cast<int>(sky_height + 0.5 * ground_height);
-   const int shadow_j = static_cast<int>(pos.x_fraction * m_columns);
+   const int shadow_j = static_cast<int>(pos.x * m_columns);
 
    const double height_fraction = get_height_fraction(pos);
    const int shadow_width = static_cast<int>(height_fraction * max_shadow_width);
@@ -621,12 +615,12 @@ auto moo::game::draw_to_bg(
 
 void moo::game::write_image_at_pos(
    const ImageWrapper& image,
-   const FractionalPos& fractional_pos,
+   const ScreenFraction& screen_pos,
    const WriteAlignment write_alignment,
    const std::optional<RGB>& override_color
 ){
    ZoneScoped;
-   const PixelPos center_pos = get_pixel_pos(fractional_pos);
+   const PixelPos center_pos = get_pixel_pos(screen_pos);
    PixelPos top_left_pos;
    if (write_alignment == WriteAlignment::Center) {
       top_left_pos = center_pos;
@@ -690,8 +684,8 @@ void moo::game::refresh_mouse_pos(){
    ZoneScopedC(0x0000ff);
    POINT mouse_pos;
    GetCursorPos(&mouse_pos);
-   m_mouse_pos.x_fraction = 1.0 * (mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
-   m_mouse_pos.y_fraction = 1.0 * (mouse_pos.y - m_window_rect.top) / (m_window_rect.bottom - m_window_rect.top);
+   m_mouse_pos.x = 1.0 * (mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
+   m_mouse_pos.y = 1.0 * (mouse_pos.y - m_window_rect.top) / (m_window_rect.bottom - m_window_rect.top);
 }
 
 
@@ -703,12 +697,16 @@ void moo::game::refresh_window_rect(){
 
 void moo::game::handle_mouse_click(){
    const bool lmb_clicked = get_config().enable_mouse && GetKeyState(VK_LBUTTON) < 0;
+   const bool mmb_clicked = get_config().enable_mouse && GetKeyState(VK_MBUTTON) < 0;
    const bool space_clicked = GetKeyState(VK_SPACE) < 0;
-   if (!lmb_clicked && !space_clicked)
-      return;
-   const std::optional<Bullet> bullet = m_player.try_to_fire(m_rng);
-   if (bullet.has_value())
-      m_bullets.emplace_back(bullet.value());
+   if (lmb_clicked || space_clicked) {
+      if (const auto bullet = m_player.try_to_fire(m_rng); bullet.has_value())
+         m_bullets.emplace_back(bullet.value());
+   }
+   if (mmb_clicked && !m_aliens.m_ufos.empty()) {
+      if (const auto bullet = m_aliens.m_ufos[0].fire(m_player.m_pos); bullet.has_value())
+         m_bullets.emplace_back(bullet.value());
+   }
 }
 
 
@@ -736,9 +734,9 @@ void moo::game::add_clouds(const int n, const bool off_screen){
    for (int i = 0; i < n; ++i) {
       const size_t image_index = rand() % m_cloud_images.size();
       const double fractional_width = 1.0 * m_cloud_images[image_index].m_width / m_columns;
-      FractionalPos cloud_pos{ x_pos_dist(m_rng), y_pos_dist(m_rng) };
+      ScreenFraction cloud_pos{ x_pos_dist(m_rng), y_pos_dist(m_rng) };
       if (off_screen)
-         cloud_pos.x_fraction = 1.0 + 0.5 * fractional_width;
+         cloud_pos.x = 1.0 + 0.5 * fractional_width;
       m_clouds.push_back({ cloud_pos, image_index, fractional_width, alpha_dist(m_rng) });
    }
 }

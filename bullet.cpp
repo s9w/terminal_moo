@@ -12,28 +12,25 @@ constexpr double pi = std::numbers::pi;
 namespace {
 
    [[nodiscard]] auto get_smoke_puff_pos(
-      const moo::FractionalPos& rocket_pos,
-      std::mt19937_64& rng
-   ) -> moo::FractionalPos
+      const moo::ScreenFraction& rocket_pos,
+      std::mt19937_64& rng,
+      const double smoke_spread
+   ) -> moo::ScreenFraction
    {
-      const double smoke_spread = moo::get_config().smoke_puff_spread;
       std::uniform_real_distribution<double> smoke_spread_dist(-smoke_spread, smoke_spread);
-      return rocket_pos + moo::FractionalPos{ smoke_spread_dist(rng), smoke_spread_dist(rng) };
+      return rocket_pos + moo::ScreenFraction{ smoke_spread_dist(rng), smoke_spread_dist(rng) };
    }
 
 } // namespace {}
 
 
-moo::Bullet::Bullet(const FractionalPos& initial_pos, std::mt19937_64& rng)
+moo::Bullet::Bullet(const ScreenFraction& initial_pos, const ScreenFraction& trajectory, const Style style)
    : m_pos(initial_pos)
    , m_initial_pos(initial_pos)
+   , m_trajectory(trajectory)
+   , m_style(style)
 {
-   constexpr double negative_angle_spread = -0.1 * 2.0 * pi;
-   constexpr double positive_angle_spread = - 0.5 * negative_angle_spread; // this points down
-   
-   std::uniform_real_distribution<double> phi_dist(negative_angle_spread, positive_angle_spread);
-   const double phi = phi_dist(rng);
-   m_trajectory = get_normalized({ std::cos(phi), std::sin(phi) });
+
 }
 
 
@@ -44,11 +41,18 @@ auto moo::Bullet::progress(
 ) -> bool
 {
    if (m_head_alive) {
-      constexpr double bullet_speed = 2.5;
-      m_gravity_speed = m_gravity_speed + dt.m_value * FractionalPos{ 0.0, moo::get_config().gravity_strength };
-      const FractionalPos pos_change = dt.m_value * (bullet_speed * m_trajectory + m_gravity_speed);
-      const FractionalPos new_pos = m_pos + pos_change;
-      m_trail.expand_trail(rng, smoke_color, new_pos, m_pos);
+      double gravity_strength = moo::get_config().gravity_strength;
+      if (m_style == Style::Alien)
+         gravity_strength = 0.0;
+      m_gravity_speed = m_gravity_speed + dt.m_value * ScreenFraction{ 0.0, gravity_strength };
+      const ScreenFraction pos_change = dt.m_value * (m_bullet_speed * m_trajectory + m_gravity_speed);
+      const ScreenFraction new_pos = m_pos + pos_change;
+      {
+         double smoke_spread = moo::get_config().smoke_puff_spread;
+         if (m_style == Style::Alien)
+            smoke_spread = 0.0;
+         m_trail.expand_trail(rng, smoke_color, new_pos, m_pos, smoke_spread);
+      }
       m_pos = new_pos;
    }
    m_trail.thin_trail(rng, dt);
@@ -59,8 +63,11 @@ auto moo::Bullet::progress(
 }
 
 
-auto moo::Bullet::recolor_puffs(const std::vector<RGB>& smoke_colors) -> void{
-   m_trail.recolor_puffs(smoke_colors, m_pos);
+auto moo::Bullet::recolor_puffs(const RGB& rocket_orange) -> void{
+   RGB target_color = { 200, 200, 200 };
+   if(m_style == Style::Alien)
+      target_color = { 0, 255, 0 };
+   m_trail.recolor_puffs(m_pos, rocket_orange, target_color);
 }
 
 
@@ -84,39 +91,40 @@ auto moo::Trail::thin_trail(
 auto moo::Trail::expand_trail(
    std::mt19937_64& rng,
    const RGB smoke_color,
-   const FractionalPos& new_bullet_pos,
-   const FractionalPos& old_bullet_pos
+   const ScreenFraction& new_bullet_pos,
+   const ScreenFraction& old_bullet_pos,
+   const double smoke_spread
 ) -> void
 {
    if (!new_bullet_pos.is_on_screen())
       return;
-   
+
    if (m_smoke_puffs.empty()) {
-      m_smoke_puffs.push_back({ get_smoke_puff_pos(new_bullet_pos, rng), smoke_color });
+      m_smoke_puffs.push_back({ get_smoke_puff_pos(new_bullet_pos, rng, smoke_spread), smoke_color });
       return;
    }
 
    // Trace the path from the new bullet pos to the last one. That way the density of the smoke does not
    // depend on the framerate.
    constexpr double min_smoke_puff_distance = 0.007;
-   const FractionalPos pos_diff = old_bullet_pos - new_bullet_pos;
-   const FractionalPos norm_pos_diff = get_normalized(pos_diff);
+   const ScreenFraction pos_diff = old_bullet_pos - new_bullet_pos;
+   const ScreenFraction norm_pos_diff = get_normalized(pos_diff);
    const double pos_diff_len = length(pos_diff);
    for (double trace_progress = 0.0; trace_progress < pos_diff_len; trace_progress += min_smoke_puff_distance) {
-      const FractionalPos pos = new_bullet_pos + trace_progress * norm_pos_diff;
-      m_smoke_puffs.push_back({ get_smoke_puff_pos(pos, rng), smoke_color });
+      const ScreenFraction pos = new_bullet_pos + trace_progress * norm_pos_diff;
+      m_smoke_puffs.push_back({ get_smoke_puff_pos(pos, rng, smoke_spread), smoke_color });
    }
 }
 
 
 auto moo::Trail::recolor_puffs(
-   const std::vector<RGB>& smoke_colors,
-   const FractionalPos bullet_pos
+   const ScreenFraction& bullet_pos,
+   const RGB& rocket_orange,
+   const RGB& end_color
 ) -> void{
    for (size_t i = 0; i < m_smoke_puffs.size(); ++i) {
       TrailPuff& puff = m_smoke_puffs[i];
       const double progress = get_rising(length(puff.pos - bullet_pos), 0.0, 1.0);
-      const size_t color_index = static_cast<int>(progress * (smoke_colors.size() - 1));
-      puff.color = smoke_colors[color_index];
+      puff.color = get_color_mix(rocket_orange, end_color, progress);
    }
 }

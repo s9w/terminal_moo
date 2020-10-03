@@ -6,10 +6,10 @@
 
 namespace {
 
-   constexpr auto get_height_fraction(const moo::FractionalPos& pos, const double sky_fraction) -> double {
+   constexpr auto get_height_fraction(const moo::ScreenFraction& pos, const double sky_fraction) -> double {
       const double ground_fraction = 1.0 - sky_fraction;
       const double height_range = sky_fraction + 0.5 * ground_fraction;
-      const double height_fraction = pos.y_fraction / height_range;
+      const double height_fraction = pos.y / height_range;
       return height_fraction;
    }
    TEST_CASE("get_height_fraction()") {
@@ -22,25 +22,25 @@ namespace {
 
 }
 
-auto moo::operator*(const double factor, const FractionalPos& pos) -> FractionalPos {
-   FractionalPos result = pos;
-   result.x_fraction *= factor;
-   result.y_fraction *= factor;
+auto moo::operator*(const double factor, const ScreenFraction& pos) -> ScreenFraction {
+   ScreenFraction result = pos;
+   result.x *= factor;
+   result.y *= factor;
    return result;
 }
 
 
-auto moo::operator-(const FractionalPos& a, const FractionalPos& b) -> FractionalPos{
-   FractionalPos result = a;
-   result.x_fraction -= b.x_fraction;
-   result.y_fraction -= b.y_fraction;
+auto moo::operator-(const ScreenFraction& a, const ScreenFraction& b) -> ScreenFraction{
+   ScreenFraction result = a;
+   result.x -= b.x;
+   result.y -= b.y;
    return result;
 }
 
-auto moo::operator+(const FractionalPos& a, const FractionalPos& b) -> FractionalPos{
-   FractionalPos result = a;
-   result.x_fraction += b.x_fraction;
-   result.y_fraction += b.y_fraction;
+auto moo::operator+(const ScreenFraction& a, const ScreenFraction& b) -> ScreenFraction{
+   ScreenFraction result = a;
+   result.x += b.x;
+   result.y += b.y;
    return result;
 }
 
@@ -57,24 +57,24 @@ TEST_CASE("get_ground_row_height()") {
    CHECK(get_ground_row_height(30) == 7);
 }
 
-auto moo::get_indep_normalized(const FractionalPos& a) -> FractionalPos{
-   FractionalPos result;
-   result.x_fraction = is_zero(a.x_fraction) ? 0.0 : get_sign(a.x_fraction);
-   result.y_fraction = is_zero(a.y_fraction) ? 0.0 : get_sign(a.y_fraction);
+auto moo::get_indep_normalized(const ScreenFraction& a) -> ScreenFraction{
+   ScreenFraction result;
+   result.x = is_zero(a.x) ? 0.0 : get_sign(a.x);
+   result.y = is_zero(a.y) ? 0.0 : get_sign(a.y);
    return result;
 }
 
-auto moo::length(const FractionalPos& a) -> double{
-   return std::sqrt(a.x_fraction * a.x_fraction + a.y_fraction * a.y_fraction);
+auto moo::length(const ScreenFraction& a) -> double{
+   return std::sqrt(a.x * a.x + a.y * a.y);
 }
 
-auto moo::get_normalized(const FractionalPos& a) -> FractionalPos{
+auto moo::get_normalized(const ScreenFraction& a) -> ScreenFraction{
    const double vec_length = length(a);
    return 1.0 / vec_length * a;
 }
 
 
-auto moo::get_height_fraction(const FractionalPos& pos) -> double{
+auto moo::get_height_fraction(const ScreenFraction& pos) -> double{
    return ::get_height_fraction(pos, get_config().sky_fraction);
 }
 

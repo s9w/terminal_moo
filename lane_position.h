@@ -3,10 +3,10 @@
 #include <random>
 
 namespace moo {
-   struct FractionalPos;
+   struct ScreenFraction;
 
    struct LanePosition{
-      auto get_fractional_pos(const int rows) -> FractionalPos;
+      auto get_screen_pos(const int rows) -> ScreenFraction;
 
       double m_x_pos = 0.0;
       int m_lane = 0;

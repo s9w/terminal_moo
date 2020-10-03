@@ -3,7 +3,7 @@
 #include "config.h"
 
 
-auto moo::LanePosition::get_fractional_pos(const int rows) -> FractionalPos{
+auto moo::LanePosition::get_screen_pos(const int rows) -> ScreenFraction{
    const double y = 1.0 * (get_sky_row_height(rows) + m_lane + 0.5) / rows;
    return {m_x_pos, y};
 }

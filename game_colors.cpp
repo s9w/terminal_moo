@@ -5,7 +5,6 @@
 
 namespace {
 
-
    TEST_CASE("get_gradient_at_fraction()") {
       using namespace moo;
       constexpr RGB first{ 255, 0, 0 };
@@ -20,16 +19,10 @@ namespace {
 
 }
 
-moo::GameColors::GameColors(std::mt19937_64& rng)
+moo::GameColors::GameColors()
    : m_sky_colors(get_sky_colors(50))
    , m_ground_colors(get_ground_colors(50))
-   , m_smoke_colors(get_smoke_colors(100, rng))
-   , m_health_colors(get_health_colors(50))
 {
    
 }
 
-
-auto moo::GameColors::get_smoke_colors_ref() const -> const std::vector<moo::RGB>& {
-   return m_smoke_colors;
-}

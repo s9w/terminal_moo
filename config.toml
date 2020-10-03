@@ -6,4 +6,4 @@ horizontal_cage_padding = 0.02 #How far outside of the visible screen the player
 smoke_puff_spread = 0.01 #Spread of smoke puffs off bullet trajectory; in screen units
 enable_mouse = true
 cloud_count = 3
-ufo_hit_invul_duration = 0.1 #How long ufos turn white and invulnerable after a hit (in Seconds)
+ufo_hit_invul_duration = 0.3 #How long ufos turn white and invulnerable after a hit (in Seconds)

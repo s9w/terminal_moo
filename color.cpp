@@ -77,38 +77,10 @@ auto moo::get_gradient(
 }
 
 
-auto moo::get_smoke_colors(
-   const int smoke_color_count,
-   std::mt19937_64& rng
-) -> std::vector<RGB>
-{
-   constexpr moo::RGB orange{ 239, 147, 0 };
-   constexpr moo::RGB grey{ 200, 200, 200};
-   return get_noised_colors(get_gradient(orange, grey, smoke_color_count), rng, 20);
-}
-
-
 auto moo::get_sky_colors(const int sky_color_count) -> std::vector<RGB>{
    constexpr moo::RGB light_yellow{ 239, 239, 210 };
    constexpr moo::RGB dark_blue{ 0, 82, 135 };
    return get_gradient(dark_blue, light_yellow, sky_color_count);
-}
-
-
-auto moo::get_health_colors(const int health_color_count) -> std::vector<RGB>{
-   const int first_size = health_color_count / 2;
-   const int second_size = health_color_count - first_size;
-
-   constexpr moo::RGB green{ 255, 0, 0 };
-   constexpr moo::RGB yellow{ 255, 255, 0 };
-   constexpr moo::RGB red{ 0, 255, 0 };
-   std::vector<RGB> green_to_yellow = get_gradient(green, yellow, first_size);
-   std::vector<RGB> yellow_to_red = get_gradient(yellow, red, second_size);
-   std::vector<RGB> health_gradient;
-   health_gradient.reserve(health_color_count);
-   append_moved(health_gradient, green_to_yellow);
-   append_moved(health_gradient, yellow_to_red);
-   return health_gradient;
 }
 
 
