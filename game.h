@@ -71,6 +71,7 @@ namespace moo {
       std::vector<char> m_screen_text;
       std::wstring m_string;
       Animation m_player_animation;
+      AnimationFrame m_player_anim_frame;
       std::vector<Animation> m_cow_animations;
       std::vector<SingleImage> m_cloud_images;
       std::vector<Cloud> m_clouds;

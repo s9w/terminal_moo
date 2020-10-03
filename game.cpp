@@ -193,6 +193,7 @@ moo::game::game(const int columns, const int rows)
    , m_grass_noise(get_ground_row_height(m_rows), m_columns, m_rng)
    , m_screen_text(m_columns * m_rows, '\0')
    , m_player_animation(load_animation("player.png"))
+   , m_player_anim_frame(2, 0.08, 0.0)
    , m_cow_animations(load_animations(true, "cow.png", "cow_white_brown.png", "cow_white_black.png"))
    , m_ufo_animation(load_ufo_animation("ufo.png"))
    , m_pixels(2 * m_columns * 2 * m_rows, RGB{})
@@ -330,9 +331,7 @@ auto moo::game::run() -> void{
       m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * m_rows, 2 * m_columns);
       draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
 
-      constexpr double helicopter_anim_frametime = 50.0;
-      const size_t player_anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
-      write_image_at_pos(m_player_animation[player_anim_i], m_player.m_pos, WriteAlignment::Center, std::nullopt);
+      write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, std::nullopt);
       draw_cows(dt);
       
       {
@@ -380,6 +379,7 @@ auto moo::game::run() -> void{
       for (Ufo& ufo : m_ufos) {
          ufo.progress(dt);
       }
+      m_player_anim_frame.progress(dt);
       for (Cow& cow : m_cows) {
          cow.move(get_lane_speed(cow.m_pos.m_lane, m_rows, dt));
       }
@@ -563,9 +563,14 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
 auto moo::game::draw_cows(const Seconds dt) -> void{
    ZoneScoped;
    for (Cow& cow : m_cows) {
-      const double cow_progress = cow.progress(dt);
-      const size_t cow_anim_i = cow_progress > 0.5;
-      write_image_at_pos(m_cow_animations[cow.m_variant][cow_anim_i], cow.m_pos.get_fractional_pos(m_rows), WriteAlignment::BottomCenter, std::nullopt);
+      cow.progress(dt);
+      const size_t animation_index = cow.m_animation_frame.get_index();
+      write_image_at_pos(
+         m_cow_animations[cow.m_variant][animation_index],
+         cow.m_pos.get_fractional_pos(m_rows),
+         WriteAlignment::BottomCenter,
+         std::nullopt
+      );
    }
 }
 

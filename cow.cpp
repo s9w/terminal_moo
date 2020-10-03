@@ -13,20 +13,15 @@ moo::Cow::Cow(
    const int variant
 )
    : m_pos(pos)
-   , m_grazing_time(initial_progress * cow_grazing_time)
    , m_variant(variant)
+   , m_animation_frame(2, 1.0, initial_progress)
 {
    
 }
 
 
-auto moo::Cow::progress(const Seconds dt) -> double{
-   m_grazing_time += dt;
-   
-   if (m_grazing_time > cow_grazing_time)
-      m_grazing_time = 0.0;
-   const double progress = m_grazing_time / cow_grazing_time;
-   return progress;
+auto moo::Cow::progress(const Seconds dt) -> void{
+   m_animation_frame.progress(dt);
 }
 
 
