@@ -1,5 +1,6 @@
-#include "config.h"
 #include "bullet.h"
+#include "config.h"
+#include "game_colors.h"
 #include "tweening.h"
 
 #if _MSC_VER < 1928 // Visual Studio 2019 version 16.8
@@ -64,9 +65,7 @@ auto moo::Bullet::progress(
 
 
 auto moo::Bullet::recolor_puffs(const RGB& rocket_orange) -> void{
-   RGB target_color = { 200, 200, 200 };
-   if(m_style == Style::Alien)
-      target_color = { 0, 255, 0 };
+   const RGB target_color = GameColors::get_shot_trail_end_color(m_style);
    m_trail.recolor_puffs(m_pos, rocket_orange, target_color);
 }
 

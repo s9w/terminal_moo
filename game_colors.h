@@ -13,7 +13,8 @@ namespace moo {
       GameColors();
       [[nodiscard]] constexpr auto get_sky_color(const double fraction) const -> RGB;
       [[nodiscard]] constexpr auto get_ground_color(const double fraction) const -> RGB;
-      [[nodiscard]] constexpr auto get_shot_trail_start_color(const Bullet::Style& style) const -> RGB;
+      [[nodiscard]] constexpr static auto get_shot_trail_start_color(const Bullet::Style& style) -> RGB;
+      [[nodiscard]] constexpr static auto get_shot_trail_end_color(const Bullet::Style& style) -> RGB;
 
       [[nodiscard]] constexpr auto get_white() const -> RGB {
          return { 255, 255, 255 };
@@ -57,11 +58,22 @@ constexpr auto moo::GameColors::get_ground_color(const double fraction) const ->
 
 
 
-constexpr auto moo::GameColors::get_shot_trail_start_color(const Bullet::Style& bullet_style) const -> RGB {
+constexpr auto moo::GameColors::get_shot_trail_start_color(const Bullet::Style& bullet_style) -> RGB {
    constexpr RGB purple{ 255, 0, 255 };
    constexpr RGB rocket_orange{ 239, 147, 0 };
    if (bullet_style == Bullet::Style::Rocket)
       return rocket_orange;
    else
       return purple;
+}
+
+
+constexpr auto moo::GameColors::get_shot_trail_end_color(const Bullet::Style& bullet_style) -> RGB {
+   constexpr RGB gray = { 200, 200, 200 };
+   constexpr RGB green = { 0, 255, 0 };
+
+   if (bullet_style == Bullet::Style::Rocket)
+      return gray;
+   else
+      return green;
 }
