@@ -91,7 +91,7 @@ auto moo::get_smoke_colors(
 auto moo::get_sky_colors(const int sky_color_count) -> std::vector<RGB>{
    constexpr moo::RGB light_blue{ 166, 180, 190 };
    constexpr moo::RGB dark_blue{ 0, 82, 135 };
-   return get_gradient(light_blue, dark_blue, sky_color_count);
+   return get_gradient(dark_blue, light_blue, sky_color_count);
 }
 
 
@@ -115,7 +115,7 @@ auto moo::get_health_colors(const int health_color_count) -> std::vector<RGB>{
 auto moo::get_ground_colors(const int ground_color_count) -> std::vector<RGB>{
    constexpr moo::RGB light_green{ 55, 108, 48 };
    constexpr moo::RGB dark_green{ 21, 42, 31 };
-   return get_gradient(light_green, dark_green, ground_color_count);
+   return get_gradient(dark_green, light_green, ground_color_count);
 }
 
 

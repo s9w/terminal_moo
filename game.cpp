@@ -5,6 +5,7 @@ namespace fs = std::filesystem;
 #include "config.h"
 #include "game.h"
 #include "helpers.h"
+#include "tweening.h"
 
 #include <fmt\format.h>
 #include <Tracy.hpp>
@@ -122,36 +123,6 @@ namespace {
    }
 
 
-   [[nodiscard]] auto get_cow_positions(
-      const int cow_count,
-      const double cow_image_width,
-      const double cow_image_height,
-      std::mt19937_64& rng
-   ) -> std::vector<moo::FractionalPos>
-   {
-      const double y_min = moo::get_config().sky_fraction - 0.5 * cow_image_height;
-      const double y_max = 1.0 - 0.5 * cow_image_height;
-      const std::uniform_real_distribution<double> y_dist(y_min, y_max);
-
-      const double x_border = 0.5 * cow_image_width;
-      const double x_range = 1.0 - 2.0 * x_border;
-      const double cow_distance = x_range  / (cow_count - 1);
-      const double horiz_dist_var = 0.25 * cow_distance;
-      const std::uniform_real_distribution<double> x_distance_variance_dist(-horiz_dist_var, horiz_dist_var);
-
-      std::vector<moo::FractionalPos> cow_positions;
-      cow_positions.reserve(cow_count);
-      for (int i = 0; i < cow_count; ++i) {
-         double x_pos = x_border + i * cow_distance + x_distance_variance_dist(rng);
-
-         // make sure even the randomness does not push cows outside of the screen
-         x_pos = std::clamp(x_pos, x_border, x_border + x_range);
-         cow_positions.push_back({ x_pos, y_dist(rng) });
-      }
-      return cow_positions;
-   }
-
-
    auto should_exit() -> bool {
       const bool esc_pressed = GetKeyState(VK_ESCAPE) < 0;
       return esc_pressed;
@@ -204,65 +175,6 @@ namespace {
    }
 
 
-   /// <summary>Yields a random positive integer that is changed in varying intervals.</summary>
-   struct SporadocRandomOffseter {
-      SporadocRandomOffseter(
-         const int noise_strength, 
-         const int min_interval,
-         const int max_interval, 
-         std::mt19937_64& rng
-      )
-         : m_rng_ref(rng)
-         , m_noise_dist(-noise_strength, noise_strength)
-         , m_interval_dist(min_interval, max_interval)
-      {
-         reshuffle_noise();
-      }
-
-      [[nodiscard]] auto yield() -> int {
-         if (m_uses_left == 0)
-            reshuffle_noise();
-         --m_uses_left;
-         return m_current_noise;
-      }
-
-   private:
-      auto reshuffle_noise() -> void {
-         m_uses_left = m_interval_dist(m_rng_ref);
-         m_current_noise = m_noise_dist(m_rng_ref);
-      }
-
-      std::mt19937_64& m_rng_ref;
-      std::uniform_int_distribution<> m_noise_dist;
-      std::uniform_int_distribution<> m_interval_dist;
-      int m_current_noise = 0;
-      int m_uses_left = 0;
-   };
-
-
-   [[nodiscard]] auto get_ground_row_height(const int rows) -> int {
-      const int sky_height = static_cast<int>(std::round(moo::get_config().sky_fraction * rows));
-      return rows - sky_height;
-   }
-
-
-   [[nodiscard]] auto get_bg_noise_offsets(
-      const int colums,
-      const int rows,
-      const int noise_strength,
-      std::mt19937_64& rng
-   ) -> std::vector<int>
-   {
-      SporadocRandomOffseter noise_generator(noise_strength, 4, 8, rng);
-      std::vector<int> bg_noise_offsets;
-      bg_noise_offsets.reserve(colums * rows);
-
-      for (int i = 0; i < rows * colums; ++i)
-         bg_noise_offsets.emplace_back(noise_generator.yield());
-
-      return bg_noise_offsets;
-   }
-
 } // namespace {}
 
 
@@ -278,7 +190,7 @@ moo::game::game(const int columns, const int rows)
    , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
    , m_game_colors(m_rng)
    , m_bg_colors(m_columns * m_rows)
-   , m_grass_offsets(get_bg_noise_offsets(m_columns, get_ground_row_height(m_rows), 5, m_rng))
+   , m_grass_noise(get_ground_row_height(m_rows), m_columns, m_rng)
    , m_screen_text(m_columns * m_rows, '\0')
    , m_pixels(2 * m_columns * 2 * m_rows, RGB{})
    , m_fps_counter()
@@ -299,14 +211,10 @@ moo::game::game(const int columns, const int rows)
    add_clouds(get_config().cloud_count, false);
 
    {
-      constexpr int cow_count = 5;
-      const double cow_width = 1.0 * m_cow_image.front().m_width / (2 * m_columns);
-      const double cow_height = 1.0 * m_cow_image.front().m_height / (2 * m_rows);
-      const std::vector<moo::FractionalPos> cow_positions = get_cow_positions(cow_count, cow_width, cow_height, m_rng);
-
       std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
-      for (const FractionalPos& pos : cow_positions)
-         m_cows.emplace_back(pos, grazing_progress_dist(m_rng));
+      if(const auto cow_pos = cow_spawner(); cow_pos.has_value())
+         m_cows.emplace_back(cow_pos.value(), grazing_progress_dist(m_rng));
+
       m_ufos.emplace_back(FractionalPos{ 0.8, 0.3 });
       m_ufos.emplace_back(FractionalPos{ 0.9, 0.5 });
       m_ufos.emplace_back(FractionalPos{ 0.6, 0.6 });
@@ -413,7 +321,7 @@ auto moo::game::run() -> void{
          std::fill(m_pixels.begin(), m_pixels.end(), RGB{});
       }
       clear_screen_text();
-      draw_sky_and_ground();
+      draw_sky_and_ground(dt);
       for (const Cloud& cloud : m_clouds) {
          const int i = static_cast<int>(cloud.m_pos.y_fraction * m_rows);
          const int j = static_cast<int>(cloud.m_pos.x_fraction * m_columns);
@@ -425,9 +333,15 @@ auto moo::game::run() -> void{
 
       constexpr double helicopter_anim_frametime = 50.0;
       const size_t player_anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
-      write_image_at_pos(m_player_image[player_anim_i], m_player.m_pos, std::nullopt);
+      write_image_at_pos(m_player_image[player_anim_i], m_player.m_pos, WriteAlignment::Center, std::nullopt);
       draw_cows(dt);
       
+      {
+         std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
+         if (const auto cow_pos = cow_spawner(); cow_pos.has_value())
+            m_cows.emplace_back(cow_pos.value(), grazing_progress_dist(m_rng));
+      }
+
       auto bullet_it = m_bullets.begin();
       while(bullet_it != m_bullets.end()){
          ZoneScopedN("bullet iteration");
@@ -461,16 +375,19 @@ auto moo::game::run() -> void{
             ufo_color = m_game_colors.get_white();
          else
             ufo_color = m_game_colors.get_health_color(ufo.m_health);
-         write_image_at_pos(m_ufo_images.front(), ufo.m_pos, ufo_color);
+         //write_image_at_pos(m_ufo_images.front(), ufo.m_pos, WriteAlignment::Center, ufo_color);
       }
       for (Ufo& ufo : m_ufos) {
          ufo.progress();
+      }
+      for (Cow& cow : m_cows) {
+         cow.move(get_lane_speed(cow.m_pos.m_lane, m_rows, dt));
       }
       {
          auto cloud_it = m_clouds.begin();
          int add_count = 0;
          while (cloud_it != m_clouds.end()) {
-            if (cloud_it->progress(dt)) {
+            if (cloud_it->progress(get_lane_speed(0, m_rows, dt))) {
                ++add_count;
                cloud_it = m_clouds.erase(cloud_it);
             }
@@ -495,7 +412,6 @@ auto moo::game::run() -> void{
       //write(m_output_handle, std::to_wstring(m_string[0]));
       write(m_output_handle, m_string);
       m_fps_counter.step();
-      ++m_frame;
 
       m_t_last = now;
       FrameMark;
@@ -576,9 +492,9 @@ auto moo::game::get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t{
 }
 
 
-auto moo::game::draw_sky_and_ground() -> void{
+auto moo::game::draw_sky_and_ground(const Seconds dt) -> void{
    ZoneScoped;
-   const int sky_height = static_cast<int>(std::round(moo::get_config().sky_fraction * m_rows));
+   const int sky_height = get_sky_row_height(m_rows);
    const int ground_height = m_rows - sky_height;
    const int ground_start_index = sky_height * m_columns;
    double fraction = 0.0;
@@ -589,6 +505,7 @@ auto moo::game::draw_sky_and_ground() -> void{
          fraction = 1.0 * i / sky_height;
       else
          fraction = 1.0 * (i - sky_height) / ground_height;
+
       RGB color;
       if (is_sky)
          color = m_game_colors.get_sky_color(fraction);
@@ -598,8 +515,16 @@ auto moo::game::draw_sky_and_ground() -> void{
          const int index = i * m_columns + j;
          if (is_sky)
             m_bg_colors[index] = color;
-         else
-            m_bg_colors[index] = get_offsetted_color(color, m_grass_offsets[index - ground_start_index]);
+         else {
+            const int lane = i - sky_height;
+            const std::vector<int>& noise_row = m_grass_noise.m_row_noise[lane];
+            double& dbl_anim_offset = m_grass_noise.m_anim_offsets[lane];
+            dbl_anim_offset += get_lane_speed(lane, m_rows, dt);
+            const int anim_offset = static_cast<int>(dbl_anim_offset);
+            const size_t noise_row_index = (j + anim_offset) % (2 * m_columns);
+            const int color_offset = noise_row[noise_row_index];
+            m_bg_colors[index] = get_offsetted_color(color, color_offset);
+         }
       }
    }
 }
@@ -637,7 +562,7 @@ auto moo::game::draw_cows(const Seconds dt) -> void{
    for (Cow& cow : m_cows) {
       const double cow_progress = cow.progress(dt);
       const size_t cow_anim_i = cow_progress > 0.5;
-      write_image_at_pos(m_cow_image[cow_anim_i], cow.m_pos, std::nullopt);
+      write_image_at_pos(m_cow_image[cow_anim_i], cow.m_pos.get_fractional_pos(m_rows), WriteAlignment::BottomCenter, std::nullopt);
    }
 }
 
@@ -649,17 +574,17 @@ auto moo::game::draw_shadow(
 ) -> void
 {
    ZoneScoped;
-   const int sky_height = static_cast<int>(get_config().sky_fraction * m_rows);
+   const int sky_height = get_sky_row_height(m_rows);
    const int ground_height = m_rows - sky_height;
+   const int i = static_cast<int>(sky_height + 0.5 * ground_height);
    const int shadow_j = static_cast<int>(pos.x_fraction * m_columns);
 
    const double height_fraction = get_height_fraction(pos);
    const int shadow_width = static_cast<int>(height_fraction * max_shadow_width);
    for (int j = 0; j < shadow_width; ++j) {
-      const int i = static_cast<int>(sky_height + 0.5 * ground_height);
       const int index = i * m_columns + shadow_j - shadow_width / 2 + j + shadow_x_offset;
-      const double color_fraction = 0.5 + 0.5 * height_fraction * get_triangle(1.0 * j / shadow_width);
-      m_bg_colors[index] = m_game_colors.get_ground_color(color_fraction);
+      const double color_fraction = height_fraction * get_triangle(1.0 * j / shadow_width);
+      m_bg_colors[index] = get_offsetted_color(m_bg_colors[index], static_cast<int>(-20.0 * color_fraction));
    }
 }
 
@@ -691,13 +616,22 @@ auto moo::game::draw_to_bg(
 void moo::game::write_image_at_pos(
    const Image& image, 
    const FractionalPos& fractional_pos,
+   const WriteAlignment write_alignment,
    const std::optional<RGB>& override_color
 ){
    ZoneScoped;
    const PixelPos center_pos = get_pixel_pos(fractional_pos);
-   PixelPos top_left_pos = center_pos;
-   top_left_pos.j -= image.m_width / 2;
-   top_left_pos.i -= image.m_height / 2;
+   PixelPos top_left_pos;
+   if (write_alignment == WriteAlignment::Center) {
+      top_left_pos = center_pos;
+      top_left_pos.j -= image.m_width / 2;
+      top_left_pos.i -= image.m_height / 2;
+   }
+   else if (write_alignment == WriteAlignment::BottomCenter) {
+      top_left_pos = center_pos;
+      top_left_pos.j -= image.m_width / 2;
+      top_left_pos.i -= image.m_height;
+   }
    for (int image_i = 0; image_i < image.m_height; ++image_i) {
       for (int image_j = 0; image_j < image.m_width; ++image_j) {
          const int image_index = image_i * image.m_width + image_j;
@@ -772,6 +706,22 @@ void moo::game::handle_mouse_click(){
 }
 
 
+auto moo::game::cow_spawner() -> std::optional<LanePosition>{
+   constexpr double free_area_threshold = 0.8;
+   bool enough_cows = false;
+   for (const Cow& cow : m_cows) {
+      const bool cow_in_right_area = cow.m_pos.m_x_pos > free_area_threshold;
+      if (cow_in_right_area)
+         return std::nullopt;
+   }
+   const double fractional_cow_bitmap_width = 1.0 * m_cow_image[0].m_width / m_columns;
+   LanePosition new_cow_position = get_new_lane_position(m_rng, get_ground_row_height(m_rows), fractional_cow_bitmap_width);
+   while(!m_cows.empty() && std::abs(new_cow_position.m_lane - m_cows.back().m_pos.m_lane) <= 1)
+      new_cow_position = get_new_lane_position(m_rng, get_ground_row_height(m_rows), fractional_cow_bitmap_width);
+   return new_cow_position;
+}
+
+
 void moo::game::add_clouds(const int n, const bool off_screen){
    const double max_y_pos = get_config().sky_fraction - 0.1;
    std::uniform_real_distribution<double> x_pos_dist(0.0, 1.0);
@@ -783,8 +733,34 @@ void moo::game::add_clouds(const int n, const bool off_screen){
       FractionalPos cloud_pos{ x_pos_dist(m_rng), y_pos_dist(m_rng) };
       if (off_screen)
          cloud_pos.x_fraction = 1.0 + 0.5 * fractional_width;
-      const double speed_factor = 1.0;
-      //const double speed_factor = 1.0 + 3.0 * get_falling(cloud_pos.y_fraction, 0.0, max_y_pos);
-      m_clouds.push_back({ cloud_pos, image_index, fractional_width, speed_factor, alpha_dist(m_rng) });
+      m_clouds.push_back({ cloud_pos, image_index, fractional_width, alpha_dist(m_rng) });
+   }
+}
+
+
+moo::GrassNoise::GrassNoise(const int grass_rows, const int columns, std::mt19937_64& rng)
+   : m_anim_offsets(grass_rows, 0)
+{
+   constexpr int noise_strength = 5;
+   std::uniform_int_distribution<> m_noise_dist(-noise_strength, noise_strength);
+   m_row_noise.reserve(grass_rows);
+
+   for (int i = 0; i < grass_rows; ++i) {
+      const double row_progress = 1.0 * i / grass_rows;
+      std::vector<int> noise;
+      const size_t noise_size = 2 * columns;
+      noise.reserve(noise_size);
+      const int distance = 3 + static_cast<int>(17.0 * get_rising(row_progress, 0.0, 1.0));
+      int noise_offset = 0;
+      int color_life_left = distance;
+      for (int j = 0; j < noise_size; ++j) {
+         if (color_life_left == 0) {
+            color_life_left = distance;
+            noise_offset = m_noise_dist(rng);
+         }
+         noise.emplace_back(noise_offset);
+         --color_life_left;
+      }
+      m_row_noise.emplace_back(std::move(noise));
    }
 }

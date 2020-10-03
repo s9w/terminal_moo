@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "helpers.h"
+#include "tweening.h"
 
 namespace {
 
@@ -43,6 +44,19 @@ auto moo::operator+(const FractionalPos& a, const FractionalPos& b) -> Fractiona
    return result;
 }
 
+auto moo::get_sky_row_height(const int rows) -> int {
+   const int sky_height = static_cast<int>(moo::get_config().sky_fraction * rows);
+   return sky_height;
+}
+
+auto moo::get_ground_row_height(const int rows) -> int{
+   return rows - get_sky_row_height(rows);
+}
+TEST_CASE("get_ground_row_height()") {
+   using namespace moo;
+   CHECK(get_ground_row_height(30) == 7);
+}
+
 auto moo::get_indep_normalized(const FractionalPos& a) -> FractionalPos{
    FractionalPos result;
    result.x_fraction = is_zero(a.x_fraction) ? 0.0 : get_sign(a.x_fraction);
@@ -63,6 +77,18 @@ auto moo::get_normalized(const FractionalPos& a) -> FractionalPos{
 auto moo::get_height_fraction(const FractionalPos& pos) -> double{
    return ::get_height_fraction(pos, get_config().sky_fraction);
 }
+
+
+auto moo::get_lane_speed(
+   const int lane, 
+   const int rows,
+   const Seconds& dt
+) -> double
+{
+   constexpr double base_speed = 0.05;
+   return base_speed * dt.m_value * (0.5 + 1.5 * get_rising(1.0 * lane, 0.0, 1.0 * get_ground_row_height(rows)));
+}
+
 
 auto moo::operator+(const PixelPos& a, const PixelPos& b) -> PixelPos{
    return { a.i + b.i, a.j + b.j };

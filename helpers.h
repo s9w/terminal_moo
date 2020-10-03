@@ -53,6 +53,7 @@ namespace moo {
    auto length(const FractionalPos& a) -> double;
    auto get_normalized(const FractionalPos& a) -> FractionalPos;
    [[nodiscard]] auto get_height_fraction(const FractionalPos& pos) -> double;
+   [[nodiscard]] auto get_lane_speed(const int lane, const int rows, const Seconds& dt) -> double;
 
 
    struct PixelPos {
@@ -80,9 +81,9 @@ namespace moo {
    }
    [[nodiscard]] constexpr auto less_equal(const double first, const double second) -> bool;
    [[nodiscard]] constexpr auto greater_equal(const double first, const double second) -> bool;
-
-   [[nodiscard]] constexpr auto get_triangle(const double x) -> double;
    
+   [[nodiscard]] auto get_sky_row_height(const int rows) -> int;
+   [[nodiscard]] auto get_ground_row_height(const int rows) -> int;
    
 
    template <typename T>
@@ -120,17 +121,4 @@ TEST_CASE("less_equal()") {
 
 constexpr auto moo::greater_equal(const double first, const double second) -> bool {
    return first - second > -get_tol<double>();
-}
-
-constexpr auto moo::get_triangle(const double x) -> double {
-   if (less(x, 0.5))
-      return 2.0 * x;
-   else
-      return 2.0 - 2.0 * x;
-}
-TEST_CASE("get_triangle()") {
-   using namespace moo;
-   CHECK_EQ(get_triangle(0.0), doctest::Approx(0.0));
-   CHECK_EQ(get_triangle(0.5), doctest::Approx(1.0));
-   CHECK_EQ(get_triangle(1.0), doctest::Approx(0.0));
 }

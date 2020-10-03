@@ -8,6 +8,7 @@ namespace moo {
 
    [[nodiscard]] constexpr auto get_falling(const double x, const double start, const double end) -> double;
    [[nodiscard]] constexpr auto get_rising(const double x, const double start, const double end) -> double;
+   [[nodiscard]] constexpr auto get_triangle(const double x) -> double;
 
 }
 
@@ -41,4 +42,18 @@ constexpr auto moo::get_falling(
 ) -> double
 {
    return 1.0 - get_rising(x, start, end);
+}
+
+
+constexpr auto moo::get_triangle(const double x) -> double {
+   if (less(x, 0.5))
+      return 2.0 * x;
+   else
+      return 2.0 - 2.0 * x;
+}
+TEST_CASE("get_triangle()") {
+   using namespace moo;
+   CHECK_EQ(get_triangle(0.0), doctest::Approx(0.0));
+   CHECK_EQ(get_triangle(0.5), doctest::Approx(1.0));
+   CHECK_EQ(get_triangle(1.0), doctest::Approx(0.0));
 }
