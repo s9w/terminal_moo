@@ -25,8 +25,6 @@ namespace moo {
    [[nodiscard]] auto get_gradient(const RGB& from, const RGB& to, const unsigned int n) -> std::vector<RGB>;
    [[nodiscard]] constexpr auto get_color_mix(const RGB& a, const RGB& b) -> RGB;
    [[nodiscard]] constexpr auto get_color_mix(const RGB& a, const RGB& b, const double factor) -> RGB;
-
-   [[nodiscard]] auto get_sky_colors(const int sky_color_count) -> std::vector<moo::RGB>;
    [[nodiscard]] auto get_ground_colors(const int ground_color_count) -> std::vector<moo::RGB>;
 
 }

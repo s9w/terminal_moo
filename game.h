@@ -2,10 +2,11 @@
 
 #include "aliens.h"
 #include "block_char.h"
-#include "color.h"
 #include "cloud.h"
+#include "color.h"
 #include "cow.h"
 #include "fps_counter.h"
+#include "game_time.h"
 #include "helpers.h"
 #include "image.h"
 #include "painter.h"
@@ -85,6 +86,7 @@ namespace moo {
       std::vector<Cow> m_cows;
       std::vector<Bullet> m_bullets;
       Aliens m_aliens;
+      GameTime m_time;
    };
 
 

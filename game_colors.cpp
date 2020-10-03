@@ -20,8 +20,7 @@ namespace {
 }
 
 moo::GameColors::GameColors()
-   : m_sky_colors(get_sky_colors(50))
-   , m_ground_colors(get_ground_colors(50))
+   : m_ground_colors(get_ground_colors(50))
 {
    
 }

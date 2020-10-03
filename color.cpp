@@ -77,13 +77,6 @@ auto moo::get_gradient(
 }
 
 
-auto moo::get_sky_colors(const int sky_color_count) -> std::vector<RGB>{
-   constexpr moo::RGB light_yellow{ 239, 239, 210 };
-   constexpr moo::RGB dark_blue{ 0, 82, 135 };
-   return get_gradient(dark_blue, light_yellow, sky_color_count);
-}
-
-
 auto moo::get_ground_colors(const int ground_color_count) -> std::vector<RGB>{
    constexpr moo::RGB light_green{ 55, 108, 48 };
    constexpr moo::RGB dark_green{ 21, 42, 31 };

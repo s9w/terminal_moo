@@ -347,6 +347,7 @@ auto moo::game::run() -> void{
       for (Ufo& ufo : m_aliens.m_ufos) {
          ufo.progress(dt);
       }
+      m_time.progress(dt);
       m_player_anim_frame.progress(dt);
       for (Cow& cow : m_cows) {
          cow.move(get_lane_speed(cow.m_pos.m_lane, m_rows, dt));
@@ -368,7 +369,14 @@ auto moo::game::run() -> void{
 
       {
          ZoneScopedN("Drawing GUI");
-         write_screen_text(fmt::format("FPS: {}, color changes: {}", m_fps_counter.m_current_fps, m_painter.get_paint_count()), 0, 0);
+         const std::string gui_text = fmt::format(
+            "FPS: {}, color changes: {}, day: \"{}\", time: {:.2f}",
+            m_fps_counter.m_current_fps,
+            m_painter.get_paint_count(),
+            m_time.m_day + 1,
+            m_time.m_day_progress
+         );
+         write_screen_text(gui_text, 0, 0);
       }
 
       write_string();
@@ -377,7 +385,6 @@ auto moo::game::run() -> void{
          ZoneScopedNC("SetConsoleCursorPosition()", 0x0000ff);
          SetConsoleCursorPosition(m_output_handle, zero_pos);
       }
-      //write(m_output_handle, std::to_wstring(m_string[0]));
       write(m_output_handle, m_string);
       m_fps_counter.step();
 
@@ -476,7 +483,7 @@ auto moo::game::draw_sky_and_ground(const Seconds dt) -> void{
 
       RGB color;
       if (is_sky)
-         color = m_game_colors.get_sky_color(fraction);
+         color = m_game_colors.get_sky_color(fraction, m_time.m_day_progress);
       else
          color = m_game_colors.get_ground_color(fraction);
       for (int j = 0; j < m_columns; ++j) {

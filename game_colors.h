@@ -4,6 +4,7 @@
 
 #include "bullet.h"
 #include "color.h"
+#include "tweening.h"
 
 namespace moo {
 
@@ -11,7 +12,7 @@ namespace moo {
 
    struct GameColors {
       GameColors();
-      [[nodiscard]] constexpr auto get_sky_color(const double fraction) const -> RGB;
+      [[nodiscard]] constexpr auto get_sky_color(const double fraction, const double day_progress) const -> RGB;
       [[nodiscard]] constexpr auto get_ground_color(const double fraction) const -> RGB;
       [[nodiscard]] constexpr static auto get_shot_trail_start_color(const Bullet::Style& style) -> RGB;
       [[nodiscard]] constexpr static auto get_shot_trail_end_color(const Bullet::Style& style) -> RGB;
@@ -24,7 +25,6 @@ namespace moo {
       }
 
    private:
-      std::vector<moo::RGB> m_sky_colors;
       std::vector<moo::RGB> m_ground_colors;
       moo::RGB m_rocket_smoke_color;
    };
@@ -47,8 +47,22 @@ constexpr auto moo::get_gradient_at_fraction(
 }
 
 
-constexpr auto moo::GameColors::get_sky_color(const double fraction) const -> RGB {
-   return get_gradient_at_fraction(m_sky_colors.data(), m_sky_colors.size(), fraction);
+constexpr auto moo::GameColors::get_sky_color(
+   const double fraction,
+   const double day_progress
+) const -> RGB
+{
+   constexpr RGB day_horizon{ 235, 239, 192 };
+   constexpr RGB night_horizon{ 53, 95, 126 };
+
+   constexpr RGB day_sky{ 0, 82, 135 };
+   constexpr RGB night_sky{ 0, 34, 57 };
+
+   const RGB horizon_color = get_color_mix(night_horizon, day_horizon, get_triangle(day_progress));
+   const RGB sky_color = get_color_mix(night_sky, day_sky, get_triangle(day_progress));
+   const RGB final_color = get_color_mix(horizon_color, sky_color, fraction);
+
+   return final_color;
 }
 
 
