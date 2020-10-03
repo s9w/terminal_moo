@@ -70,6 +70,11 @@ namespace moo {
       auto operator<=>(const LongRect& other) const = default;
    };
 
+   template<typename T, typename... Args, typename TFun>
+   void emplace_back_invocation(const TFun& fun, std::vector<T>& v, Args&&... args) {
+      (v.emplace_back(fun(args)), ...);
+   }
+
    template<class T>
    constexpr T get_tol() {
       return static_cast<T>(0.001);

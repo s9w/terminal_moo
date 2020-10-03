@@ -28,7 +28,7 @@ namespace {
    [[nodiscard]] auto load_image(
       const fs::path& path,
       const bool dimension_checks
-   ) -> moo::Image
+   ) -> moo::SingleImage
    {
       if (!fs::exists(path)) {
          printf("File doesn't exist (%s).\n", path.string().c_str());
@@ -44,7 +44,7 @@ namespace {
          printf("Image (%s) doesn't have even dimensions\n", path.string().c_str());
          std::terminate();
       }
-      moo::Image image(png_width, png_height);
+      moo::SingleImage image(png_width, png_height);
       for (int i = 0; i < png_width * png_height; ++i) {
          static_assert(sizeof(moo::RGB::r) == sizeof(stbi_uc)); // making sure the following cast is elegant instead of evil
          moo::RGB rgb_color = reinterpret_cast<moo::RGB&>(png_data[i * 3]);
@@ -53,16 +53,29 @@ namespace {
       return image;
    }
 
+
+   [[nodiscard]] auto are_all_images_same_dimensions(const std::vector<moo::SingleImage>& images) -> bool {
+      const int first_width = images.front().m_width;
+      const int first_height = images.front().m_height;
+      return std::all_of(
+         std::cbegin(images),
+         std::cend(images),
+         [&](const moo::SingleImage& image) {
+            return image.m_width == first_width && image.m_height == first_height;
+         }
+      );
+   }
+
 } // namespace {}
 
 
 auto moo::load_images(
    const fs::path& path_base,
    const bool dimension_checks
-) -> std::vector<Image>
+) -> std::vector<SingleImage>
 {
-   std::vector<moo::Image> images;
-   for(int i=0; true; ++i){
+   std::vector<moo::SingleImage> images;
+   for (int i = 0; true; ++i) {
       const fs::path path = get_path_from_base(path_base, i);
       if (!fs::exists(path))
          return images;
@@ -71,10 +84,49 @@ auto moo::load_images(
 }
 
 
-moo::Image::Image(const unsigned int width, const unsigned int height)
+auto moo::load_animation(const fs::path& path_base, const bool dimension_checks) -> Animation {
+   std::vector<SingleImage> images = load_images(path_base, dimension_checks);
+   if (images.size() < 2){
+      printf("Only %zu loaded.\n", images.size());
+      std::terminate();
+   }
+   const bool all_same_dimensions = are_all_images_same_dimensions(images);
+
+   Animation animation(images.front().m_width, images.front().m_height);
+   animation.m_image_pixels.reserve(images.size());
+   for (SingleImage& image : images) {
+      animation.m_image_pixels.emplace_back(std::move(image.m_pixels));
+   }
+   return animation;
+}
+
+
+moo::SingleImage::SingleImage(const unsigned int width, const unsigned int height)
    : m_pixels(width* height, RGB{})
    , m_width(width)
    , m_height(height)
 {
 
 }
+
+
+moo::SingleImage::operator moo::ImageWrapper() const{
+   return { m_width, m_height, m_pixels };
+}
+
+
+moo::Animation::Animation(const unsigned int width, const unsigned int height)
+   : m_width(width)
+   , m_height(height)
+{
+
+}
+
+
+auto moo::Animation::operator[](const size_t index) const -> ImageWrapper{
+   return { m_width, m_height, m_image_pixels[index] };
+}
+
+//auto moo::Animation::operator[](const size_t index) -> const std::vector<RGB>&{
+//   return m_image_pixels[index];
+//}

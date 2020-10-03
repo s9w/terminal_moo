@@ -192,6 +192,8 @@ moo::game::game(const int columns, const int rows)
    , m_bg_colors(m_columns * m_rows)
    , m_grass_noise(get_ground_row_height(m_rows), m_columns, m_rng)
    , m_screen_text(m_columns * m_rows, '\0')
+   , m_player_animation(load_animation("player.png"))
+   , m_cow_animations(load_animations(true, "cow.png", "cow_white_brown.png", "cow_white_black.png"))
    , m_pixels(2 * m_columns * 2 * m_rows, RGB{})
    , m_fps_counter()
    , m_t0(std::chrono::system_clock::now())
@@ -203,8 +205,6 @@ moo::game::game(const int columns, const int rows)
          constexpr bool dimension_checks = false;
          m_cloud_images = load_images("cloud.png", dimension_checks);
       }
-      m_cow_image = load_images("cow.png");
-      m_player_image = load_images("player.png");
       m_ufo_images = load_images("ufo.png");
    }
 
@@ -212,8 +212,9 @@ moo::game::game(const int columns, const int rows)
 
    {
       std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
+      std::uniform_int_distribution<> variant_dist(0, 2);
       if(const auto cow_pos = cow_spawner(); cow_pos.has_value())
-         m_cows.emplace_back(cow_pos.value(), grazing_progress_dist(m_rng));
+         m_cows.emplace_back(cow_pos.value(), grazing_progress_dist(m_rng), variant_dist(m_rng));
 
       m_ufos.emplace_back(FractionalPos{ 0.8, 0.3 });
       m_ufos.emplace_back(FractionalPos{ 0.9, 0.5 });
@@ -329,17 +330,18 @@ auto moo::game::run() -> void{
       }
 
       m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * m_rows, 2 * m_columns);
-      draw_shadow(m_player.m_pos, m_player_image.front().m_width / 2, 1);
+      draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
 
       constexpr double helicopter_anim_frametime = 50.0;
       const size_t player_anim_i = std::fmod(ms_since_start, 2 * helicopter_anim_frametime) < helicopter_anim_frametime;
-      write_image_at_pos(m_player_image[player_anim_i], m_player.m_pos, WriteAlignment::Center, std::nullopt);
+      write_image_at_pos(m_player_animation[player_anim_i], m_player.m_pos, WriteAlignment::Center, std::nullopt);
       draw_cows(dt);
       
       {
          std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
+         std::uniform_int_distribution<> variant_dist(0, 2);
          if (const auto cow_pos = cow_spawner(); cow_pos.has_value())
-            m_cows.emplace_back(cow_pos.value(), grazing_progress_dist(m_rng));
+            m_cows.emplace_back(cow_pos.value(), grazing_progress_dist(m_rng), variant_dist(m_rng));
       }
 
       auto bullet_it = m_bullets.begin();
@@ -375,7 +377,7 @@ auto moo::game::run() -> void{
             ufo_color = m_game_colors.get_white();
          else
             ufo_color = m_game_colors.get_health_color(ufo.m_health);
-         //write_image_at_pos(m_ufo_images.front(), ufo.m_pos, WriteAlignment::Center, ufo_color);
+         write_image_at_pos(m_ufo_images.front(), ufo.m_pos, WriteAlignment::Center, ufo_color);
       }
       for (Ufo& ufo : m_ufos) {
          ufo.progress();
@@ -562,7 +564,7 @@ auto moo::game::draw_cows(const Seconds dt) -> void{
    for (Cow& cow : m_cows) {
       const double cow_progress = cow.progress(dt);
       const size_t cow_anim_i = cow_progress > 0.5;
-      write_image_at_pos(m_cow_image[cow_anim_i], cow.m_pos.get_fractional_pos(m_rows), WriteAlignment::BottomCenter, std::nullopt);
+      write_image_at_pos(m_cow_animations[cow.m_variant][cow_anim_i], cow.m_pos.get_fractional_pos(m_rows), WriteAlignment::BottomCenter, std::nullopt);
    }
 }
 
@@ -590,7 +592,7 @@ auto moo::game::draw_shadow(
 
 
 auto moo::game::draw_to_bg(
-   const Image& image,
+   const SingleImage& image,
    const int center_i,
    const int center_j,
    const double alpha
@@ -614,7 +616,7 @@ auto moo::game::draw_to_bg(
 
 
 void moo::game::write_image_at_pos(
-   const Image& image, 
+   const ImageWrapper& image,
    const FractionalPos& fractional_pos,
    const WriteAlignment write_alignment,
    const std::optional<RGB>& override_color
@@ -641,11 +643,11 @@ void moo::game::write_image_at_pos(
          if(pixel_i < 0 || pixel_i > 2*m_rows - 1 || pixel_j < 0 || pixel_j > 2*m_columns - 1)
             continue;
          const int pixel_index = pixel_i * 2 * m_columns + pixel_j;
-         if (image.m_pixels[image_index].is_visible() && !m_pixels[pixel_index].is_visible()) {
+         if (image.m_pixels.get()[image_index].is_visible() && !m_pixels[pixel_index].is_visible()) {
             if (override_color.has_value())
                m_pixels[pixel_index] = override_color.value();
             else
-               m_pixels[pixel_index] = image.m_pixels[image_index];
+               m_pixels[pixel_index] = image.m_pixels.get()[image_index];
          }
       }
    }
@@ -714,7 +716,7 @@ auto moo::game::cow_spawner() -> std::optional<LanePosition>{
       if (cow_in_right_area)
          return std::nullopt;
    }
-   const double fractional_cow_bitmap_width = 1.0 * m_cow_image[0].m_width / m_columns;
+   const double fractional_cow_bitmap_width = 1.0 * m_cow_animations[0].m_width / m_columns;
    LanePosition new_cow_position = get_new_lane_position(m_rng, get_ground_row_height(m_rows), fractional_cow_bitmap_width);
    while(!m_cows.empty() && std::abs(new_cow_position.m_lane - m_cows.back().m_pos.m_lane) <= 1)
       new_cow_position = get_new_lane_position(m_rng, get_ground_row_height(m_rows), fractional_cow_bitmap_width);

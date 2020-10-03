@@ -32,7 +32,7 @@ namespace moo {
       game(const int columns, const int rows);
       auto run() -> void;
       void write_string();
-      void write_image_at_pos(const Image& image, const FractionalPos& pos, const WriteAlignment write_alignment, const std::optional<RGB>& override_color);
+      void write_image_at_pos(const ImageWrapper& image, const FractionalPos& pos, const WriteAlignment write_alignment, const std::optional<RGB>& override_color);
       void write_screen_text(const std::string& text, const int i, const int j);
       void clear_screen_text();
       void refresh_mouse_pos();
@@ -53,7 +53,7 @@ namespace moo {
       auto draw_bullet(const Bullet& bullet) -> void;
       auto draw_cows(const Seconds dt) -> void;
       auto draw_shadow(const FractionalPos& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
-      auto draw_to_bg(const Image& image, const int center_i, const int center_j, const double alpha) -> void;
+      auto draw_to_bg(const SingleImage& image, const int center_i, const int center_j, const double alpha) -> void;
 
       ConsoleState m_initial_console_state;
       std::mt19937_64 m_rng;
@@ -70,11 +70,11 @@ namespace moo {
       GrassNoise m_grass_noise;
       std::vector<char> m_screen_text;
       std::wstring m_string;
-      std::vector<Image> m_player_image;
-      std::vector<Image> m_cow_image;
-      std::vector<Image> m_cloud_images;
+      Animation m_player_animation;
+      std::vector<Animation> m_cow_animations;
+      std::vector<SingleImage> m_cloud_images;
       std::vector<Cloud> m_clouds;
-      std::vector<Image> m_ufo_images;
+      std::vector<SingleImage> m_ufo_images;
       std::vector<RGB> m_pixels;
       FractionalPos m_mouse_pos;
       FpsCounter m_fps_counter;
