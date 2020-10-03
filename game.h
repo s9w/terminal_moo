@@ -74,7 +74,7 @@ namespace moo {
       std::vector<Animation> m_cow_animations;
       std::vector<SingleImage> m_cloud_images;
       std::vector<Cloud> m_clouds;
-      std::vector<SingleImage> m_ufo_images;
+      Animation m_ufo_animation;
       std::vector<RGB> m_pixels;
       FractionalPos m_mouse_pos;
       FpsCounter m_fps_counter;

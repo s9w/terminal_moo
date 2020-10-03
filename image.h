@@ -37,6 +37,7 @@ namespace moo {
 
    [[nodiscard]] auto load_images(const fs::path& path_base, const bool dimension_checks = true) -> std::vector<moo::SingleImage>;
    [[nodiscard]] auto load_animation(const fs::path& path_base, const bool dimension_checks = true) -> Animation;
+   [[nodiscard]] auto load_ufo_animation(const fs::path& path) -> Animation;
 
    template<typename... Args>
    [[nodiscard]] auto load_animations(const bool dimension_checks, Args&&... path_bases) -> std::vector<Animation>;

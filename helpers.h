@@ -19,6 +19,10 @@ namespace moo {
          m_value += other.m_value;
          return *this;
       }
+      constexpr auto operator-=(const Seconds& other) -> Seconds& {
+         m_value -= other.m_value;
+         return *this;
+      }
 
       constexpr auto operator<=>(const Seconds& other) const = default;
 
@@ -69,6 +73,7 @@ namespace moo {
       long bottom;
       auto operator<=>(const LongRect& other) const = default;
    };
+
 
    template<typename T, typename... Args, typename TFun>
    void emplace_back_invocation(const TFun& fun, std::vector<T>& v, Args&&... args) {

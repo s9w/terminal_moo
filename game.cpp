@@ -194,6 +194,7 @@ moo::game::game(const int columns, const int rows)
    , m_screen_text(m_columns * m_rows, '\0')
    , m_player_animation(load_animation("player.png"))
    , m_cow_animations(load_animations(true, "cow.png", "cow_white_brown.png", "cow_white_black.png"))
+   , m_ufo_animation(load_ufo_animation("ufo.png"))
    , m_pixels(2 * m_columns * 2 * m_rows, RGB{})
    , m_fps_counter()
    , m_t0(std::chrono::system_clock::now())
@@ -201,11 +202,8 @@ moo::game::game(const int columns, const int rows)
 {
    m_string.reserve(100000);
    {
-      {
-         constexpr bool dimension_checks = false;
-         m_cloud_images = load_images("cloud.png", dimension_checks);
-      }
-      m_ufo_images = load_images("ufo.png");
+      constexpr bool dimension_checks = false;
+      m_cloud_images = load_images("cloud.png", dimension_checks);
    }
 
    add_clouds(get_config().cloud_count, false);
@@ -216,9 +214,9 @@ moo::game::game(const int columns, const int rows)
       if(const auto cow_pos = cow_spawner(); cow_pos.has_value())
          m_cows.emplace_back(cow_pos.value(), grazing_progress_dist(m_rng), variant_dist(m_rng));
 
-      m_ufos.emplace_back(FractionalPos{ 0.8, 0.3 });
-      m_ufos.emplace_back(FractionalPos{ 0.9, 0.5 });
-      m_ufos.emplace_back(FractionalPos{ 0.6, 0.6 });
+      m_ufos.emplace_back(FractionalPos{ 0.8, 0.3 }, 0.0);
+      m_ufos.emplace_back(FractionalPos{ 0.9, 0.5 }, 0.5);
+      m_ufos.emplace_back(FractionalPos{ 0.6, 0.6 }, 1.0);
    }
 
    disable_selection();
@@ -351,8 +349,8 @@ auto moo::game::run() -> void{
          bullet_it->recolor_puffs(m_game_colors.get_smoke_colors_ref());
          bool remove_bullet = bullet_it->progress(dt, m_rng, m_game_colors.get_smoke_color(0.0));
          if (!remove_bullet) {
-            const double ufo_width = m_ufo_images.front().m_width / (2.0 * m_columns);
-            const double ufo_height = m_ufo_images.front().m_height / (2.0 * m_rows);
+            const double ufo_width = m_ufo_animation.m_width / (2.0 * m_columns);
+            const double ufo_height = m_ufo_animation.m_height / (2.0 * m_rows);
             auto ufo_it = m_ufos.begin();
             while(ufo_it != m_ufos.end()){
                bool ufo_killed = false;
@@ -377,10 +375,10 @@ auto moo::game::run() -> void{
             ufo_color = m_game_colors.get_white();
          else
             ufo_color = m_game_colors.get_health_color(ufo.m_health);
-         write_image_at_pos(m_ufo_images.front(), ufo.m_pos, WriteAlignment::Center, ufo_color);
+         write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, std::nullopt);
       }
       for (Ufo& ufo : m_ufos) {
-         ufo.progress();
+         ufo.progress(dt);
       }
       for (Cow& cow : m_cows) {
          cow.move(get_lane_speed(cow.m_pos.m_lane, m_rows, dt));
