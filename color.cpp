@@ -82,16 +82,16 @@ auto moo::get_smoke_colors(
    std::mt19937_64& rng
 ) -> std::vector<RGB>
 {
-   constexpr moo::RGB orange{ 251, 140, 68 };
+   constexpr moo::RGB orange{ 239, 214, 167 };
    constexpr moo::RGB grey{ 200, 200, 200};
    return get_noised_colors(get_gradient(orange, grey, smoke_color_count), rng, 20);
 }
 
 
 auto moo::get_sky_colors(const int sky_color_count) -> std::vector<RGB>{
-   constexpr moo::RGB light_blue{ 166, 180, 190 };
+   constexpr moo::RGB light_yellow{ 239, 239, 210 };
    constexpr moo::RGB dark_blue{ 0, 82, 135 };
-   return get_gradient(dark_blue, light_blue, sky_color_count);
+   return get_gradient(dark_blue, light_yellow, sky_color_count);
 }
 
 
