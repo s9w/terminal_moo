@@ -82,7 +82,7 @@ auto moo::get_smoke_colors(
    std::mt19937_64& rng
 ) -> std::vector<RGB>
 {
-   constexpr moo::RGB orange{ 239, 214, 167 };
+   constexpr moo::RGB orange{ 239, 147, 0 };
    constexpr moo::RGB grey{ 200, 200, 200};
    return get_noised_colors(get_gradient(orange, grey, smoke_color_count), rng, 20);
 }

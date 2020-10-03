@@ -534,7 +534,10 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
    for (const TrailPuff& puff : bullet.m_trail.m_smoke_puffs) {
       if (!puff.pos.is_on_screen())
          continue;
-      m_pixels[get_pixel_grid_index(get_pixel_pos(puff.pos))] = puff.color;
+      const PixelPos puff_pos = get_pixel_pos(puff.pos);
+      const size_t index = get_pixel_grid_index(puff_pos);
+      const size_t bg_index = (puff_pos.i / 2) * m_columns + puff_pos.j / 2;
+      m_pixels[index] = get_color_mix(m_bg_colors[bg_index], puff.color, 0.7);
    }
 
    const FractionalPos bullet_pos = bullet.m_pos;
