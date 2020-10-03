@@ -92,5 +92,5 @@ auto moo::Player::try_to_fire(std::mt19937_64& rng) -> std::optional<Bullet> {
    m_shooting_cooldown = shooting_interval_s;
    const ScreenFraction initial_bullet_pos = m_pos + ScreenFraction{0.05, 0.0};
 
-   return Bullet(initial_bullet_pos, get_bullet_trajectory(rng, 0.1), Bullet::Style::Rocket);
+   return Bullet(initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
 }

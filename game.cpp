@@ -328,9 +328,8 @@ auto moo::game::run() -> void{
       while(bullet_it != m_bullets.end()){
          ZoneScopedN("bullet iteration");
          draw_bullet(*bullet_it);
-         const RGB bullet_trail_color = m_game_colors.get_shot_trail_start_color(bullet_it->m_style);
-         bullet_it->recolor_puffs(bullet_trail_color);
-         bool remove_bullet = bullet_it->progress(dt, m_rng, bullet_trail_color);
+         bullet_it->update_puff_colors();
+         bool remove_bullet = bullet_it->progress(dt, m_rng);
          if (!remove_bullet)
             m_aliens.process_bullets(*bullet_it);
          if (remove_bullet)
@@ -522,7 +521,7 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
       const RGB bullet_color = m_game_colors.get_red();
       const PixelPos bullet_pixel_pos = get_pixel_pos(bullet_pos);
 
-      if (bullet.m_style == Bullet::Style::Rocket) {
+      if (bullet.m_style == BulletStyle::Rocket) {
          /* draw bullet in the shape of
          █
          ████

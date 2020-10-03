@@ -12,20 +12,23 @@ namespace moo {
       RGB color;
    };
 
+   enum class BulletStyle { Rocket, Alien };
+
    struct Trail {
+      Trail(const BulletStyle style);
       auto thin_trail(std::mt19937_64& rng, const Seconds dt) -> void;
-      auto expand_trail(std::mt19937_64& rng, const RGB smoke_color, const ScreenFraction& new_bullet_pos, const ScreenFraction& old_bullet_pos, const double smoke_spread) -> void;
-      auto recolor_puffs(const ScreenFraction& bullet_pos, const RGB& rocket_orange, const RGB& end_color) -> void;
+      auto add_puff(std::mt19937_64& rng, const ScreenFraction& new_bullet_pos, const ScreenFraction& old_bullet_pos, const BulletStyle style, const double path_progress) -> void;
+      auto update_puff_colors(const ScreenFraction& bullet_pos) -> void;
 
       std::vector<TrailPuff> m_smoke_puffs;
+      BulletStyle m_style = BulletStyle::Rocket;
    };
 
-   struct Bullet {
-      enum class Style{Rocket, Alien};
 
-      Bullet(const ScreenFraction& initial_pos, const ScreenFraction& trajectory, const Style style);
-      [[nodiscard]] auto progress(const Seconds dt, std::mt19937_64& rng, const RGB smoke_color) -> bool;
-      auto recolor_puffs(const RGB& rocket_orange) -> void;
+   struct Bullet {
+      Bullet(const ScreenFraction& initial_pos, const ScreenFraction& trajectory, const BulletStyle style);
+      [[nodiscard]] auto progress(const Seconds dt, std::mt19937_64& rng) -> bool;
+      auto update_puff_colors() -> void;
 
       ScreenFraction m_trajectory;
       ScreenFraction m_pos;
@@ -34,7 +37,7 @@ namespace moo {
       bool m_head_alive = true;
       Trail m_trail;
       double m_bullet_speed = 1.0;
-      Style m_style = Style::Rocket;
+      BulletStyle m_style = BulletStyle::Rocket;
    };
 
 }

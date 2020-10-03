@@ -14,8 +14,8 @@ namespace moo {
       GameColors();
       [[nodiscard]] constexpr auto get_sky_color(const double fraction, const double day_progress) const -> RGB;
       [[nodiscard]] constexpr auto get_ground_color(const double fraction) const -> RGB;
-      [[nodiscard]] constexpr static auto get_shot_trail_start_color(const Bullet::Style& style) -> RGB;
-      [[nodiscard]] constexpr static auto get_shot_trail_end_color(const Bullet::Style& style) -> RGB;
+      [[nodiscard]] constexpr static auto get_shot_trail_start_color(const BulletStyle& style) -> RGB;
+      [[nodiscard]] constexpr static auto get_shot_trail_end_color(const BulletStyle& style) -> RGB;
 
       [[nodiscard]] constexpr auto get_white() const -> RGB {
          return { 255, 255, 255 };
@@ -60,7 +60,7 @@ constexpr auto moo::GameColors::get_sky_color(
 
    const RGB horizon_color = get_color_mix(night_horizon, day_horizon, get_triangle(day_progress));
    const RGB sky_color = get_color_mix(night_sky, day_sky, get_triangle(day_progress));
-   const RGB final_color = get_color_mix(horizon_color, sky_color, fraction);
+   const RGB final_color = get_color_mix(sky_color, horizon_color, fraction);
 
    return final_color;
 }
@@ -72,21 +72,21 @@ constexpr auto moo::GameColors::get_ground_color(const double fraction) const ->
 
 
 
-constexpr auto moo::GameColors::get_shot_trail_start_color(const Bullet::Style& bullet_style) -> RGB {
+constexpr auto moo::GameColors::get_shot_trail_start_color(const BulletStyle& bullet_style) -> RGB {
    constexpr RGB purple{ 255, 0, 255 };
    constexpr RGB rocket_orange{ 239, 147, 0 };
-   if (bullet_style == Bullet::Style::Rocket)
+   if (bullet_style == BulletStyle::Rocket)
       return rocket_orange;
    else
       return purple;
 }
 
 
-constexpr auto moo::GameColors::get_shot_trail_end_color(const Bullet::Style& bullet_style) -> RGB {
+constexpr auto moo::GameColors::get_shot_trail_end_color(const BulletStyle& bullet_style) -> RGB {
    constexpr RGB gray = { 200, 200, 200 };
    constexpr RGB green = { 0, 255, 0 };
 
-   if (bullet_style == Bullet::Style::Rocket)
+   if (bullet_style == BulletStyle::Rocket)
       return gray;
    else
       return green;

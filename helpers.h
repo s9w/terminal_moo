@@ -59,6 +59,7 @@ namespace moo {
    [[nodiscard]] auto get_height_fraction(const ScreenFraction& pos) -> double;
    [[nodiscard]] auto get_lane_speed(const int lane, const int rows, const Seconds& dt) -> double;
    [[nodiscard]] constexpr bool is_hit(const ScreenFraction& bullet_pos, const ScreenFraction& target_pos, const double target_width, const double target_height);
+   [[nodiscard]] constexpr auto get_orthogonal(const moo::ScreenFraction& vec)->moo::ScreenFraction;
 
 
    struct PixelPos {
@@ -147,4 +148,12 @@ constexpr auto moo::greater_equal(const double first, const double second) -> bo
    const bool is_y_in = moo::greater_equal(bullet_pos.y, target_pos.y - 0.5 * target_height) &&
    moo::less_equal(bullet_pos.y, target_pos.y + 0.5 * target_height);
    return is_x_in && is_y_in;
+}
+
+
+constexpr auto moo::get_orthogonal(
+   const moo::ScreenFraction& vec
+) -> moo::ScreenFraction
+{
+   return { -vec.y, vec.x };
 }

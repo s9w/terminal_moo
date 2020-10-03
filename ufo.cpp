@@ -41,7 +41,7 @@ auto moo::Ufo::fire(const ScreenFraction& player_pos) -> std::optional<Bullet>{
    m_shooting_cooldown = shooting_interval_s;
    const ScreenFraction initial_bullet_pos = m_pos;
    const ScreenFraction trajectory = get_normalized(player_pos - m_pos);
-   Bullet bullet(initial_bullet_pos, trajectory, Bullet::Style::Alien);
+   Bullet bullet(initial_bullet_pos, trajectory, BulletStyle::Alien);
    return bullet;
 }
 

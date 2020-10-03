@@ -13,7 +13,7 @@ void moo::Aliens::process_bullets(Bullet& bullet){
    auto ufo_it = m_ufos.begin();
    while (ufo_it != m_ufos.end()) {
       bool ufo_killed = false;
-      if (bullet.m_head_alive && bullet.m_style == Bullet::Style::Rocket && !ufo_it->is_invul() && is_hit(bullet.m_pos, ufo_it->m_pos, m_ufo_dimensions.x, m_ufo_dimensions.y)) {
+      if (bullet.m_head_alive && bullet.m_style == BulletStyle::Rocket && !ufo_it->is_invul() && is_hit(bullet.m_pos, ufo_it->m_pos, m_ufo_dimensions.x, m_ufo_dimensions.y)) {
          bullet.m_head_alive = false;
          ufo_killed = ufo_it->hit();
       }
