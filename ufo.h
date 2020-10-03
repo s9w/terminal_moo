@@ -8,11 +8,12 @@ namespace moo {
    struct Ufo {
       Ufo(const FractionalPos initial_pos, const double anim_progress);
       auto progress(const Seconds& dt) -> void;
-      auto hit() -> bool;
+      [[nodiscard]] auto hit() -> bool;
+      [[nodiscard]] auto is_hit() const -> bool;
 
       FractionalPos m_pos;
       double m_health = 1.0;
-      bool m_is_hit = false;
+      Seconds m_hit_timer{0.0};
       AnimationFrame m_animation_frame;
    };
 

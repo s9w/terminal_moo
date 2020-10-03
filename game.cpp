@@ -369,12 +369,10 @@ auto moo::game::run() -> void{
             ++bullet_it;
       }
       for (const Ufo& ufo : m_ufos) {
-         RGB ufo_color;
-         if (ufo.m_is_hit)
-            ufo_color = m_game_colors.get_white();
-         else
-            ufo_color = m_game_colors.get_health_color(ufo.m_health);
-         write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, std::nullopt);
+         std::optional<RGB> override_color;
+         if (ufo.is_hit())
+            override_color = m_game_colors.get_white();
+         write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, override_color);
       }
       for (Ufo& ufo : m_ufos) {
          ufo.progress(dt);

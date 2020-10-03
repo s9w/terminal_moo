@@ -22,6 +22,7 @@ auto moo::setup_config() -> void{
    config.smoke_puff_spread = tbl["game"]["smoke_puff_spread"].value_or(0.0);
    config.enable_mouse = tbl["game"]["enable_mouse"].value_or(true);
    config.cloud_count = tbl["game"]["cloud_count"].value_or(3);
+   config.ufo_hit_invul_duration = tbl["game"]["ufo_hit_invul_duration"].value_or(0.1);
 }
 
 

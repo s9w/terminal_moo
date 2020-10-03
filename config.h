@@ -9,6 +9,7 @@ namespace moo {
       double sky_fraction = 1.0 * 23 / 30;
       bool enable_mouse = true;
       int cloud_count = 3;
+      double ufo_hit_invul_duration = 0.1;
    };
 
    auto setup_config() -> void;
