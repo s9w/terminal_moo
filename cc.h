@@ -72,6 +72,8 @@ namespace moo {
    [[nodiscard]] constexpr auto to_pixel_coord_tl(const LineCoord& pos)->PixelCoord;
    [[nodiscard]] constexpr auto to_pixel_coord(const ScreenCoord& pos)->PixelCoord;
    [[nodiscard]] constexpr auto get_screen_clamped(const PixelCoord& pos)->PixelCoord;
+   [[nodiscard]] constexpr auto get_beam_aligned_coord(const ScreenCoord& pos)->ScreenCoord;
+   [[nodiscard]] constexpr auto get_screen_coord(const PixelCoord& pos)->ScreenCoord;
 
    template<class T>
    [[nodiscard]] constexpr auto get_top_left(const T& center, const T& area_dim)->T;
@@ -183,6 +185,21 @@ constexpr auto moo::get_screen_clamped(const PixelCoord& pos)->PixelCoord {
    clamped.i = std::clamp(clamped.i, 0, 2 * static_rows - 1);
    clamped.j = std::clamp(clamped.j, 0, 2 * static_columns - 1);
    return clamped;
+}
+
+
+constexpr auto moo::get_screen_coord(const PixelCoord& pos)->ScreenCoord {
+   const double x = static_cast<double>(pos.j) / (2 * static_columns);
+   const double y = static_cast<double>(pos.i) / (2 * static_rows);
+   return {x, y};
+}
+
+
+constexpr auto moo::get_beam_aligned_coord(const ScreenCoord& pos)->ScreenCoord {
+   PixelCoord pixel_coord = to_pixel_coord(pos);
+   pixel_coord.i = (pixel_coord.i / 2) * 2;
+   pixel_coord.j = (pixel_coord.j / 2) * 2;
+   return get_screen_coord(pixel_coord);
 }
 
 

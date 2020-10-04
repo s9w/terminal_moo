@@ -176,7 +176,6 @@ moo::game::game(const int columns, const int rows)
    , m_t_last(std::chrono::system_clock::now())
    , m_aliens({ m_ufo_animation.m_width / (2.0 * m_columns), m_ufo_animation.m_height / (2.0 * m_rows) })
 {
-   update_screen_size(m_rows, m_columns);
 
    m_string.reserve(100000);
    {

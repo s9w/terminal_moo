@@ -3,9 +3,8 @@
 moo::Aliens::Aliens(const ScreenCoord& ufo_dimensions)
    : m_ufo_dimensions(ufo_dimensions)
 {
-   m_ufos.emplace_back(ScreenCoord{ 0.8, 0.3 }, 0.0);
-   //m_ufos.emplace_back(ScreenCoord{ 0.9, 0.5 }, 0.5);
-   //m_ufos.emplace_back(ScreenCoord{ 0.6, 0.6 }, 1.0);
+   const ScreenCoord desired{ 0.83, 0.3 };
+   m_ufos.emplace_back(get_beam_aligned_coord(desired), 0.0);
 }
 
 

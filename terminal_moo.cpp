@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "game.h"
+#include "screen_size.h"
 
 auto run_doctest() -> std::optional<int> {
    doctest::Context context;
@@ -29,6 +30,7 @@ int main() {
       return 1;
    const int columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
    const int rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+   moo::update_screen_size(rows, columns);
    moo::game game_instance(columns, rows);
    game_instance.run();
 
