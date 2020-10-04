@@ -54,9 +54,13 @@ auto moo::get_lane_speed(
 }
 
 
-moo::LineCoordIt::LineCoordIt(const ImageWrapper& image)
+template<class T>
+moo::IntCoordIt<T>::IntCoordIt(const ImageWrapper& image)
    : m_max_width(image.m_width)
    , m_max_height(image.m_height)
+   , m_image_pixels(image.m_pixels)
 {
-
 }
+template moo::IntCoordIt<moo::PixelCoord>::IntCoordIt(const ImageWrapper& image);
+template moo::IntCoordIt<moo::LineCoord>::IntCoordIt(const ImageWrapper& image);
+

@@ -86,41 +86,16 @@ namespace {
    }
 
 
-   moo::LongRect get_window_rect() {
-      moo::LongRect long_rect;
-      GetWindowRect(GetConsoleWindow(), reinterpret_cast<RECT*>(&long_rect));
-      moo::UnadjustWindowRectEx(reinterpret_cast<RECT*>(&long_rect), WS_CAPTION | WS_MINIMIZEBOX, FALSE, 0);
-      return long_rect;
-   }
-
-
-   [[nodiscard]] constexpr auto get_pixel_index(
-      const int row,
-      const int column,
-      const int columns,
-      const int vertical_pixel_offset,
-      const int horizontal_pixel_offset
-   ) -> size_t
-   {
-      const int pixels_in_row = 2 * columns;
-      return (2 * row + vertical_pixel_offset) * pixels_in_row + 2 * column + horizontal_pixel_offset;
-   }
-
-   struct TopLeft {};
-   struct TopRight {};
-   struct BottomLeft {};
-   struct BottomRight {};
-
-   template<class T>
-   [[nodiscard]] constexpr auto get_pixel_index(int row, int column, int columns) -> size_t {
-      if constexpr(std::is_same_v<T, TopLeft>)
-         return get_pixel_index(row, column, columns, 0, 0);
-      else if constexpr (std::is_same_v<T, TopRight>)
-         return get_pixel_index(row, column, columns, 0, 1);
-      else if constexpr (std::is_same_v<T, BottomLeft>)
-         return get_pixel_index(row, column, columns, 1, 0);
-      else if constexpr (std::is_same_v<T, BottomRight>)
-         return get_pixel_index(row, column, columns, 1, 1);
+   moo::Rect get_window_rect() {
+      RECT window_rect;
+      GetWindowRect(GetConsoleWindow(), reinterpret_cast<RECT*>(&window_rect));
+      moo::UnadjustWindowRectEx(reinterpret_cast<RECT*>(&window_rect), WS_CAPTION | WS_MINIMIZEBOX, FALSE, 0);
+      moo::Rect rect;
+      rect.top_left.j = window_rect.left;
+      rect.bottom_right.j = window_rect.right;
+      rect.top_left.i = window_rect.top;
+      rect.bottom_right.i = window_rect.bottom;
+      return rect;
    }
 
 
@@ -185,8 +160,6 @@ moo::game::game(const int columns, const int rows)
    , m_columns(columns)
    , m_rows(rows)
    , m_window_rect(get_window_rect())
-   , m_font_width((m_window_rect.right - m_window_rect.left) / m_columns)
-   , m_font_height((m_window_rect.bottom - m_window_rect.top) / m_rows)
    , m_output_handle(GetStdHandle(STD_OUTPUT_HANDLE))
    , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
    , m_game_colors()
@@ -309,8 +282,8 @@ auto moo::game::run() -> void{
       clear_screen_text();
       draw_sky_and_ground(dt);
       for (const Cloud& cloud : m_clouds) {
-         const auto& cloud_image = m_cloud_images[cloud.m_image_index];
-         const LineCoord top_left = get_top_left(to_line_coord(cloud.m_pos), cloud_image.get_line_dim());
+         const ImageWrapper& cloud_image = m_cloud_images[cloud.m_image_index];
+         const LineCoord top_left = get_top_left(to_line_coord(cloud.m_pos), cloud_image.get_dim<LineCoord>());
          draw_to_bg(cloud_image, top_left, cloud.m_alpha);
       }
 
@@ -333,8 +306,7 @@ auto moo::game::run() -> void{
 
       m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * m_rows, 2 * m_columns);
       draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
-
-      write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, std::nullopt);
+      
       draw_cows(dt);
       
       {
@@ -363,6 +335,8 @@ auto moo::game::run() -> void{
             override_color = m_game_colors.get_white();
          write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, override_color);
       }
+
+      write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, std::nullopt);
 
       for (Ufo& ufo : m_aliens.m_ufos) {
          ufo.progress(dt);
@@ -396,7 +370,7 @@ auto moo::game::run() -> void{
             m_time.m_day + 1,
             m_time.m_day_progress
          );
-         write_screen_text(gui_text, 0, 0);
+         write_screen_text(gui_text, {0, 0});
       }
 
       write_string();
@@ -442,31 +416,27 @@ void moo::game::write_string(){
    m_string.clear();
    m_painter.reset_paint_count();
 
-   for (int i = 0; i < m_rows; ++i) {
-      for (int j = 0; j < m_columns; ++j) {
-         const RGB bg_color = m_bg_colors[i * m_columns + j];
-         m_painter.paint_layer(bg_color, Layer::Back, m_string);
+   for (LineCoordIt it = get_screen_it(); it.is_valid(); ++it) {
+      const RGB bg_color = m_bg_colors[to_screen_index(*it)];
+      m_painter.paint_layer(bg_color, Layer::Back, m_string);
 
-         if (const char screen_char = m_screen_text[i * m_columns + j]; screen_char != '\0') {
-            m_painter.paint_layer(m_game_colors.get_red(), Layer::Front, m_string);
-            m_string += screen_char;
-            continue;
-         }
-         one_pixel(
-            get_block_char(i, j),
-            bg_color
-         );
+      if (const char screen_char = m_screen_text[to_screen_index(*it)]; screen_char != '\0') {
+         m_painter.paint_layer(m_game_colors.get_red(), Layer::Front, m_string);
+         m_string += screen_char;
+         continue;
       }
+      one_pixel(get_block_char(*it), bg_color);
    }
 }
 
 
-auto moo::game::get_block_char(int i, int j) const -> BlockChar{
+auto moo::game::get_block_char(const LineCoord& line_coord) const -> BlockChar{
+   const PixelCoord tl = to_pixel_coord_tl(line_coord);
    return {
-      m_pixels[get_pixel_index<TopLeft>(i, j, m_columns)],
-      m_pixels[get_pixel_index<TopRight>(i, j, m_columns)],
-      m_pixels[get_pixel_index<BottomLeft>(i, j, m_columns)],
-      m_pixels[get_pixel_index<BottomRight>(i, j, m_columns)]
+      m_pixels[to_screen_index(tl + PixelCoord{0, 0})],
+      m_pixels[to_screen_index(tl + PixelCoord{0, 1})],
+      m_pixels[to_screen_index(tl + PixelCoord{1, 0})],
+      m_pixels[to_screen_index(tl + PixelCoord{1, 1})]
    };
 }
 
@@ -521,8 +491,6 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
 
    const ScreenCoord bullet_pos = bullet.m_pos;
    if (bullet.m_head_alive && bullet_pos.is_on_screen()) {
-
-
       const RGB bullet_color = m_game_colors.get_red();
       const PixelCoord bullet_pixel_pos = to_pixel_coord(bullet_pos);
 
@@ -589,21 +557,18 @@ auto moo::game::draw_cows(const Seconds dt) -> void{
 
 
 auto moo::game::draw_shadow(
-   const ScreenCoord& pos,
+   const ScreenCoord& player_pos,
    const int max_shadow_width,
    const int shadow_x_offset
 ) -> void
 {
    ZoneScoped;
-   const int sky_height = get_sky_row_height(m_rows);
-   const int ground_height = m_rows - sky_height;
-   const int i = static_cast<int>(sky_height + 0.5 * ground_height);
-   const int shadow_j = static_cast<int>(pos.x * m_columns);
-
-   const double height_fraction = get_height_fraction(pos);
+   const LineCoord shadow_center = get_shadow_center_pos(player_pos);
+   const double height_fraction = get_height_fraction(player_pos);
    const int shadow_width = static_cast<int>(height_fraction * max_shadow_width);
    for (int j = 0; j < shadow_width; ++j) {
-      const int index = i * m_columns + shadow_j - shadow_width / 2 + j + shadow_x_offset;
+      const LineCoord ppos = shadow_center + LineCoord{0, -shadow_width / 2 + j + shadow_x_offset };
+      const size_t index = to_screen_index(ppos);
       const double color_fraction = height_fraction * get_triangle(1.0 * j / shadow_width);
       m_bg_colors[index] = get_offsetted_color(m_bg_colors[index], static_cast<int>(-20.0 * color_fraction));
    }
@@ -617,13 +582,12 @@ auto moo::game::draw_to_bg(
 ) -> void
 {
    ZoneScoped;
-   for (LineCoordIt it(image); it.is_valid(); ++it) {
-      const LineCoord bg_pos = top_left + *it;
-      const RGB image_pixel = image.m_pixels.get()[it.to_range_index()];
-      if (!is_on_screen(bg_pos) || !image_pixel.is_visible())
+   for (LineCoordIt image_it(image); image_it.is_valid(); ++image_it) {
+      const LineCoord bg_pos = top_left + *image_it;
+      if (!is_on_screen(bg_pos) || !image_it.get_image_pixel().is_visible())
          continue;
       const size_t index = to_screen_index(bg_pos);
-      m_bg_colors[index] = get_color_mix(m_bg_colors[index], image_pixel, alpha);
+      m_bg_colors[index] = get_color_mix(m_bg_colors[index], image_it.get_image_pixel(), alpha);
    }
 }
 
@@ -635,57 +599,32 @@ void moo::game::write_image_at_pos(
    const std::optional<RGB>& override_color
 ){
    ZoneScoped;
-   const PixelCoord center_pos = to_pixel_coord(screen_pos);
-   PixelCoord top_left_pos;
-   if (write_alignment == WriteAlignment::Center) {
-      top_left_pos = center_pos;
-      top_left_pos.j -= image.m_width / 2;
+   PixelCoord top_left_pos = get_top_left(to_pixel_coord(screen_pos), image.get_dim<PixelCoord>());
+   if (write_alignment == WriteAlignment::BottomCenter)
       top_left_pos.i -= image.m_height / 2;
-   }
-   else if (write_alignment == WriteAlignment::BottomCenter) {
-      top_left_pos = center_pos;
-      top_left_pos.j -= image.m_width / 2;
-      top_left_pos.i -= image.m_height;
-   }
 
-   for (int image_i = 0; image_i < image.m_height; ++image_i) {
-      for (int image_j = 0; image_j < image.m_width; ++image_j) {
-         const int image_index = image_i * image.m_width + image_j;
-
-         const int pixel_i = top_left_pos.i + image_i;
-         const int pixel_j = top_left_pos.j + image_j;
-         if (pixel_i < 0 || pixel_i > 2 * m_rows - 1 || pixel_j < 0 || pixel_j > 2 * m_columns - 1)
-            continue;
-         const int pixel_index = pixel_i * 2 * m_columns + pixel_j;
-         if (image.m_pixels.get()[image_index].is_visible() && !m_pixels[pixel_index].is_visible()) {
-            if (override_color.has_value())
-               m_pixels[pixel_index] = override_color.value();
-            else
-               m_pixels[pixel_index] = image.m_pixels.get()[image_index];
-         }
-      }
+   for (PixelCoordIt image_it(image); image_it.is_valid(); ++image_it) {
+      const PixelCoord canvas_coord = top_left_pos + *image_it;
+      if (image_it.get_image_pixel().is_visible() && is_on_screen(canvas_coord))
+         m_pixels[to_screen_index(canvas_coord)] = override_color.value_or(image_it.get_image_pixel());
    }
 }
 
 
 void moo::game::write_screen_text(
    const std::string& text,
-   const int i, 
-   const int j
+   const LineCoord& start_pos
 ){
    ZoneScoped;
-   for (size_t i_text = 0; i_text < text.length(); ++i_text) {
-      const size_t index = i * m_columns + j + i_text;
-      
-      if ((index + text.length()) > m_screen_text.size() - 1) {
-         printf("text doesn't fit on screen.\n");
-         std::terminate();
-      }
-      if ((j + text.length()) > m_columns - 1) {
+   {
+      const LineCoord end_pos = start_pos + LineCoord{ 0, static_cast<int>(text.length()) };
+      if (!is_on_screen(end_pos)) {
          printf("text doesn't fit in row.\n");
          std::terminate();
       }
-      
+   }
+   for (size_t i_text = 0; i_text < text.length(); ++i_text) {
+      const size_t index = to_screen_index(start_pos) + i_text;
       m_screen_text[index] = text[i_text];
    }
 }
@@ -700,8 +639,8 @@ void moo::game::refresh_mouse_pos(){
    ZoneScopedC(0x0000ff);
    POINT mouse_pos;
    GetCursorPos(&mouse_pos);
-   m_mouse_pos.x = 1.0 * (mouse_pos.x - m_window_rect.left) / (m_window_rect.right - m_window_rect.left - 20);
-   m_mouse_pos.y = 1.0 * (mouse_pos.y - m_window_rect.top) / (m_window_rect.bottom - m_window_rect.top);
+   m_mouse_pos.x = 1.0 * (mouse_pos.x - m_window_rect.top_left.j) / (m_window_rect.get_width() - 20);
+   m_mouse_pos.y = 1.0 * (mouse_pos.y - m_window_rect.top_left.i) / m_window_rect.get_height();
 }
 
 

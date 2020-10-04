@@ -43,15 +43,6 @@ namespace moo {
 
 
    [[nodiscard]] constexpr bool is_hit(const ScreenCoord& bullet_pos, const ScreenCoord& target_pos, const double target_width, const double target_height);
-   
-
-   struct LongRect {
-      long left;
-      long top;
-      long right;
-      long bottom;
-      auto operator<=>(const LongRect& other) const = default;
-   };
 
 
    template<typename T, typename... Args, typename TFun>
@@ -61,6 +52,7 @@ namespace moo {
    
    [[nodiscard]] auto get_sky_row_height(const int rows) -> int;
    [[nodiscard]] auto get_ground_row_height(const int rows) -> int;
+   [[nodiscard]] auto get_shadow_center_pos(const ScreenCoord& player_pos)->LineCoord;
 
 
    template <class T>

@@ -12,6 +12,11 @@ namespace moo {
       int m_width = 0;
       int m_height = 0;
       std::reference_wrapper<const std::vector<RGB>> m_pixels;
+
+      template<class T>
+      [[nodiscard]] constexpr auto get_dim() const -> T {
+         return { m_height, m_width };
+      }
    };
 
 
@@ -19,9 +24,6 @@ namespace moo {
       SingleImage() = default;
       SingleImage(const unsigned int width, const unsigned int height);
       operator ImageWrapper() const;
-      [[nodiscard]] constexpr auto get_line_dim() const -> LineCoord {
-         return {m_height, m_width};
-      }
 
       std::vector<RGB> m_pixels;
       int m_width = 0;

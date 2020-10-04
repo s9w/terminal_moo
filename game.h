@@ -34,7 +34,7 @@ namespace moo {
       auto run() -> void;
       void write_string();
       void write_image_at_pos(const ImageWrapper& image, const ScreenCoord& pos, const WriteAlignment write_alignment, const std::optional<RGB>& override_color);
-      void write_screen_text(const std::string& text, const int i, const int j);
+      void write_screen_text(const std::string& text, const LineCoord& start_pos);
       void clear_screen_text();
       void refresh_mouse_pos();
       void refresh_window_rect();
@@ -47,20 +47,18 @@ namespace moo {
          const RGB row_bg_color
       );
 
-      [[nodiscard]] auto get_block_char(int i, int j) const -> BlockChar;
+      [[nodiscard]] auto get_block_char(const LineCoord& line_coord) const -> BlockChar;
       auto draw_sky_and_ground(const Seconds dt) -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
       auto draw_cows(const Seconds dt) -> void;
-      auto draw_shadow(const ScreenCoord& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
+      auto draw_shadow(const ScreenCoord& player_pos, const int max_shadow_width, const int shadow_x_offset) -> void;
       auto draw_to_bg(const ImageWrapper& image, const LineCoord& top_left, const double alpha) -> void;
 
       ConsoleState m_initial_console_state;
       std::mt19937_64 m_rng;
       int m_columns = 0;
       int m_rows = 0;
-      LongRect m_window_rect;
-      int m_font_width = 0;
-      int m_font_height = 0;
+      Rect m_window_rect;
       HANDLE m_output_handle;
       HANDLE m_input_handle;
       GameColors m_game_colors;

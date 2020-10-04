@@ -1,5 +1,7 @@
 #include "image.h"
 
+#include "cc.h"
+
 #include <optional>
 #include <string>
 
@@ -105,11 +107,9 @@ namespace {
    ) -> moo::SingleImage
    {
       moo::SingleImage new_image = image;
-      for (int i = 0; i < image.m_height; ++i) {
-         for (int j = 0; j < image.m_width; ++j) {
-            const size_t index = i * image.m_width + j;
-            new_image.m_pixels[index] = get_recolored_pixel(new_image.m_pixels[index], color_replacements);
-         }
+      for (moo::PixelCoordIt it(image); it.is_valid(); ++it) {
+         const size_t index = it.to_range_index();
+         new_image.m_pixels[index] = get_recolored_pixel(new_image.m_pixels[index], color_replacements);
       }
       return new_image;
    }

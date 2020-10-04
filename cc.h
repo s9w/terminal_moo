@@ -1,10 +1,13 @@
 #pragma once
 
+#include "color.h"
 #include "screen_size.h"
 #include "screencoord.h"
 #include "tools_math.h"
 
 #include <algorithm>
+#include <optional>
+#include <vector>
 
 
 namespace moo {
@@ -28,29 +31,54 @@ namespace moo {
    using PixelCoord = GenericIntCoord<PixelCoordType>;
    using LineCoord = GenericIntCoord<LineCoordType>;
 
-   struct LineCoordIt {
-      constexpr LineCoordIt(const int max_width, const int max_height);
-      LineCoordIt(const ImageWrapper& image); // this not constexpr to not introduce a dependency on that header
-      constexpr LineCoordIt& operator++();
-      [[nodiscard]] constexpr auto is_valid() const -> bool;
-      [[nodiscard]] constexpr auto operator->() const -> const LineCoord*;
-      [[nodiscard]] constexpr auto operator*() const -> const LineCoord&;
-      [[nodiscard]] constexpr auto to_range_index() const -> size_t;
-      [[nodiscard]] constexpr auto get_x_ratio() -> double;
-
-   private:
-      int m_max_width = 0;
-      int m_max_height = 0;
-      LineCoord m_pos;
+   struct Rect {
+      PixelCoord top_left;
+      PixelCoord bottom_right;
+      [[nodiscard]] constexpr auto get_width() -> int {
+         return bottom_right.j - top_left.j;
+      }
+      [[nodiscard]] constexpr auto get_height() -> int {
+         return bottom_right.i - top_left.i;
+      }
    };
 
+   template<class T>
+   struct IntCoordIt {
+      
+      constexpr IntCoordIt(const int max_width, const int max_height);
+      IntCoordIt(const ImageWrapper& image); // this not constexpr to not introduce a dependency on that header
+      constexpr IntCoordIt& operator++();
+      [[nodiscard]] constexpr auto is_valid() const -> bool;
+      [[nodiscard]] constexpr auto operator->() const -> const T*;
+      [[nodiscard]] constexpr auto operator*() const -> const T&;
+      [[nodiscard]] constexpr auto to_range_index() const -> size_t;
+      [[nodiscard]] constexpr auto get_x_ratio() -> double;
+      [[nodiscard]] constexpr auto get_image_pixel() -> RGB;
+
+   protected:
+      int m_max_width = 0;
+      int m_max_height = 0;
+      T m_pos;
+      std::optional<std::reference_wrapper<const std::vector<RGB>>> m_image_pixels;
+   };
+
+   using PixelCoordIt = IntCoordIt<PixelCoord>;
+   using LineCoordIt = IntCoordIt<LineCoord>;
+
+   [[nodiscard]] constexpr auto get_screen_it() ->LineCoordIt;
+
    [[nodiscard]] constexpr auto to_line_coord(const ScreenCoord& pos)->LineCoord;
+   [[nodiscard]] constexpr auto to_pixel_coord_tl(const LineCoord& pos)->PixelCoord;
    [[nodiscard]] constexpr auto to_pixel_coord(const ScreenCoord& pos)->PixelCoord;
    [[nodiscard]] constexpr auto get_screen_clamped(const PixelCoord& pos)->PixelCoord;
-   [[nodiscard]] constexpr auto get_top_left(const LineCoord& center, const LineCoord& area_dim)->LineCoord;
+
+   template<class T>
+   [[nodiscard]] constexpr auto get_top_left(const T& center, const T& area_dim)->T;
+
    [[nodiscard]] constexpr auto to_screen_index(const LineCoord& pos)->size_t;
    [[nodiscard]] constexpr auto to_screen_index(const PixelCoord& pos)->size_t;
    [[nodiscard]] constexpr auto is_on_screen(const LineCoord& pos) -> bool;
+   [[nodiscard]] constexpr auto is_on_screen(const PixelCoord& pos) -> bool;
 
 } // namespace moo
 
@@ -71,7 +99,13 @@ constexpr auto moo::operator/(const GenericIntCoord<T>& pos, const int div) -> G
 }
 
 
-constexpr moo::LineCoordIt::LineCoordIt(const int max_width, const int max_height)
+constexpr auto moo::get_screen_it()->LineCoordIt {
+   return LineCoordIt(static_columns, static_rows);
+}
+
+
+template<class T>
+constexpr moo::IntCoordIt<T>::IntCoordIt(const int max_width, const int max_height)
    : m_max_width(max_width)
    , m_max_height(max_height)
 {
@@ -79,27 +113,38 @@ constexpr moo::LineCoordIt::LineCoordIt(const int max_width, const int max_heigh
 }
 
 
-constexpr auto moo::LineCoordIt::get_x_ratio() -> double {
+template<class T>
+constexpr auto moo::IntCoordIt<T>::get_x_ratio() -> double {
    return static_cast<double>(m_pos.j) / m_max_width;
 }
 
-constexpr auto moo::LineCoordIt::to_range_index() const -> size_t {
+template<class T>
+constexpr auto moo::IntCoordIt<T>::get_image_pixel() -> RGB{
+   return m_image_pixels.value().get()[to_range_index()];
+}
+
+template<class T>
+constexpr auto moo::IntCoordIt<T>::to_range_index() const -> size_t {
    return m_pos.i * m_max_width + m_pos.j;
 }
 
-constexpr auto moo::LineCoordIt::operator*() const -> const LineCoord& {
+template<class T>
+constexpr auto moo::IntCoordIt<T>::operator*() const -> const T& {
    return m_pos;
 }
 
-constexpr auto moo::LineCoordIt::operator->() const -> const LineCoord* {
+template<class T>
+constexpr auto moo::IntCoordIt<T>::operator->() const -> const T* {
    return &m_pos;
 }
 
-constexpr auto moo::LineCoordIt::is_valid() const -> bool {
+template<class T>
+constexpr auto moo::IntCoordIt<T>::is_valid() const -> bool {
    return m_pos.i < m_max_height && m_pos.j < m_max_width;
 }
 
-constexpr moo::LineCoordIt& moo::LineCoordIt::operator++() {
+template<class T>
+constexpr moo::IntCoordIt<T>& moo::IntCoordIt<T>::operator++() {
    ++m_pos.j;
    if (m_pos.j == m_max_width) {
       m_pos.j = 0;
@@ -112,6 +157,11 @@ constexpr auto moo::to_line_coord(const ScreenCoord& pos) -> LineCoord {
    const int i = static_cast<int>(pos.y * static_rows);
    const int j = static_cast<int>(pos.x * static_columns);
    return { i, j };
+}
+
+
+constexpr auto moo::to_pixel_coord_tl(const LineCoord& pos)->PixelCoord {
+   return { 2 * pos.i, 2 * pos.j };
 }
 
 
@@ -130,10 +180,11 @@ constexpr auto moo::get_screen_clamped(const PixelCoord& pos)->PixelCoord {
 }
 
 
+template<class T>
 constexpr auto moo::get_top_left(
-   const LineCoord& center,
-   const LineCoord& area_dim
-)->LineCoord
+   const T& center,
+   const T& area_dim
+)->T
 {
    return center - area_dim / 2;
 }
@@ -149,4 +200,8 @@ constexpr auto moo::to_screen_index(const PixelCoord& pos)->size_t {
 
 constexpr auto moo::is_on_screen(const LineCoord& pos) -> bool {
    return pos.i >= 0 && pos.i < static_rows && pos.j >= 0 && pos.j < static_columns;
+}
+
+constexpr auto moo::is_on_screen(const PixelCoord& pos) -> bool {
+   return pos.i >= 0 && pos.i < (2 * static_rows) && pos.j >= 0 && pos.j < (2 * static_columns);
 }

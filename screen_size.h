@@ -2,8 +2,8 @@
 
 namespace moo {
 
-   static int static_rows = 0;
-   static int static_columns = 0;
+   inline int static_rows = 0;
+   inline int static_columns = 0;
 
    constexpr auto update_screen_size(const int rows, const int columns) -> void;
 
