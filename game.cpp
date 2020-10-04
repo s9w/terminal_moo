@@ -294,9 +294,12 @@ auto moo::game::run() -> void{
          constexpr int safety_i = 1;
          const int beam_pixel_height = get_sky_row_height(m_rows) - (static_cast<int>(ufo.m_pos.y * m_rows) + m_ufo_animation.m_height / 2) + safety_i;
          for (LineCoordIt beam_it(beam_width, beam_pixel_height); beam_it.is_valid(); ++beam_it) {
-            const double horiz_intensity = 0.3 + 0.7 * get_triangle(beam_it.get_x_ratio());
-            constexpr double base_beam_intensity = 0.5;
-            const double beam_intensity = (1.0 + 0.1 * std::sin(1500.0 * m_time.m_day_progress)) * base_beam_intensity * horiz_intensity;
+            const double vert_factor = 1.0 + 0.3 * std::sin(500.0 * m_time.m_day_progress + 10.0 * beam_it.get_y_ratio());
+            //const double vert_factor = 1.0;
+            const double oscil_factor = (1.0 + 0.1 * std::sin(500.0 * m_time.m_day_progress));
+            //const double oscil_factor = 1.0;
+            constexpr double base_beam_intensity = 0.3;
+            const double beam_intensity = oscil_factor * base_beam_intensity * vert_factor;
 
             const LineCoord line_pos = to_line_coord(ufo.m_pos) + *beam_it + LineCoord{ m_ufo_animation.m_height / 2 - safety_i, -beam_width / 2 };
             const size_t bg_index = to_screen_index(line_pos);

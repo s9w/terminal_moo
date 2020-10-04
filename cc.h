@@ -53,6 +53,7 @@ namespace moo {
       [[nodiscard]] constexpr auto operator*() const -> const T&;
       [[nodiscard]] constexpr auto to_range_index() const -> size_t;
       [[nodiscard]] constexpr auto get_x_ratio() -> double;
+      [[nodiscard]] constexpr auto get_y_ratio() -> double;
       [[nodiscard]] constexpr auto get_image_pixel() -> RGB;
 
    protected:
@@ -116,6 +117,11 @@ constexpr moo::IntCoordIt<T>::IntCoordIt(const int max_width, const int max_heig
 template<class T>
 constexpr auto moo::IntCoordIt<T>::get_x_ratio() -> double {
    return static_cast<double>(m_pos.j) / m_max_width;
+}
+
+template<class T>
+constexpr auto moo::IntCoordIt<T>::get_y_ratio() -> double {
+   return static_cast<double>(m_pos.i) / m_max_height;
 }
 
 template<class T>
