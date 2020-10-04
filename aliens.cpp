@@ -1,11 +1,11 @@
 #include "aliens.h"
 
-moo::Aliens::Aliens(const ScreenFraction& ufo_dimensions)
+moo::Aliens::Aliens(const ScreenCoord& ufo_dimensions)
    : m_ufo_dimensions(ufo_dimensions)
 {
-   m_ufos.emplace_back(ScreenFraction{ 0.8, 0.3 }, 0.0);
-   m_ufos.emplace_back(ScreenFraction{ 0.9, 0.5 }, 0.5);
-   m_ufos.emplace_back(ScreenFraction{ 0.6, 0.6 }, 1.0);
+   m_ufos.emplace_back(ScreenCoord{ 0.8, 0.3 }, 0.0);
+   //m_ufos.emplace_back(ScreenCoord{ 0.9, 0.5 }, 0.5);
+   //m_ufos.emplace_back(ScreenCoord{ 0.6, 0.6 }, 1.0);
 }
 
 

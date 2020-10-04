@@ -14,17 +14,17 @@ namespace {
 
 
    [[nodiscard]] auto get_smoke_puff_pos(
-      const moo::ScreenFraction& rocket_pos,
+      const moo::ScreenCoord& rocket_pos,
       std::mt19937_64& rng,
       const double smoke_spread,
-      const moo::ScreenFraction& bullet_trajectory,
+      const moo::ScreenCoord& bullet_trajectory,
       const moo::BulletStyle style,
       const double path_progress
-   ) -> moo::ScreenFraction
+   ) -> moo::ScreenCoord
    {
       if (style == moo::BulletStyle::Rocket) {
          std::uniform_real_distribution<double> smoke_spread_dist(-smoke_spread, smoke_spread);
-         return rocket_pos + moo::ScreenFraction{ smoke_spread_dist(rng), smoke_spread_dist(rng) };
+         return rocket_pos + moo::ScreenCoord{ smoke_spread_dist(rng), smoke_spread_dist(rng) };
       }
       constexpr double alien_trail_sin_freq = 50.0;
       constexpr double alien_trail_sin_ampl = 0.02;
@@ -34,7 +34,7 @@ namespace {
 } // namespace {}
 
 
-moo::Bullet::Bullet(const ScreenFraction& initial_pos, const ScreenFraction& trajectory, const BulletStyle style)
+moo::Bullet::Bullet(const ScreenCoord& initial_pos, const ScreenCoord& trajectory, const BulletStyle style)
    : m_pos(initial_pos)
    , m_initial_pos(initial_pos)
    , m_trajectory(trajectory)
@@ -54,11 +54,11 @@ auto moo::Bullet::progress(
       double gravity_strength = moo::get_config().gravity_strength;
       if (m_style == BulletStyle::Alien)
          gravity_strength = 0.0;
-      m_gravity_speed = m_gravity_speed + dt.m_value * ScreenFraction{ 0.0, gravity_strength };
-      const ScreenFraction pos_change = dt.m_value * (m_bullet_speed * m_trajectory + m_gravity_speed);
-      const ScreenFraction new_pos = m_pos + pos_change;
+      m_gravity_speed = m_gravity_speed + dt.m_value * ScreenCoord{ 0.0, gravity_strength };
+      const ScreenCoord pos_change = dt.m_value * (m_bullet_speed * m_trajectory + m_gravity_speed);
+      const ScreenCoord new_pos = m_pos + pos_change;
       {
-         const double path_progress = length(m_pos - m_initial_pos);
+         const double path_progress = get_length(m_pos - m_initial_pos);
          m_trail.add_puff(rng, new_pos, m_pos, m_style, path_progress);
       }
       m_pos = new_pos;
@@ -101,8 +101,8 @@ auto moo::Trail::thin_trail(
 
 auto moo::Trail::add_puff(
    std::mt19937_64& rng,
-   const ScreenFraction& new_bullet_pos,
-   const ScreenFraction& old_bullet_pos,
+   const ScreenCoord& new_bullet_pos,
+   const ScreenCoord& old_bullet_pos,
    const BulletStyle style,
    const double path_progress
 ) -> void
@@ -110,8 +110,8 @@ auto moo::Trail::add_puff(
    if (!new_bullet_pos.is_on_screen())
       return;
 
-   const ScreenFraction pos_diff = old_bullet_pos - new_bullet_pos;
-   const ScreenFraction norm_pos_diff = get_normalized(pos_diff);
+   const ScreenCoord pos_diff = old_bullet_pos - new_bullet_pos;
+   const ScreenCoord norm_pos_diff = get_normalized(pos_diff);
 
    double smoke_spread = moo::get_config().smoke_puff_spread;
    if (m_style == BulletStyle::Alien)
@@ -126,23 +126,23 @@ auto moo::Trail::add_puff(
    // depend on the framerate.
    constexpr double min_smoke_puff_distance = 0.007;
    
-   const double pos_diff_len = length(pos_diff);
+   const double pos_diff_len = get_length(pos_diff);
    for (double trace_progress = 0.0; trace_progress < pos_diff_len; trace_progress += min_smoke_puff_distance) {
-      const ScreenFraction pos = new_bullet_pos + trace_progress * norm_pos_diff;
+      const ScreenCoord pos = new_bullet_pos + trace_progress * norm_pos_diff;
       m_smoke_puffs.push_back({ get_smoke_puff_pos(pos, rng, smoke_spread, norm_pos_diff, style, path_progress), smoke_color });
    }
 }
 
 
 auto moo::Trail::update_puff_colors(
-   const ScreenFraction& bullet_pos
+   const ScreenCoord& bullet_pos
 ) -> void
 {
    const RGB start_color = GameColors::get_shot_trail_start_color(m_style);
    const RGB end_color = GameColors::get_shot_trail_end_color(m_style);
    for (size_t i = 0; i < m_smoke_puffs.size(); ++i) {
       TrailPuff& puff = m_smoke_puffs[i];
-      const double progress = get_rising(length(puff.pos - bullet_pos), 0.0, 0.5);
+      const double progress = get_rising(get_length(puff.pos - bullet_pos), 0.0, 0.5);
       puff.color = get_color_mix(start_color, end_color, progress);
    }
 }

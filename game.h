@@ -33,7 +33,7 @@ namespace moo {
       game(const int columns, const int rows);
       auto run() -> void;
       void write_string();
-      void write_image_at_pos(const ImageWrapper& image, const ScreenFraction& pos, const WriteAlignment write_alignment, const std::optional<RGB>& override_color);
+      void write_image_at_pos(const ImageWrapper& image, const ScreenCoord& pos, const WriteAlignment write_alignment, const std::optional<RGB>& override_color);
       void write_screen_text(const std::string& text, const int i, const int j);
       void clear_screen_text();
       void refresh_mouse_pos();
@@ -48,13 +48,11 @@ namespace moo {
       );
 
       [[nodiscard]] auto get_block_char(int i, int j) const -> BlockChar;
-      [[nodiscard]] auto get_pixel_pos(const ScreenFraction& screen_pos) const -> PixelPos;
-      [[nodiscard]] auto get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t;
       auto draw_sky_and_ground(const Seconds dt) -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
       auto draw_cows(const Seconds dt) -> void;
-      auto draw_shadow(const ScreenFraction& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
-      auto draw_to_bg(const SingleImage& image, const int center_i, const int center_j, const double alpha) -> void;
+      auto draw_shadow(const ScreenCoord& pos, const int max_shadow_width, const int shadow_x_offset) -> void;
+      auto draw_to_bg(const ImageWrapper& image, const LineCoord& top_left, const double alpha) -> void;
 
       ConsoleState m_initial_console_state;
       std::mt19937_64 m_rng;
@@ -78,7 +76,7 @@ namespace moo {
       std::vector<Cloud> m_clouds;
       Animation m_ufo_animation;
       std::vector<RGB> m_pixels;
-      ScreenFraction m_mouse_pos;
+      ScreenCoord m_mouse_pos;
       FpsCounter m_fps_counter;
       std::chrono::time_point<std::chrono::system_clock> m_t0;
       std::chrono::time_point<std::chrono::system_clock> m_t_last;

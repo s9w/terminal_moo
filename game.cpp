@@ -1,4 +1,5 @@
-﻿#include <filesystem>
+﻿#include <array>
+#include <filesystem>
 namespace fs = std::filesystem;
 #include <random>
 
@@ -129,13 +130,13 @@ namespace {
    }
 
 
-   [[nodiscard]] auto get_keyboard_intention() -> std::optional<moo::ScreenFraction> {
+   [[nodiscard]] auto get_keyboard_intention() -> std::optional<moo::ScreenCoord> {
       const bool a_pressed = GetKeyState(0x41) < 0 || GetKeyState(VK_LEFT) < 0;
       const bool d_pressed = GetKeyState(0x44) < 0 || GetKeyState(VK_RIGHT) < 0;;
       const bool w_pressed = GetKeyState(0x57) < 0 || GetKeyState(VK_UP) < 0;;
       const bool s_pressed = GetKeyState(0x53) < 0 || GetKeyState(VK_DOWN) < 0;;
 
-      moo::ScreenFraction intention;
+      moo::ScreenCoord intention;
       constexpr double intention_span = 0.1;
       bool something_pressed = false;
       if (a_pressed) {
@@ -161,10 +162,10 @@ namespace {
 
 
    [[nodiscard]] auto get_player_target(
-      const std::optional<moo::ScreenFraction>& keyboard_intention,
-      const moo::ScreenFraction& mouse_target,
-      const moo::ScreenFraction& player_pos
-   ) -> moo::ScreenFraction
+      const std::optional<moo::ScreenCoord>& keyboard_intention,
+      const moo::ScreenCoord& mouse_target,
+      const moo::ScreenCoord& player_pos
+   ) -> moo::ScreenCoord
    {
       if (keyboard_intention.has_value())
          return player_pos + keyboard_intention.value();
@@ -202,6 +203,8 @@ moo::game::game(const int columns, const int rows)
    , m_t_last(std::chrono::system_clock::now())
    , m_aliens({ m_ufo_animation.m_width / (2.0 * m_columns), m_ufo_animation.m_height / (2.0 * m_rows) })
 {
+   update_screen_size(m_rows, m_columns);
+
    m_string.reserve(100000);
    {
       constexpr bool dimension_checks = false;
@@ -306,9 +309,26 @@ auto moo::game::run() -> void{
       clear_screen_text();
       draw_sky_and_ground(dt);
       for (const Cloud& cloud : m_clouds) {
-         const int i = static_cast<int>(cloud.m_pos.y * m_rows);
-         const int j = static_cast<int>(cloud.m_pos.x * m_columns);
-         draw_to_bg(m_cloud_images[cloud.m_image_index], i, j, cloud.m_alpha);
+         const auto& cloud_image = m_cloud_images[cloud.m_image_index];
+         const LineCoord top_left = get_top_left(to_line_coord(cloud.m_pos), cloud_image.get_line_dim());
+         draw_to_bg(cloud_image, top_left, cloud.m_alpha);
+      }
+
+      for (const Ufo& ufo : m_aliens.m_ufos) {
+         if (!ufo.m_beaming)
+            continue;
+         constexpr int beam_width = 6;
+         constexpr int safety_i = 1;
+         const int beam_pixel_height = get_sky_row_height(m_rows) - (static_cast<int>(ufo.m_pos.y * m_rows) + m_ufo_animation.m_height / 2) + safety_i;
+         for (LineCoordIt beam_it(beam_width, beam_pixel_height); beam_it.is_valid(); ++beam_it) {
+            const double horiz_intensity = 0.3 + 0.7 * get_triangle(beam_it.get_x_ratio());
+            constexpr double base_beam_intensity = 0.5;
+            const double beam_intensity = (1.0 + 0.1 * std::sin(1500.0 * m_time.m_day_progress)) * base_beam_intensity * horiz_intensity;
+
+            const LineCoord line_pos = to_line_coord(ufo.m_pos) + *beam_it + LineCoord{ m_ufo_animation.m_height / 2 - safety_i, -beam_width / 2 };
+            const size_t bg_index = to_screen_index(line_pos);
+            m_bg_colors[bg_index] = get_color_mix(m_bg_colors[bg_index], { 255, 255, 255 }, beam_intensity);
+         }
       }
 
       m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * m_rows, 2 * m_columns);
@@ -343,6 +363,7 @@ auto moo::game::run() -> void{
             override_color = m_game_colors.get_white();
          write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, override_color);
       }
+
       for (Ufo& ufo : m_aliens.m_ufos) {
          ufo.progress(dt);
       }
@@ -450,22 +471,6 @@ auto moo::game::get_block_char(int i, int j) const -> BlockChar{
 }
 
 
-auto moo::game::get_pixel_pos(const ScreenFraction& screen_pos) const -> PixelPos{
-   const int i = static_cast<int>(screen_pos.y * 2 * m_rows);
-   const int j = static_cast<int>(screen_pos.x * 2 * m_columns);
-   return { i, j };
-}
-
-
-auto moo::game::get_pixel_grid_index(const PixelPos& pixel_pos) const -> size_t{
-   PixelPos sanitized_pixel_pos = pixel_pos;
-   sanitized_pixel_pos.i = std::clamp(sanitized_pixel_pos.i, 0, 2 * m_rows - 1);
-   sanitized_pixel_pos.j = std::clamp(sanitized_pixel_pos.j, 0, 2 * m_columns - 1);
-   const int pixel_index = sanitized_pixel_pos.i * 2 * m_columns + sanitized_pixel_pos.j;
-   return pixel_index;
-}
-
-
 auto moo::game::draw_sky_and_ground(const Seconds dt) -> void{
    ZoneScoped;
    const int sky_height = get_sky_row_height(m_rows);
@@ -508,18 +513,18 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
    for (const TrailPuff& puff : bullet.m_trail.m_smoke_puffs) {
       if (!puff.pos.is_on_screen())
          continue;
-      const PixelPos puff_pos = get_pixel_pos(puff.pos);
-      const size_t index = get_pixel_grid_index(puff_pos);
+      const PixelCoord puff_pos = to_pixel_coord(puff.pos);
+      const size_t index = to_screen_index(get_screen_clamped(puff_pos));
       const size_t bg_index = (puff_pos.i / 2) * m_columns + puff_pos.j / 2;
       m_pixels[index] = get_color_mix(m_bg_colors[bg_index], puff.color, 0.7);
    }
 
-   const ScreenFraction bullet_pos = bullet.m_pos;
+   const ScreenCoord bullet_pos = bullet.m_pos;
    if (bullet.m_head_alive && bullet_pos.is_on_screen()) {
 
 
       const RGB bullet_color = m_game_colors.get_red();
-      const PixelPos bullet_pixel_pos = get_pixel_pos(bullet_pos);
+      const PixelCoord bullet_pixel_pos = to_pixel_coord(bullet_pos);
 
       if (bullet.m_style == BulletStyle::Rocket) {
          /* draw bullet in the shape of
@@ -527,12 +532,17 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
          ████
          █
          */
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 0 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 1 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 2 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 3 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 0 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 0 })] = bullet_color;
+         
+         constexpr std::array bullet_shape{ 
+            PixelCoord{ 0, 0 },
+            PixelCoord{ 0, 1 },
+            PixelCoord{ 0, 2 },
+            PixelCoord{ 0, 3 },
+            PixelCoord{ 1, 0 },
+            PixelCoord{ -1, 0 },
+         };
+         for(const PixelCoord& coord : bullet_shape)
+            m_pixels[to_screen_index(get_screen_clamped(bullet_pixel_pos + coord))] = bullet_color;
       }
       else {
          /* draw bullet in the shape of
@@ -540,19 +550,24 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
          █████
           ███
          */
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 0 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 1 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, 2 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, -1 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 0, -2 })] = bullet_color;
 
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, -1 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 0 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ 1, 1 })] = bullet_color;
+         constexpr std::array bullet_shape{
+            PixelCoord{ 0, 0 },
+            PixelCoord{ 0, 1 },
+            PixelCoord{ 0, 2 },
+            PixelCoord{ 0, -1 },
+            PixelCoord{ 0, -1 },
 
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, -1 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 0 })] = bullet_color;
-         m_pixels[get_pixel_grid_index(bullet_pixel_pos + PixelPos{ -1, 1 })] = bullet_color;
+            PixelCoord{ 1, -1 },
+            PixelCoord{ 1, 0 },
+            PixelCoord{ 1, 1 },
+
+            PixelCoord{ -1, -1 },
+            PixelCoord{ -1, 0 },
+            PixelCoord{ -1, 1 },
+         };
+         for (const PixelCoord& coord : bullet_shape)
+            m_pixels[to_screen_index(get_screen_clamped(bullet_pixel_pos + coord))] = bullet_color;
       }
    }
 }
@@ -574,7 +589,7 @@ auto moo::game::draw_cows(const Seconds dt) -> void{
 
 
 auto moo::game::draw_shadow(
-   const ScreenFraction& pos,
+   const ScreenCoord& pos,
    const int max_shadow_width,
    const int shadow_x_offset
 ) -> void
@@ -596,38 +611,32 @@ auto moo::game::draw_shadow(
 
 
 auto moo::game::draw_to_bg(
-   const SingleImage& image,
-   const int center_i,
-   const int center_j,
+   const ImageWrapper& image,
+   const LineCoord& top_left,
    const double alpha
 ) -> void
 {
    ZoneScoped;
-   for (int image_i = 0; image_i < image.m_height; ++image_i) {
-      for (int image_j = 0; image_j < image.m_width; ++image_j) {
-         const int image_index = image_i * image.m_width + image_j;
-         const int i = image_i + center_i - image.m_height / 2;
-         const int j = image_j + center_j - image.m_width / 2;
-         if (i<0 || i>(m_rows - 1) || j < 0 || j >(m_columns - 1))
-            continue;
-         const int index = i * m_columns + j;
-         if (image.m_pixels[image_index].is_visible()) {
-            m_bg_colors[index] = get_color_mix(m_bg_colors[index], image.m_pixels[image_index], alpha);
-         }
-      }
+   for (LineCoordIt it(image); it.is_valid(); ++it) {
+      const LineCoord bg_pos = top_left + *it;
+      const RGB image_pixel = image.m_pixels.get()[it.to_range_index()];
+      if (!is_on_screen(bg_pos) || !image_pixel.is_visible())
+         continue;
+      const size_t index = to_screen_index(bg_pos);
+      m_bg_colors[index] = get_color_mix(m_bg_colors[index], image_pixel, alpha);
    }
 }
 
 
 void moo::game::write_image_at_pos(
    const ImageWrapper& image,
-   const ScreenFraction& screen_pos,
+   const ScreenCoord& screen_pos,
    const WriteAlignment write_alignment,
    const std::optional<RGB>& override_color
 ){
    ZoneScoped;
-   const PixelPos center_pos = get_pixel_pos(screen_pos);
-   PixelPos top_left_pos;
+   const PixelCoord center_pos = to_pixel_coord(screen_pos);
+   PixelCoord top_left_pos;
    if (write_alignment == WriteAlignment::Center) {
       top_left_pos = center_pos;
       top_left_pos.j -= image.m_width / 2;
@@ -638,13 +647,14 @@ void moo::game::write_image_at_pos(
       top_left_pos.j -= image.m_width / 2;
       top_left_pos.i -= image.m_height;
    }
+
    for (int image_i = 0; image_i < image.m_height; ++image_i) {
       for (int image_j = 0; image_j < image.m_width; ++image_j) {
          const int image_index = image_i * image.m_width + image_j;
 
          const int pixel_i = top_left_pos.i + image_i;
          const int pixel_j = top_left_pos.j + image_j;
-         if(pixel_i < 0 || pixel_i > 2*m_rows - 1 || pixel_j < 0 || pixel_j > 2*m_columns - 1)
+         if (pixel_i < 0 || pixel_i > 2 * m_rows - 1 || pixel_j < 0 || pixel_j > 2 * m_columns - 1)
             continue;
          const int pixel_index = pixel_i * 2 * m_columns + pixel_j;
          if (image.m_pixels.get()[image_index].is_visible() && !m_pixels[pixel_index].is_visible()) {
@@ -740,7 +750,7 @@ void moo::game::add_clouds(const int n, const bool off_screen){
    for (int i = 0; i < n; ++i) {
       const size_t image_index = rand() % m_cloud_images.size();
       const double fractional_width = 1.0 * m_cloud_images[image_index].m_width / m_columns;
-      ScreenFraction cloud_pos{ x_pos_dist(m_rng), y_pos_dist(m_rng) };
+      ScreenCoord cloud_pos{ x_pos_dist(m_rng), y_pos_dist(m_rng) };
       if (off_screen)
          cloud_pos.x = 1.0 + 0.5 * fractional_width;
       m_clouds.push_back({ cloud_pos, image_index, fractional_width, alpha_dist(m_rng) });

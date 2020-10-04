@@ -191,7 +191,6 @@ moo::SingleImage::SingleImage(const unsigned int width, const unsigned int heigh
 
 }
 
-
 moo::SingleImage::operator moo::ImageWrapper() const{
    return { m_width, m_height, m_pixels };
 }

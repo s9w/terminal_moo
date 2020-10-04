@@ -7,11 +7,11 @@
 
 namespace moo {
    struct Aliens{
-      Aliens(const ScreenFraction& ufo_dimensions);
+      Aliens(const ScreenCoord& ufo_dimensions);
       void process_bullets(Bullet& bullet);
 
       std::vector<Ufo> m_ufos;
-      ScreenFraction m_ufo_dimensions;
+      ScreenCoord m_ufo_dimensions;
    };
 
 }

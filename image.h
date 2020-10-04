@@ -19,6 +19,9 @@ namespace moo {
       SingleImage() = default;
       SingleImage(const unsigned int width, const unsigned int height);
       operator ImageWrapper() const;
+      [[nodiscard]] constexpr auto get_line_dim() const -> LineCoord {
+         return {m_height, m_width};
+      }
 
       std::vector<RGB> m_pixels;
       int m_width = 0;

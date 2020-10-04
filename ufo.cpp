@@ -1,7 +1,7 @@
 #include "config.h"
 #include "ufo.h"
 
-moo::Ufo::Ufo(const ScreenFraction initial_pos, const double anim_progress)
+moo::Ufo::Ufo(const ScreenCoord initial_pos, const double anim_progress)
    : m_pos(initial_pos)
    , m_animation_frame(5, 1.0, anim_progress)
 {
@@ -17,6 +17,8 @@ auto moo::Ufo::progress(const Seconds& dt) -> void{
       if (m_hit_timer < 0.0)
          m_hit_timer = 0.0;
    }
+
+   m_pos = m_pos + 0.01 * dt.m_value * ScreenCoord{-0.5, +0.5};
    
    m_shooting_cooldown = std::clamp(m_shooting_cooldown - dt, Seconds{ 0.0 }, shooting_interval_s);
 }
@@ -35,12 +37,12 @@ auto moo::Ufo::is_invul() const -> bool{
 }
 
 
-auto moo::Ufo::fire(const ScreenFraction& player_pos) -> std::optional<Bullet>{
+auto moo::Ufo::fire(const ScreenCoord& player_pos) -> std::optional<Bullet>{
    if (!is_zero(m_shooting_cooldown.m_value))
       return std::nullopt;
    m_shooting_cooldown = shooting_interval_s;
-   const ScreenFraction initial_bullet_pos = m_pos;
-   const ScreenFraction trajectory = get_normalized(player_pos - m_pos);
+   const ScreenCoord initial_bullet_pos = m_pos;
+   const ScreenCoord trajectory = get_normalized(player_pos - m_pos);
    Bullet bullet(initial_bullet_pos, trajectory, BulletStyle::Alien);
    return bullet;
 }
