@@ -251,7 +251,8 @@ void moo::game::early_test(const bool use_colors) {
       }
       
       write(m_output_handle, str);
-      m_fps_counter.step();
+      const auto now = std::chrono::system_clock::now();
+      m_fps_counter.step(now);
       FrameMark;
    }
 }
@@ -366,7 +367,7 @@ auto moo::game::run() -> void{
       {
          ZoneScopedN("Drawing GUI");
          const std::string gui_text = fmt::format(
-            "FPS: {}, color changes: {}, day: \"{}\", time: {:.2f}",
+            "FPS: {:.1f}, color changes: {}, day: \"{}\", time: {:.2f}",
             m_fps_counter.m_current_fps,
             m_painter.get_paint_count(),
             m_time.m_day + 1,
@@ -382,7 +383,7 @@ auto moo::game::run() -> void{
          SetConsoleCursorPosition(m_output_handle, zero_pos);
       }
       write(m_output_handle, m_string);
-      m_fps_counter.step();
+      m_fps_counter.step(now);
 
       m_t_last = now;
       FrameMark;
