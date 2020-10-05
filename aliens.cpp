@@ -28,17 +28,16 @@ moo::Aliens::Aliens(const ScreenCoord& ufo_dimensions)
 void moo::Aliens::process_bullets(
    Bullet& bullet,
    entt::registry& registry
-){
-   auto ufos = registry.view<Ufo>();
-   for (auto entity : ufos) {
-      Ufo& ufo = ufos.get<Ufo>(entity);
+) {
+   for (auto entity : registry.view<Ufo>()) {
+      Ufo& ufo = registry.get<Ufo>(entity);
       bool ufo_killed = false;
       if (does_bullet_hit(bullet, ufo, m_ufo_dimensions)) {
          bullet.m_head_alive = false;
          ufo_killed = ufo.hit();
       }
       if (ufo_killed)
-         registry.remove(entity);
+         registry.destroy(entity);
    }
 }
 

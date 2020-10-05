@@ -319,7 +319,7 @@ auto moo::game::run() -> void{
          if (!remove_bullet)
             m_aliens.process_bullets(bullet, m_registry);
          if (remove_bullet)
-            m_registry.remove(entity);
+            m_registry.destroy(entity);
       }
       m_registry.view<Ufo>().each([&](Ufo& ufo) {
          std::optional<RGB> override_color;
