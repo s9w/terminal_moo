@@ -19,6 +19,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <entt/entt.hpp>
+
 namespace moo {
 
    struct GrassNoise {
@@ -83,6 +85,7 @@ namespace moo {
       std::vector<Bullet> m_bullets;
       Aliens m_aliens;
       GameTime m_time;
+      entt::registry m_registry;
    };
 
 

@@ -42,7 +42,7 @@ namespace moo {
    }
 
 
-   [[nodiscard]] constexpr bool is_hit(const ScreenCoord& bullet_pos, const ScreenCoord& target_pos, const double target_width, const double target_height);
+   [[nodiscard]] constexpr bool is_hit(const ScreenCoord& bullet_pos, const ScreenCoord& target_pos, const ScreenCoord& target_dimensions);
 
 
    template<typename T, typename... Args, typename TFun>
@@ -54,6 +54,8 @@ namespace moo {
    [[nodiscard]] auto get_ground_row_height(const int rows) -> int;
    [[nodiscard]] auto get_shadow_center_pos(const ScreenCoord& player_pos)->LineCoord;
 
+   template<class T>
+   [[nodiscard]] auto get_height_fraction(const T& pos) -> double;
 
    template <class T>
    void append_moved(std::vector<T>& dst, std::vector<T>& src) {
@@ -73,14 +75,13 @@ namespace moo {
 [[nodiscard]] constexpr auto moo::is_hit(
    const ScreenCoord& bullet_pos, 
    const ScreenCoord& target_pos,
-   const double target_width, 
-   const double target_height
+   const moo::ScreenCoord& target_dimensions
 ) -> bool
 {
-   const bool is_x_in = moo::greater_equal(bullet_pos.x, target_pos.x - 0.5 * target_width) &&
-   moo::less_equal(bullet_pos.x, target_pos.x + 0.5 * target_width);
-   const bool is_y_in = moo::greater_equal(bullet_pos.y, target_pos.y - 0.5 * target_height) &&
-   moo::less_equal(bullet_pos.y, target_pos.y + 0.5 * target_height);
+   const bool is_x_in = greater_equal(bullet_pos.x, target_pos.x - 0.5 * target_dimensions.x) &&
+      less_equal(bullet_pos.x, target_pos.x + 0.5 * target_dimensions.x);
+   const bool is_y_in = greater_equal(bullet_pos.y, target_pos.y - 0.5 * target_dimensions.y) &&
+      less_equal(bullet_pos.y, target_pos.y + 0.5 * target_dimensions.y);
    return is_x_in && is_y_in;
 }
 

@@ -1,9 +1,10 @@
 #pragma once
 
+#include "screencoord.h"
+
 #include <random>
 
 namespace moo {
-   struct ScreenCoord;
 
    struct LanePosition{
       auto get_screen_pos(const int rows) -> ScreenCoord;

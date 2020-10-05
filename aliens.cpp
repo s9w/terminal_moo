@@ -1,5 +1,22 @@
 #include "aliens.h"
 
+namespace {
+
+   [[nodiscard]] constexpr auto does_bullet_hit(
+      const moo::Bullet& bullet,
+      const moo::Ufo& ufo,
+      const moo::ScreenCoord& ufo_dimensions
+   ) -> bool
+   {
+      return bullet.m_head_alive &&
+         bullet.m_style == moo::BulletStyle::Rocket &&
+         !ufo.is_invul() &&
+         is_hit(bullet.m_pos, ufo.m_pos, ufo_dimensions);
+   }
+
+} // namespace {}
+
+
 moo::Aliens::Aliens(const ScreenCoord& ufo_dimensions)
    : m_ufo_dimensions(ufo_dimensions)
 {
@@ -12,7 +29,7 @@ void moo::Aliens::process_bullets(Bullet& bullet){
    auto ufo_it = m_ufos.begin();
    while (ufo_it != m_ufos.end()) {
       bool ufo_killed = false;
-      if (bullet.m_head_alive && bullet.m_style == BulletStyle::Rocket && !ufo_it->is_invul() && is_hit(bullet.m_pos, ufo_it->m_pos, m_ufo_dimensions.x, m_ufo_dimensions.y)) {
+      if (does_bullet_hit(bullet, *ufo_it, m_ufo_dimensions)) {
          bullet.m_head_alive = false;
          ufo_killed = ufo_it->hit();
       }
@@ -21,4 +38,11 @@ void moo::Aliens::process_bullets(Bullet& bullet){
       else
          ++ufo_it;
    }
+}
+
+
+void moo::Aliens::abduct_cow(const ID target_id){
+   if (m_ufos.empty())
+      return;
+   m_ufos.front().m_strategy = Abduct{ target_id };
 }

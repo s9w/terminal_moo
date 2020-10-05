@@ -1,6 +1,9 @@
 #include "config.h"
 #include "ufo.h"
 
+#include <entt/entt.hpp>
+
+
 moo::Ufo::Ufo(const ScreenCoord initial_pos, const double anim_progress)
    : m_pos(initial_pos)
    , m_animation_frame(5, 1.0, anim_progress)
@@ -10,17 +13,25 @@ moo::Ufo::Ufo(const ScreenCoord initial_pos, const double anim_progress)
 
 constexpr moo::Seconds shooting_interval_s = 1.0;
 
-auto moo::Ufo::progress(const Seconds& dt) -> void{
+
+auto moo::Ufo::progress(
+   const Seconds& dt,
+   const ScreenCoord& player_pos,
+   entt::registry& registry
+) -> void
+{
    m_animation_frame.progress(dt);
    if (is_invul()) {
       m_hit_timer -= dt;
       if (m_hit_timer < 0.0)
          m_hit_timer = 0.0;
    }
-
-   m_pos = m_pos + 0.01 * dt.m_value * ScreenCoord{-0.5, +0.5};
    
    m_shooting_cooldown = std::clamp(m_shooting_cooldown - dt, Seconds{ 0.0 }, shooting_interval_s);
+
+   //if (std::holds_alternative<Shoot>(m_strategy)) {
+   //   fire(player_pos, registry);
+   //}
 }
 
 
@@ -37,13 +48,14 @@ auto moo::Ufo::is_invul() const -> bool{
 }
 
 
-auto moo::Ufo::fire(const ScreenCoord& player_pos) -> std::optional<Bullet>{
+auto moo::Ufo::fire(const ScreenCoord& player_pos, entt::registry& registry) -> void{
    if (!is_zero(m_shooting_cooldown.m_value))
-      return std::nullopt;
+      return;
    m_shooting_cooldown = shooting_interval_s;
    const ScreenCoord initial_bullet_pos = m_pos;
-   const ScreenCoord trajectory = get_normalized(player_pos - m_pos);
-   Bullet bullet(initial_bullet_pos, trajectory, BulletStyle::Alien);
-   return bullet;
+   const ScreenCoord norm_pos_diff = get_normalized(player_pos - m_pos);
+
+   auto entity = registry.create();
+   registry.emplace<Bullet>(entity, initial_bullet_pos, norm_pos_diff, BulletStyle::Alien);
 }
 

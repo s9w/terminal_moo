@@ -3,6 +3,7 @@
 #include "animation_frame.h"
 #include "helpers.h"
 #include "lane_position.h"
+#include "id_type.h"
 
 namespace moo {
 
@@ -14,6 +15,7 @@ namespace moo {
       LanePosition m_pos;
       int m_variant = 0;
       AnimationFrame m_animation_frame;
+      ID m_id;
    };
 
 }

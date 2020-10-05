@@ -8,6 +8,8 @@
 
 namespace moo {
 
+   struct Rect;
+
    struct ConsoleState {
       DWORD input_mode, output_mode;
       short output_wattributes;
@@ -19,6 +21,7 @@ namespace moo {
    auto clear_screen() -> void;
    void disable_console_cursor();
    void enable_vt_mode(HANDLE output_handle);
+   [[nodiscard]] auto get_window_rect() -> Rect;
 
    bool UnadjustWindowRectEx(
       LPRECT prc,

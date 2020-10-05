@@ -1,6 +1,9 @@
 #include "win_api_helper.h"
 
+#include "cc.h"
+
 #include <Tracy.hpp>
+
 
 auto moo::get_console_state() -> ConsoleState {
    const HANDLE input_handle = GetStdHandle(STD_INPUT_HANDLE);
@@ -67,6 +70,20 @@ void moo::enable_vt_mode(HANDLE output_handle){
       auto e = GetLastError();
       std::cout << "error " << e << "\n";
    }
+}
+
+
+auto moo::get_window_rect() -> Rect{
+   RECT window_rect;
+   GetWindowRect(GetConsoleWindow(), reinterpret_cast<RECT*>(&window_rect));
+   moo::UnadjustWindowRectEx(reinterpret_cast<RECT*>(&window_rect), WS_CAPTION | WS_MINIMIZEBOX, FALSE, 0);
+
+   moo::Rect rect;
+   rect.top_left.j = window_rect.left;
+   rect.bottom_right.j = window_rect.right;
+   rect.top_left.i = window_rect.top;
+   rect.bottom_right.i = window_rect.bottom;
+   return rect;
 }
 
 

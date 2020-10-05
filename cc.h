@@ -3,15 +3,13 @@
 #include "color.h"
 #include "screen_size.h"
 #include "screencoord.h"
-#include "tools_math.h"
 
-#include <algorithm>
 #include <optional>
 #include <vector>
 
 
 namespace moo {
-   
+
    struct ImageWrapper;
 
    template<class T>
@@ -44,7 +42,6 @@ namespace moo {
 
    template<class T>
    struct IntCoordIt {
-      
       constexpr IntCoordIt(const int max_width, const int max_height);
       IntCoordIt(const ImageWrapper& image); // this not constexpr to not introduce a dependency on that header
       constexpr IntCoordIt& operator++();

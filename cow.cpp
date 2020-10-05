@@ -15,6 +15,7 @@ moo::Cow::Cow(
    : m_pos(pos)
    , m_variant(variant)
    , m_animation_frame(2, 1.0, initial_progress)
+   , m_id(get_id())
 {
    
 }

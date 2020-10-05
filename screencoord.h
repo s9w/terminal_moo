@@ -2,11 +2,16 @@
 
 #include "tools_math.h"
 
+#include <cmath>
+#include <type_traits>
+
+
 namespace moo {
 
    struct Seconds;
 
-   struct ScreenCoord {
+
+   struct DoubleCoord {
       [[nodiscard]] constexpr auto is_on_screen() const -> bool {
          return x >= 0.0 &&
             x <= 1.0 &&
@@ -18,54 +23,90 @@ namespace moo {
       double y = 0.0;
    };
 
-   constexpr auto operator*(const double factor, const ScreenCoord& pos)->ScreenCoord;
-   constexpr auto operator-(const ScreenCoord& a, const ScreenCoord& b)->ScreenCoord;
-   constexpr auto operator+(const ScreenCoord& a, const ScreenCoord& b)->ScreenCoord;
-   constexpr auto get_indep_normalized(const ScreenCoord& a)->ScreenCoord;
-   auto get_length(const ScreenCoord& a) -> double;
-   auto get_normalized(const ScreenCoord& a)->ScreenCoord;
-   [[nodiscard]] auto get_height_fraction(const ScreenCoord& pos) -> double;
+   // maybe upgrade to std::is_layout_compatible when it lands
+   template<typename T>
+   concept CoordType = requires(T t) {
+      t.x;
+      t.y;
+   };
+
+   struct ScreenCoord : public DoubleCoord {};
+   //struct Trajectory : public DoubleCoord {};
+   //struct InitialBulletPos : public DoubleCoord {};
+
+
+   template<moo::CoordType T> // I don't understand why I need to repeat the namespace
+   constexpr auto operator*(const double factor, const T& pos)->T;
+
+   template<moo::CoordType T>
+   constexpr auto operator-(const T& a, const T& b)->T;
+
+   template<moo::CoordType T>
+   constexpr auto operator+(const T& a, const T& b)->T;
+
+   template<moo::CoordType T>
+   constexpr auto get_indep_normalized(const T& a)->T;
+
+   template<moo::CoordType T>
+   auto get_length(const T& a) -> double {
+      return std::sqrt(a.x * a.x + a.y * a.y);
+   }
+
+   template<moo::CoordType T>
+   auto get_normalized(const T& a)->T {
+      const double vec_length = get_length(a);
+      return 1.0 / vec_length * a;
+   }
+   
+
    [[nodiscard]] auto get_lane_speed(const int lane, const int rows, const Seconds& dt) -> double;
-   [[nodiscard]] constexpr auto get_orthogonal(const moo::ScreenCoord& vec)->moo::ScreenCoord;
+
+   template<moo::CoordType T>
+   [[nodiscard]] constexpr auto get_orthogonal(const T& vec)->T;
 
 }
 
 
-constexpr auto moo::operator*(const double factor, const ScreenCoord& pos) -> ScreenCoord {
-   ScreenCoord result = pos;
+template<moo::CoordType T>
+constexpr auto moo::operator*(const double factor, const T& pos) -> T {
+   T result = pos;
    result.x *= factor;
    result.y *= factor;
    return result;
 }
 
 
-constexpr auto moo::operator-(const ScreenCoord& a, const ScreenCoord& b) -> ScreenCoord {
-   ScreenCoord result = a;
+template<moo::CoordType T>
+constexpr auto moo::operator-(const T& a, const T& b) -> T {
+   T result = a;
    result.x -= b.x;
    result.y -= b.y;
    return result;
 }
 
 
-constexpr auto moo::operator+(const ScreenCoord& a, const ScreenCoord& b) -> ScreenCoord {
-   ScreenCoord result = a;
+template<moo::CoordType T>
+constexpr auto moo::operator+(const T& a, const T& b) -> T {
+   T result = a;
    result.x += b.x;
    result.y += b.y;
    return result;
 }
 
 
-constexpr auto moo::get_indep_normalized(const ScreenCoord& a) -> ScreenCoord {
-   ScreenCoord result;
+template<moo::CoordType T>
+constexpr auto moo::get_indep_normalized(const T& a) -> T {
+   T result;
    result.x = is_zero(a.x) ? 0.0 : get_sign(a.x);
    result.y = is_zero(a.y) ? 0.0 : get_sign(a.y);
    return result;
 }
 
 
+template<moo::CoordType T>
 constexpr auto moo::get_orthogonal(
-   const moo::ScreenCoord& vec
-) -> moo::ScreenCoord
+   const T& vec
+) -> T
 {
    return { -vec.y, vec.x };
 }

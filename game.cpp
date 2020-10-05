@@ -86,19 +86,6 @@ namespace {
    }
 
 
-   moo::Rect get_window_rect() {
-      RECT window_rect;
-      GetWindowRect(GetConsoleWindow(), reinterpret_cast<RECT*>(&window_rect));
-      moo::UnadjustWindowRectEx(reinterpret_cast<RECT*>(&window_rect), WS_CAPTION | WS_MINIMIZEBOX, FALSE, 0);
-      moo::Rect rect;
-      rect.top_left.j = window_rect.left;
-      rect.bottom_right.j = window_rect.right;
-      rect.top_left.i = window_rect.top;
-      rect.bottom_right.i = window_rect.bottom;
-      return rect;
-   }
-
-
    auto should_exit() -> bool {
       const bool esc_pressed = GetKeyState(VK_ESCAPE) < 0;
       return esc_pressed;
@@ -319,18 +306,17 @@ auto moo::game::run() -> void{
             m_cows.emplace_back(cow_pos.value(), grazing_progress_dist(m_rng), variant_dist(m_rng));
       }
 
-      auto bullet_it = m_bullets.begin();
-      while(bullet_it != m_bullets.end()){
-         ZoneScopedN("bullet iteration");
-         draw_bullet(*bullet_it);
-         bullet_it->update_puff_colors();
-         bool remove_bullet = bullet_it->progress(dt, m_rng);
+      auto bullet_view = m_registry.view<Bullet>();
+      for (auto entity : bullet_view) {
+         ZoneScopedN("tracy bullet iteration");
+         Bullet& bullet = bullet_view.get<Bullet>(entity);
+         draw_bullet(bullet);
+         bullet.update_puff_colors();
+         bool remove_bullet = bullet.progress(dt, m_rng);
          if (!remove_bullet)
-            m_aliens.process_bullets(*bullet_it);
+            m_aliens.process_bullets(bullet);
          if (remove_bullet)
-            bullet_it = m_bullets.erase(bullet_it);
-         else
-            ++bullet_it;
+            m_registry.remove(entity);
       }
       for (const Ufo& ufo : m_aliens.m_ufos) {
          std::optional<RGB> override_color;
@@ -342,7 +328,7 @@ auto moo::game::run() -> void{
       write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, std::nullopt);
 
       for (Ufo& ufo : m_aliens.m_ufos) {
-         ufo.progress(dt);
+         ufo.progress(dt, m_player.m_pos, m_registry);
       }
       m_time.progress(dt);
       m_player_anim_frame.progress(dt);
@@ -657,14 +643,10 @@ void moo::game::handle_mouse_click(){
    const bool lmb_clicked = get_config().enable_mouse && GetKeyState(VK_LBUTTON) < 0;
    const bool mmb_clicked = get_config().enable_mouse && GetKeyState(VK_MBUTTON) < 0;
    const bool space_clicked = GetKeyState(VK_SPACE) < 0;
-   if (lmb_clicked || space_clicked) {
-      if (const auto bullet = m_player.try_to_fire(m_rng); bullet.has_value())
-         m_bullets.emplace_back(bullet.value());
-   }
-   if (mmb_clicked && !m_aliens.m_ufos.empty()) {
-      if (const auto bullet = m_aliens.m_ufos[0].fire(m_player.m_pos); bullet.has_value())
-         m_bullets.emplace_back(bullet.value());
-   }
+   if (lmb_clicked || space_clicked)
+      m_player.try_to_fire(m_rng, m_registry);
+   if (mmb_clicked && !m_aliens.m_ufos.empty())
+      m_aliens.m_ufos[0].fire(m_player.m_pos, m_registry);
 }
 
 

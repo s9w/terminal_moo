@@ -3,7 +3,9 @@
 
 #include <algorithm>
 
+#include <entt/entt.hpp>
 #include <Tracy.hpp>
+
 
 #if _MSC_VER < 1928 // Visual Studio 2019 version 16.8
 constexpr double pi = 3.14159265359;
@@ -65,7 +67,7 @@ namespace {
 
       std::uniform_real_distribution<double> phi_dist(negative_angle_spread, positive_angle_spread);
       const double phi = phi_dist(rng);
-      return moo::get_normalized({ std::cos(phi), std::sin(phi) });
+      return moo::get_normalized(moo::ScreenCoord{ std::cos(phi), std::sin(phi) });
    }
 
 } // namespace {}
@@ -79,18 +81,26 @@ auto moo::Player::move_towards(
 ) -> void
 {
    ZoneScoped;
-   const ScreenCoord position_diff = get_sanitized_position_diff(target_pos - m_pos, rows, columns);
-   m_pos = get_limited_pos(m_pos + dt.m_value * m_speed * get_indep_normalized(position_diff), rows);
+   const ScreenCoord diff_to_target = get_sanitized_position_diff(target_pos - m_pos, rows, columns);
+   const auto pos_diff = dt.m_value * m_speed * get_indep_normalized(diff_to_target);
+   m_pos = get_limited_pos(m_pos + pos_diff, rows);
 
    m_shooting_cooldown = std::clamp(m_shooting_cooldown - dt, Seconds{ 0.0 }, shooting_interval_s);
 }
 
 
-auto moo::Player::try_to_fire(std::mt19937_64& rng) -> std::optional<Bullet> {
+auto moo::Player::try_to_fire(
+   std::mt19937_64& rng
+   , entt::registry& registry
+) -> void 
+{
    if (!is_zero(m_shooting_cooldown.m_value))
-      return std::nullopt;
+      return;
    m_shooting_cooldown = shooting_interval_s;
    const ScreenCoord initial_bullet_pos = m_pos + ScreenCoord{0.05, 0.0};
 
-   return Bullet(initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
+   auto entity = registry.create();
+   registry.emplace<Bullet>(entity, initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
+   //return std::make_optional<Bullet>(initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
+   //return Bullet(initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
 }
