@@ -16,22 +16,7 @@ constexpr double pi = std::numbers::pi;
 
 namespace {
 
-   /// <summary>If the position diff would not result in at least a change of "half" a pixel,
-   /// the resulting position could immediately jump back. For small differences, that would
-   /// result in optical flickering</summary>
-   [[nodiscard]] auto get_sanitized_position_diff(
-      const moo::ScreenCoord& position_diff,
-      const int rows,
-      const int columns
-   ) -> moo::ScreenCoord
-   {
-      moo::ScreenCoord new_diff = position_diff;
-      if (abs(new_diff.x * columns) < 0.5)
-         new_diff.x = 0.0;
-      if (abs(new_diff.y * rows) < 0.5)
-         new_diff.y = 0.0;
-      return new_diff;
-   }
+
 
 
    /// <summary>Limits the player position to not go too far off screen. Otherwise it
@@ -76,12 +61,11 @@ namespace {
 auto moo::Player::move_towards(
    const ScreenCoord& target_pos,
    const Seconds dt,
-   const int rows,
-   const int columns
+   const int rows
 ) -> void
 {
    ZoneScoped;
-   const ScreenCoord diff_to_target = get_sanitized_position_diff(target_pos - m_pos, rows, columns);
+   const ScreenCoord diff_to_target = get_sanitized_position_diff(target_pos - m_pos);
    const auto pos_diff = dt.m_value * m_speed * get_indep_normalized(diff_to_target);
    m_pos = get_limited_pos(m_pos + pos_diff, rows);
 

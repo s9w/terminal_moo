@@ -7,7 +7,7 @@
 namespace moo {
 
    struct LanePosition{
-      auto get_screen_pos(const int rows) -> ScreenCoord;
+      auto get_screen_pos() -> ScreenCoord;
 
       double m_x_pos = 0.0;
       int m_lane = 0;

@@ -4,6 +4,7 @@
 #include "screen_size.h"
 #include "screencoord.h"
 
+#include <compare>
 #include <optional>
 #include <vector>
 
@@ -16,6 +17,7 @@ namespace moo {
    struct GenericIntCoord {
       int i = 0;
       int j = 0;
+      constexpr auto operator<=>(const GenericIntCoord& other) const = default;
    };
    template<class T>
    [[nodiscard]] constexpr auto operator+(const GenericIntCoord<T>& a, const GenericIntCoord<T>& b)->GenericIntCoord<T>;
@@ -24,10 +26,10 @@ namespace moo {
    template<class T>
    [[nodiscard]] constexpr auto operator/(const GenericIntCoord<T>& pos, const int div)->GenericIntCoord<T>;
 
-   struct PixelCoordType{};
-   struct LineCoordType{};
-   using PixelCoord = GenericIntCoord<PixelCoordType>;
-   using LineCoord = GenericIntCoord<LineCoordType>;
+   struct PixelCoordTag{};
+   struct LineCoordTag{};
+   using PixelCoord = GenericIntCoord<PixelCoordTag>;
+   using LineCoord = GenericIntCoord<LineCoordTag>;
 
    struct Rect {
       PixelCoord top_left;
@@ -69,6 +71,7 @@ namespace moo {
    [[nodiscard]] constexpr auto to_pixel_coord_tl(const LineCoord& pos)->PixelCoord;
    [[nodiscard]] constexpr auto to_pixel_coord(const ScreenCoord& pos)->PixelCoord;
    [[nodiscard]] constexpr auto get_screen_clamped(const PixelCoord& pos)->PixelCoord;
+   [[nodiscard]] constexpr auto get_beam_aligned_pixel_coord(const ScreenCoord& pos)->PixelCoord;
    [[nodiscard]] constexpr auto get_beam_aligned_coord(const ScreenCoord& pos)->ScreenCoord;
    [[nodiscard]] constexpr auto get_screen_coord(const PixelCoord& pos)->ScreenCoord;
 
@@ -192,11 +195,16 @@ constexpr auto moo::get_screen_coord(const PixelCoord& pos)->ScreenCoord {
 }
 
 
-constexpr auto moo::get_beam_aligned_coord(const ScreenCoord& pos)->ScreenCoord {
+constexpr auto moo::get_beam_aligned_pixel_coord(const ScreenCoord& pos)->PixelCoord {
    PixelCoord pixel_coord = to_pixel_coord(pos);
    pixel_coord.i = (pixel_coord.i / 2) * 2;
    pixel_coord.j = (pixel_coord.j / 2) * 2;
-   return get_screen_coord(pixel_coord);
+   return pixel_coord;
+}
+
+
+constexpr auto moo::get_beam_aligned_coord(const ScreenCoord& pos)->ScreenCoord {
+   return get_screen_coord(get_beam_aligned_pixel_coord(pos));
 }
 
 

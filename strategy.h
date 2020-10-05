@@ -4,11 +4,13 @@
 
 #include <variant>
 
+#include <entt/entt.hpp>
+
 
 namespace moo {
 
    struct Abduct {
-      ID m_target_cow;
+      entt::entity m_target_cow;
    };
 
    struct Shoot {

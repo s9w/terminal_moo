@@ -16,6 +16,7 @@ namespace moo {
       int m_variant = 0;
       AnimationFrame m_animation_frame;
       ID m_id;
+      bool m_being_beamed = false;
    };
 
 }

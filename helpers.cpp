@@ -48,6 +48,16 @@ auto moo::get_shadow_center_pos(const ScreenCoord& player_pos) ->LineCoord{
 }
 
 
+auto moo::get_sanitized_position_diff(const ScreenCoord& position_diff) -> ScreenCoord{
+   moo::ScreenCoord new_diff = position_diff;
+   if (abs(new_diff.x * 2 * static_columns) < 0.5)
+      new_diff.x = 0.0;
+   if (abs(new_diff.y * 2* static_rows) < 0.5)
+      new_diff.y = 0.0;
+   return new_diff;
+}
+
+
 template<class T>
 [[nodiscard]] auto moo::get_height_fraction(const T& pos) -> double{
    return ::get_height_fraction(pos, get_config().sky_fraction);
