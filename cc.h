@@ -68,6 +68,7 @@ namespace moo {
    [[nodiscard]] constexpr auto get_screen_it() ->LineCoordIt;
 
    [[nodiscard]] constexpr auto to_line_coord(const ScreenCoord& pos)->LineCoord;
+   [[nodiscard]] constexpr auto to_line_coord(const PixelCoord& pos)->LineCoord;
    [[nodiscard]] constexpr auto to_pixel_coord_tl(const LineCoord& pos)->PixelCoord;
    [[nodiscard]] constexpr auto to_pixel_coord(const ScreenCoord& pos)->PixelCoord;
    [[nodiscard]] constexpr auto get_screen_clamped(const PixelCoord& pos)->PixelCoord;
@@ -167,6 +168,12 @@ constexpr auto moo::to_line_coord(const ScreenCoord& pos) -> LineCoord {
    return { i, j };
 }
 
+
+constexpr auto moo::to_line_coord(const PixelCoord& pos) -> LineCoord {
+   //const int i = static_cast<int>(pos.y * static_rows);
+   //const int j = static_cast<int>(pos.x * static_columns);
+   return { pos.i / 2, pos.j / 2 };
+}
 
 constexpr auto moo::to_pixel_coord_tl(const LineCoord& pos)->PixelCoord {
    return { 2 * pos.i, 2 * pos.j };

@@ -29,3 +29,10 @@ auto moo::Cow::progress(const Seconds dt) -> void{
 auto moo::Cow::move(const double distance) -> void{
    m_pos.m_x_pos -= distance;
 }
+
+
+bool moo::Cow::is_gone() const{
+   if (m_pos.m_x_pos < 0)
+      return true;
+   return false;
+}

@@ -3,11 +3,15 @@
 #include "config.h"
 
 
-auto moo::LanePosition::get_screen_pos() -> ScreenCoord{
-   const double y = 1.0 * (get_sky_row_height(static_rows) + m_lane + 0.5) / static_rows;
+auto moo::LanePosition::get_screen_pos() const -> ScreenCoord{
+   const double y = (get_row() + 0.5) / static_rows;
    return {m_x_pos, y};
 }
 
+
+auto moo::LanePosition::get_row() const -> int{
+   return get_sky_row_height(static_rows) + m_lane;
+}
 
 auto moo::get_new_lane_position(
    std::mt19937_64& rng,

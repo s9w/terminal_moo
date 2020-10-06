@@ -8,12 +8,11 @@
 
 auto moo::get_lane_speed(
    const int lane,
-   const int rows,
    const Seconds& dt
 ) -> double
 {
    constexpr double base_speed = 0.05;
-   return base_speed * dt.m_value * (0.5 + 1.5 * get_rising(1.0 * lane, 0.0, 1.0 * get_ground_row_height(rows)));
+   return base_speed * dt.m_value * (0.5 + 1.5 * get_rising(1.0 * lane, 0.0, 1.0 * get_ground_row_height(static_rows)));
 }
 
 

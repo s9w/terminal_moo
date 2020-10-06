@@ -30,12 +30,14 @@ namespace moo {
    };
 
    enum class WriteAlignment{Center, BottomCenter};
+   enum class ContinueWish{Continue, Exit};
 
    struct game {
-      game(const int columns, const int rows);
+      game();
       auto run() -> void;
+      [[nodiscard]] auto game_loop() -> ContinueWish;
       void write_string();
-      void write_image_at_pos(const ImageWrapper& image, const ScreenCoord& pos, const WriteAlignment write_alignment, const std::optional<RGB>& override_color);
+      void write_image_at_pos(const ImageWrapper& image, const ScreenCoord& pos, const WriteAlignment write_alignment, const double alpha, const std::optional<RGB>& override_color);
       void write_screen_text(const std::string& text, const LineCoord& start_pos);
       void clear_screen_text();
       void refresh_mouse_pos();
@@ -48,6 +50,7 @@ namespace moo {
          const BlockChar& block_char,
          const RGB row_bg_color
       );
+      void new_strategy();
 
       [[nodiscard]] auto get_block_char(const LineCoord& line_coord) const -> BlockChar;
       auto draw_sky_and_ground(const Seconds dt) -> void;
@@ -58,8 +61,6 @@ namespace moo {
 
       ConsoleState m_initial_console_state;
       std::mt19937_64 m_rng;
-      int m_columns = 0;
-      int m_rows = 0;
       Rect m_window_rect;
       HANDLE m_output_handle;
       HANDLE m_input_handle;
@@ -78,7 +79,6 @@ namespace moo {
       std::vector<RGB> m_pixels;
       ScreenCoord m_mouse_pos;
       FpsCounter m_fps_counter;
-      std::chrono::time_point<std::chrono::system_clock> m_t0;
       std::chrono::time_point<std::chrono::system_clock> m_t_last;
       Player m_player;
       std::vector<Bullet> m_bullets;

@@ -4,6 +4,7 @@ namespace fs = std::filesystem;
 #include <random>
 
 #include "config.h"
+#include "entt_types.h"
 #include "game.h"
 #include "helpers.h"
 #include "tweening.h"
@@ -87,7 +88,7 @@ namespace {
    }
 
 
-   auto should_exit() -> bool {
+   auto is_esc_pressed() -> bool {
       const bool esc_pressed = GetKeyState(VK_ESCAPE) < 0;
       return esc_pressed;
    }
@@ -142,27 +143,24 @@ namespace {
 } // namespace {}
 
 
-moo::game::game(const int columns, const int rows)
+moo::game::game()
    : m_initial_console_state(get_console_state())
    , m_rng(std::chrono::system_clock::now().time_since_epoch().count())
-   , m_columns(columns)
-   , m_rows(rows)
    , m_window_rect(get_window_rect())
    , m_output_handle(GetStdHandle(STD_OUTPUT_HANDLE))
    , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
    , m_game_colors()
-   , m_bg_colors(m_columns * m_rows)
-   , m_grass_noise(get_ground_row_height(m_rows), m_columns, m_rng)
-   , m_screen_text(m_columns * m_rows, '\0')
+   , m_bg_colors(static_columns * static_rows)
+   , m_grass_noise(get_ground_row_height(static_rows), static_columns, m_rng)
+   , m_screen_text(static_columns * static_rows, '\0')
    , m_player_animation(load_animation("player.png"))
    , m_player_anim_frame(2, 0.08, 0.0)
    , m_cow_animations(load_animations(true, "cow.png", "cow_white_brown.png", "cow_white_black.png"))
    , m_ufo_animation(load_ufo_animation("ufo.png"))
-   , m_pixels(2 * m_columns * 2 * m_rows, RGB{})
+   , m_pixels(2 * static_columns * 2 * static_rows, RGB{})
    , m_fps_counter()
-   , m_t0(std::chrono::system_clock::now())
    , m_t_last(std::chrono::system_clock::now())
-   , m_aliens({ m_ufo_animation.m_width / (2.0 * m_columns), m_ufo_animation.m_height / (2.0 * m_rows) })
+   , m_aliens({ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) })
 {
    {
       auto entity = m_registry.create();
@@ -221,9 +219,9 @@ void moo::game::early_test(const bool use_colors) {
       }
       {
          ZoneScopedN("string building");
-         for (int i = 0; i < m_rows; ++i) {
-            for (int j = 0; j < m_columns; ++j) {
-               const int index = i * m_columns + j;
+         for (int i = 0; i < static_rows; ++i) {
+            for (int j = 0; j < static_columns; ++j) {
+               const int index = i * static_columns + j;
                const bool change_color = use_colors && index % color_keep_period == 0;
                if (change_color) {
                   insert_color_string(light_colors[index % color_count], Layer::Front, str);
@@ -246,139 +244,165 @@ void moo::game::early_test(const bool use_colors) {
 
 
 auto moo::game::run() -> void{
-   //early_test(true);
-
    while (true) {
-      if (should_exit()) {
-         set_console_state(m_initial_console_state);
-         clear_screen();
+      const ContinueWish continue_return = game_loop();
+      if (continue_return == ContinueWish::Exit)
          return;
-      }
-      refresh_window_rect();
-      refresh_mouse_pos();
-      handle_mouse_click();
-
-      const auto now = std::chrono::system_clock::now();
-      const Seconds dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t_last).count() / 1000.0;
-      const long long ms_since_start = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t0).count();
-
-      {
-         ZoneScopedN("clearing pixels");
-         std::fill(m_pixels.begin(), m_pixels.end(), RGB{});
-      }
-      clear_screen_text();
-      draw_sky_and_ground(dt);
-      for (const Cloud& cloud : m_clouds) {
-         const ImageWrapper& cloud_image = m_cloud_images[cloud.m_image_index];
-         const LineCoord top_left = get_top_left(to_line_coord(cloud.m_pos), cloud_image.get_dim<LineCoord>());
-         draw_to_bg(cloud_image, top_left, cloud.m_alpha);
-      }
+   }
+}
 
 
-      m_registry.view<Ufo>().each([&](Ufo& ufo) {
-         if (!ufo.m_beaming)
-            return;
-         constexpr int beam_width = 6;
-         constexpr int safety_i = 1;
-         const int beam_pixel_height = get_sky_row_height(m_rows) - (static_cast<int>(ufo.m_pos.y * m_rows) + m_ufo_animation.m_height / 2) + safety_i;
-         for (LineCoordIt beam_it(beam_width, beam_pixel_height); beam_it.is_valid(); ++beam_it) {
-            const double vert_factor = 1.0 + 0.3 * std::sin(500.0 * m_time.m_day_progress + 10.0 * beam_it.get_y_ratio());
-            //const double vert_factor = 1.0;
+auto moo::game::game_loop() -> ContinueWish {
+   if (is_esc_pressed()) {
+      set_console_state(m_initial_console_state);
+      clear_screen();
+      return ContinueWish::Exit;
+   }
+   refresh_window_rect();
+   refresh_mouse_pos();
+   handle_mouse_click();
+
+   const auto now = std::chrono::system_clock::now();
+   const Seconds dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t_last).count() / 1000.0;
+
+   {
+      ZoneScopedN("clearing pixels");
+      std::fill(m_pixels.begin(), m_pixels.end(), RGB{});
+   }
+   clear_screen_text();
+   draw_sky_and_ground(dt);
+   for (const Cloud& cloud : m_clouds) {
+      const ImageWrapper& cloud_image = m_cloud_images[cloud.m_image_index];
+      const LineCoord top_left = get_top_left(to_line_coord(cloud.m_pos), cloud_image.get_dim<LineCoord>());
+      draw_to_bg(cloud_image, top_left, cloud.m_alpha);
+   }
+
+
+   m_registry.view<Ufo>().each([&](Ufo& ufo) {
+      if (!ufo.m_beaming)
+         return;
+      const auto cow_entity = std::get<Abduct>(ufo.m_strategy).m_target_cow;
+      if (!m_registry.valid(cow_entity))
+         return;
+      Cow& target_cow = m_registry.get<Cow>(cow_entity);
+
+      constexpr int start_beam_width = 6;
+      constexpr int safety_i = 1;
+      constexpr int one_row = 1; // This is not evil, I'm just too tired to explain right now
+      const int beam_pixel_height = target_cow.m_pos.get_row() + one_row - (static_cast<int>(ufo.m_pos.y * static_rows) + m_ufo_animation.m_height / 2) + safety_i;
+      int beam_width = start_beam_width;
+      for (int i = 0; i < beam_pixel_height; ++i) {
+         const double y_ratio = 1.0 * i / beam_pixel_height;
+         const int j_offset = (start_beam_width - beam_width) / 2;
+         for (int j = 0; j < beam_width; ++j) {
+            const double vert_factor = 1.0 + 0.3 * std::sin(500.0 * m_time.m_day_progress + 10.0 * y_ratio);
             const double oscil_factor = (1.0 + 0.1 * std::sin(500.0 * m_time.m_day_progress));
-            //const double oscil_factor = 1.0;
             constexpr double base_beam_intensity = 0.3;
             const double beam_intensity = oscil_factor * base_beam_intensity * vert_factor;
 
-            const LineCoord line_pos = to_line_coord(ufo.m_pos) + *beam_it + LineCoord{ m_ufo_animation.m_height / 2 - safety_i, -beam_width / 2 };
+            const LineCoord pos{ i, j + j_offset };
+            const LineCoord line_pos = to_line_coord(ufo.m_pos) + pos + LineCoord{ m_ufo_animation.m_height / 2 - safety_i, -start_beam_width / 2 };
+            if (!is_on_screen(line_pos))
+               continue;;
             const size_t bg_index = to_screen_index(line_pos);
             m_bg_colors[bg_index] = get_color_mix(m_bg_colors[bg_index], { 255, 255, 255 }, beam_intensity);
          }
-         });
-
-      m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * m_rows);
-      draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
-      
-      draw_cows(dt);
-      
-      {
-         std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
-         std::uniform_int_distribution<> variant_dist(0, 2);
-         if (const auto cow_pos = cow_spawner(); cow_pos.has_value()) {
-            auto entity = m_registry.create();
-            m_registry.emplace<Cow>(entity, cow_pos.value(), grazing_progress_dist(m_rng), variant_dist(m_rng));
-         }
+         beam_width += 2;
       }
+      });
 
-      auto bullet_view = m_registry.view<Bullet>();
-      for (auto entity : bullet_view) {
-         ZoneScopedN("tracy bullet iteration");
-         Bullet& bullet = bullet_view.get<Bullet>(entity);
-         draw_bullet(bullet);
-         bullet.update_puff_colors();
-         bool remove_bullet = bullet.progress(dt, m_rng);
-         if (!remove_bullet)
-            m_aliens.process_bullets(bullet, m_registry);
-         if (remove_bullet)
-            m_registry.destroy(entity);
+   m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * static_rows);
+   draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
+
+   draw_cows(dt);
+
+   {
+      std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
+      std::uniform_int_distribution<> variant_dist(0, 2);
+      if (const auto cow_pos = cow_spawner(); cow_pos.has_value()) {
+         auto cow_entity = m_registry.create();
+         m_registry.emplace<Cow>(cow_entity, cow_pos.value(), grazing_progress_dist(m_rng), variant_dist(m_rng));
+         m_registry.emplace<Alpha>(cow_entity, 1.0);
+         m_registry.emplace<BeingBeamed>(cow_entity, false);
       }
-      m_registry.view<Ufo>().each([&](Ufo& ufo) {
-         std::optional<RGB> override_color;
-         if (ufo.is_invul())
-            override_color = m_game_colors.get_white();
-         write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, override_color);
-         });
-
-      write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, std::nullopt);
-
-      m_registry.view<Ufo>().each([&](Ufo& ufo) {
-         ufo.progress(dt, m_player.m_pos, m_registry);
-         });
-      m_time.progress(dt);
-      m_player_anim_frame.progress(dt);
-      m_registry.view<Cow>().each([&](Cow& cow) {
-         if (cow.m_being_beamed)
-            return;
-         cow.move(get_lane_speed(cow.m_pos.m_lane, m_rows, dt));
-         });
-      {
-         auto cloud_it = m_clouds.begin();
-         int add_count = 0;
-         while (cloud_it != m_clouds.end()) {
-            if (cloud_it->progress(get_lane_speed(0, m_rows, dt))) {
-               ++add_count;
-               cloud_it = m_clouds.erase(cloud_it);
-            }
-            else
-               ++cloud_it;
-         }
-         add_clouds(add_count, true);
-      }
-         
-
-      {
-         ZoneScopedN("Drawing GUI");
-         const std::string gui_text = fmt::format(
-            "FPS: {:.1f}, color changes: {}, day: \"{}\", time: {:.2f}",
-            m_fps_counter.m_current_fps,
-            m_painter.get_paint_count(),
-            m_time.m_day + 1,
-            m_time.m_day_progress
-         );
-         write_screen_text(gui_text, {0, 0});
-      }
-
-      write_string();
-      COORD zero_pos{ 0, 0 };
-      {
-         ZoneScopedNC("SetConsoleCursorPosition()", 0x0000ff);
-         SetConsoleCursorPosition(m_output_handle, zero_pos);
-      }
-      write(m_output_handle, m_string);
-      m_fps_counter.step(now);
-
-      m_t_last = now;
-      FrameMark;
    }
+
+   auto bullet_view = m_registry.view<Bullet>();
+   for (auto entity : bullet_view) {
+      ZoneScopedN("tracy bullet iteration");
+      Bullet& bullet = bullet_view.get<Bullet>(entity);
+      draw_bullet(bullet);
+      bullet.update_puff_colors();
+      bool remove_bullet = bullet.progress(dt, m_rng);
+      if (!remove_bullet)
+         m_aliens.process_bullets(bullet, m_registry);
+      if (remove_bullet)
+         m_registry.destroy(entity);
+   }
+   m_registry.view<Ufo>().each([&](Ufo& ufo) {
+      std::optional<RGB> override_color;
+      if (ufo.is_invul())
+         override_color = m_game_colors.get_white();
+      write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, 1.0, override_color);
+      });
+
+   write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, 1.0, std::nullopt);
+
+   m_registry.view<Ufo>().each([&](Ufo& ufo) {
+      ufo.progress(dt, m_player.m_pos, m_registry);
+      });
+   m_time.progress(dt);
+   m_player_anim_frame.progress(dt);
+   for (auto cow_entity : m_registry.view<Cow>()) {
+      Cow& cow = m_registry.get<Cow>(cow_entity);
+      bool& being_beamed = m_registry.get<BeingBeamed>(cow_entity).value;
+      if (being_beamed)
+         continue;
+      cow.move(get_lane_speed(cow.m_pos.m_lane, dt));
+      if (cow.is_gone())
+         m_registry.destroy(cow_entity);
+   }
+   {
+      auto cloud_it = m_clouds.begin();
+      int add_count = 0;
+      while (cloud_it != m_clouds.end()) {
+         if (cloud_it->progress(get_lane_speed(0, dt))) {
+            ++add_count;
+            cloud_it = m_clouds.erase(cloud_it);
+         }
+         else
+            ++cloud_it;
+      }
+      add_clouds(add_count, true);
+   }
+
+
+   {
+      ZoneScopedN("Drawing GUI");
+      const std::string gui_text = fmt::format(
+         "FPS: {:.1f}, color changes: {}, day: \"{}\", time: {:.2f}, cows: {}",
+         m_fps_counter.m_current_fps,
+         m_painter.get_paint_count(),
+         m_time.m_day + 1,
+         m_time.m_day_progress,
+         m_registry.view<Cow>().size()
+      );
+      write_screen_text(gui_text, { 0, 0 });
+   }
+
+   write_string();
+   COORD zero_pos{ 0, 0 };
+   {
+      ZoneScopedNC("SetConsoleCursorPosition()", 0x0000ff);
+      SetConsoleCursorPosition(m_output_handle, zero_pos);
+   }
+   write(m_output_handle, m_string);
+   m_fps_counter.step(now);
+
+   m_t_last = now;
+   FrameMark;
+
+   return ContinueWish::Continue;
 }
 
 
@@ -402,6 +426,20 @@ void moo::game::one_pixel(
    if (has_nontranssparent_color)
       m_painter.paint(char_and_col.color, row_bg_color, m_string);
    m_string += char_and_col.ch;
+}
+
+
+void moo::game::new_strategy(){
+   Ufo& ufo = m_registry.get<Ufo>(m_registry.view<Ufo>().front());
+   auto cows = m_registry.view<Cow>();
+   if (cows.empty()) {
+      ufo.m_strategy = Shoot{};
+      return;
+   }
+   auto some_cow_entity = cows.front();
+   m_registry.view<Ufo>().each([&](Ufo& ufo) {
+      ufo.m_strategy = Abduct{ some_cow_entity };
+      });
 }
 
 
@@ -437,12 +475,12 @@ auto moo::game::get_block_char(const LineCoord& line_coord) const -> BlockChar{
 
 auto moo::game::draw_sky_and_ground(const Seconds dt) -> void{
    ZoneScoped;
-   const int sky_height = get_sky_row_height(m_rows);
-   const int ground_height = m_rows - sky_height;
-   const int ground_start_index = sky_height * m_columns;
+   const int sky_height = get_sky_row_height(static_rows);
+   const int ground_height = static_rows - sky_height;
+   const int ground_start_index = sky_height * static_columns;
    double fraction = 0.0;
-   
-   for (int i = 0; i < m_rows; ++i) {
+
+   for (int i = 0; i < static_rows; ++i) {
       const bool is_sky = i < sky_height;
       if (is_sky)
          fraction = 1.0 * i / sky_height;
@@ -454,17 +492,17 @@ auto moo::game::draw_sky_and_ground(const Seconds dt) -> void{
          color = m_game_colors.get_sky_color(fraction, m_time.m_day_progress);
       else
          color = m_game_colors.get_ground_color(fraction);
-      for (int j = 0; j < m_columns; ++j) {
-         const int index = i * m_columns + j;
+      for (int j = 0; j < static_columns; ++j) {
+         const int index = i * static_columns + j;
          if (is_sky)
             m_bg_colors[index] = color;
          else {
             const int lane = i - sky_height;
             const std::vector<int>& noise_row = m_grass_noise.m_row_noise[lane];
             double& dbl_anim_offset = m_grass_noise.m_anim_offsets[lane];
-            dbl_anim_offset += get_lane_speed(lane, m_rows, dt);
+            dbl_anim_offset += get_lane_speed(lane, dt);
             const int anim_offset = static_cast<int>(dbl_anim_offset);
-            const size_t noise_row_index = (j + anim_offset) % (2 * m_columns);
+            const size_t noise_row_index = (j + anim_offset) % (2 * static_columns);
             const int color_offset = noise_row[noise_row_index];
             m_bg_colors[index] = get_offsetted_color(color, color_offset);
          }
@@ -479,7 +517,7 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
          continue;
       const PixelCoord puff_pos = to_pixel_coord(puff.pos);
       const size_t index = to_screen_index(get_screen_clamped(puff_pos));
-      const size_t bg_index = (puff_pos.i / 2) * m_columns + puff_pos.j / 2;
+      const size_t bg_index = (puff_pos.i / 2) * static_columns + puff_pos.j / 2;
       m_pixels[index] = get_color_mix(m_bg_colors[bg_index], puff.color, 0.7);
    }
 
@@ -537,16 +575,36 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
 
 auto moo::game::draw_cows(const Seconds dt) -> void{
    ZoneScoped;
-   m_registry.view<Cow>().each([&](Cow& cow) {
+   auto view = m_registry.view<Cow, Alpha>();
+   for(auto cow_entity : view){
+      Cow& cow = view.get<Cow>(cow_entity);
+      Alpha& alpha = view.get<Alpha>(cow_entity);
+      bool& being_beamed = m_registry.get<BeingBeamed>(cow_entity).value;
       cow.progress(dt);
+      if (being_beamed) {
+         constexpr double seconds_to_face = 3.0;
+         alpha.value -= dt / seconds_to_face;
+         if (alpha.value < 0) {
+            m_registry.destroy(cow_entity);
+            auto ufo_entity = m_registry.view<Ufo>().front();
+            m_registry.get<Ufo>(ufo_entity).m_beaming = false;
+            new_strategy();
+            continue;
+         }
+         alpha.value = std::clamp(alpha.value, 0.0, 1.0);
+      }
+      else {
+         alpha.value = 1.0;
+      }
       const size_t animation_index = cow.m_animation_frame.get_index();
       write_image_at_pos(
          m_cow_animations[cow.m_variant][animation_index],
          cow.m_pos.get_screen_pos(),
          WriteAlignment::BottomCenter,
+         alpha.value,
          std::nullopt
       );
-      });
+      }
 }
 
 
@@ -590,6 +648,7 @@ void moo::game::write_image_at_pos(
    const ImageWrapper& image,
    const ScreenCoord& screen_pos,
    const WriteAlignment write_alignment,
+   const double alpha,
    const std::optional<RGB>& override_color
 ){
    ZoneScoped;
@@ -599,8 +658,17 @@ void moo::game::write_image_at_pos(
 
    for (PixelCoordIt image_it(image); image_it.is_valid(); ++image_it) {
       const PixelCoord canvas_coord = top_left_pos + *image_it;
-      if (image_it.get_image_pixel().is_visible() && is_on_screen(canvas_coord))
-         m_pixels[to_screen_index(canvas_coord)] = override_color.value_or(image_it.get_image_pixel());
+      if (image_it.get_image_pixel().is_visible() && is_on_screen(canvas_coord)) {
+         if (override_color.has_value()) {
+            m_pixels[to_screen_index(canvas_coord)] = override_color.value();
+         }
+         else {
+            auto bg_index = to_screen_index(to_line_coord(canvas_coord));
+            auto bg_color = m_bg_colors[bg_index];
+            const RGB target_color = get_color_mix(bg_color, image_it.get_image_pixel(), alpha);
+            m_pixels[to_screen_index(canvas_coord)] = target_color;
+         }
+      }
    }
 }
 
@@ -651,12 +719,7 @@ void moo::game::handle_mouse_click(){
    if (lmb_clicked || space_clicked)
       m_player.try_to_fire(m_rng, m_registry);
    if (mmb_clicked){
-      auto some_cow_entity = m_registry.view<Cow>().front();
-      //Cow& some_cow = m_registry.get<Cow>(some_cow_entity);
-      //ID some_cow_id = some_cow.m_id;
-      m_registry.view<Ufo>().each([&](Ufo& ufo) {
-         ufo.m_strategy = Abduct{ some_cow_entity };
-         });
+      new_strategy();
    }
 }
 
@@ -664,17 +727,17 @@ void moo::game::handle_mouse_click(){
 auto moo::game::cow_spawner() -> std::optional<LanePosition>{
    constexpr double free_area_threshold = 0.8;
    bool enough_cows = false;
-   auto cow_view = m_registry.view<Cow>();
-   for(auto entity : cow_view){
-      Cow& cow = m_registry.get<Cow>(entity);
+   auto cows = m_registry.view<Cow>();
+   for(auto entity : cows){
+      Cow& cow = cows.get<Cow>(entity);
       const bool cow_in_right_area = cow.m_pos.m_x_pos > free_area_threshold;
       if (cow_in_right_area)
          return std::nullopt;
    }
-   const double fractional_cow_bitmap_width = 1.0 * m_cow_animations[0].m_width / m_columns;
-   LanePosition new_cow_position = get_new_lane_position(m_rng, get_ground_row_height(m_rows), fractional_cow_bitmap_width);
+   const double fractional_cow_bitmap_width = 1.0 * m_cow_animations[0].m_width / static_columns;
+   LanePosition new_cow_position = get_new_lane_position(m_rng, get_ground_row_height(static_rows), fractional_cow_bitmap_width);
    //while(!m_cows.empty() && std::abs(new_cow_position.m_lane - m_cows.back().m_pos.m_lane) <= 1)
-   //   new_cow_position = get_new_lane_position(m_rng, get_ground_row_height(m_rows), fractional_cow_bitmap_width);
+   //   new_cow_position = get_new_lane_position(m_rng, get_ground_row_height(static_rows), fractional_cow_bitmap_width);
    return new_cow_position;
 }
 
@@ -686,7 +749,7 @@ void moo::game::add_clouds(const int n, const bool off_screen){
    std::uniform_real_distribution<double> alpha_dist(0.1, 0.2);
    for (int i = 0; i < n; ++i) {
       const size_t image_index = rand() % m_cloud_images.size();
-      const double fractional_width = 1.0 * m_cloud_images[image_index].m_width / m_columns;
+      const double fractional_width = 1.0 * m_cloud_images[image_index].m_width / static_columns;
       ScreenCoord cloud_pos{ x_pos_dist(m_rng), y_pos_dist(m_rng) };
       if (off_screen)
          cloud_pos.x = 1.0 + 0.5 * fractional_width;

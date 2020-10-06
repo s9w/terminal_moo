@@ -31,7 +31,7 @@ int main() {
    const int columns = csbi.srWindow.Right - csbi.srWindow.Left + 1;
    const int rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
    moo::update_screen_size(rows, columns);
-   moo::game game_instance(columns, rows);
+   moo::game game_instance;
    game_instance.run();
 
    return 0;

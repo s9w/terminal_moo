@@ -59,7 +59,7 @@ namespace moo {
    }
    
 
-   [[nodiscard]] auto get_lane_speed(const int lane, const int rows, const Seconds& dt) -> double;
+   [[nodiscard]] auto get_lane_speed(const int lane, const Seconds& dt) -> double;
 
    template<moo::CoordType T>
    [[nodiscard]] constexpr auto get_orthogonal(const T& vec)->T;

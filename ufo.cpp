@@ -1,5 +1,6 @@
 #include "config.h"
 #include "cow.h"
+#include "entt_types.h"
 #include "ufo.h"
 
 #include <entt/entt.hpp>
@@ -37,12 +38,17 @@ auto moo::Ufo::progress(
       if (m_beaming)
          return;
       const Abduct strategy = std::get<Abduct>(m_strategy);
+      if (!registry.valid(strategy.m_target_cow)) { // moved off screen
+         m_strategy = Shoot{};
+         return;
+      }
       Cow& target_cow = registry.get<Cow>(strategy.m_target_cow);
-      const ScreenCoord raw_target_pos = target_cow.m_pos.get_screen_pos() + ScreenCoord{0.02, -0.3};
+      const ScreenCoord raw_target_pos = target_cow.m_pos.get_screen_pos() + ScreenCoord{0.0, -0.3};
       const PixelCoord target_pixel_coord = get_beam_aligned_pixel_coord(raw_target_pos);
       const bool position_reached = to_pixel_coord(m_pos) == target_pixel_coord;
       if (position_reached) {
-         target_cow.m_being_beamed = true;
+         BeingBeamed& being_beamed = registry.get<BeingBeamed>(strategy.m_target_cow);
+         being_beamed.value = true;
          m_beaming = true;
       }
       move_towards(target_pixel_coord, dt);
