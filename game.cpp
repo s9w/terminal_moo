@@ -181,13 +181,13 @@ moo::game::game()
    , m_window_rect(get_window_rect())
    , m_output_handle(GetStdHandle(STD_OUTPUT_HANDLE))
    , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
-   , m_bg_colors(get_char_count())
+   , m_bg_buffer(get_char_count())
    , m_grass_noise(get_ground_row_height(), static_columns)
    , m_screen_text(get_char_count(), '\0')
    , m_player_animation(load_animation("player.png"))
    , m_player_anim_frame(2, 0.08, 0.0)
    , m_ufo_animation(load_ufo_animation("ufo.png"))
-   , m_pixels(get_pixel_count(), RGB{})
+   , m_pixel_buffer(get_pixel_count(), RGB{})
    , m_t_last(std::chrono::system_clock::now())
    , m_aliens({ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) })
 {
@@ -201,7 +201,7 @@ moo::game::game()
       m_registry.emplace<Ufo>(entity, get_beam_aligned_coord(desired), 0.0);
    }
 
-   m_string.reserve(100000);
+   m_output_string.reserve(100000);
    {
       constexpr bool dimension_checks = false;
       m_cloud_images = load_images("cloud.png", dimension_checks);
@@ -302,6 +302,7 @@ auto moo::game::game_loop() -> ContinueWish {
    spawn_new_cows();
    m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * static_rows);
    iterate_grass_movement(dt);
+   do_cow_logic(dt);
 
    draw_background();
 
@@ -311,12 +312,12 @@ auto moo::game::game_loop() -> ContinueWish {
       const auto cow_entity = std::get<Abduct>(ufo.m_strategy).m_target_cow;
       if (!m_registry.valid(cow_entity))
          return;
-      Cow& target_cow = m_registry.get<Cow>(cow_entity);
+      const LanePosition& cow_position = m_registry.get<LanePosition>(cow_entity);
 
       constexpr int start_beam_width = 6;
       constexpr int safety_i = 1;
       constexpr int one_row = 1; // This is not evil, I'm just too tired to explain right now
-      const int beam_pixel_height = target_cow.m_pos.get_row() + one_row - (static_cast<int>(ufo.m_pos.y * static_rows) + m_ufo_animation.m_height / 2) + safety_i;
+      const int beam_pixel_height = cow_position.get_row() + one_row - (static_cast<int>(ufo.m_pos.y * static_rows) + m_ufo_animation.m_height / 2) + safety_i;
       int beam_width = start_beam_width;
       for (int i = 0; i < beam_pixel_height; ++i) {
          const double y_ratio = 1.0 * i / beam_pixel_height;
@@ -332,7 +333,7 @@ auto moo::game::game_loop() -> ContinueWish {
             if (!is_on_screen(line_pos))
                continue;;
             const size_t bg_index = to_screen_index(line_pos);
-            m_bg_colors[bg_index] = get_color_mix(m_bg_colors[bg_index], { 255, 255, 255 }, beam_intensity);
+            m_bg_buffer[bg_index] = get_color_mix(m_bg_buffer[bg_index], { 255, 255, 255 }, beam_intensity);
          }
          beam_width += 2;
       }
@@ -340,7 +341,7 @@ auto moo::game::game_loop() -> ContinueWish {
 
    
    draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
-   draw_cows(dt);
+   draw_cows();
 
    auto bullet_view = m_registry.view<Bullet>();
    for (auto entity : bullet_view) {
@@ -368,13 +369,13 @@ auto moo::game::game_loop() -> ContinueWish {
       });
    
    m_player_anim_frame.progress(dt);
-   for (auto cow_entity : m_registry.view<Cow>()) {
-      Cow& cow = m_registry.get<Cow>(cow_entity);
+   for (auto cow_entity : m_registry.view<IsCow>()) {
       bool& being_beamed = m_registry.get<BeingBeamed>(cow_entity).value;
       if (being_beamed)
          continue;
-      cow.move(get_lane_speed(cow.m_pos.m_lane, dt));
-      if (cow.is_gone())
+      LanePosition& cow_pos = m_registry.get<LanePosition>(cow_entity);
+      cow_pos.m_x_pos -= get_lane_speed(cow_pos.m_lane, dt);
+      if (cow_pos.is_gone())
          m_registry.destroy(cow_entity);
    }
    {
@@ -400,7 +401,7 @@ auto moo::game::game_loop() -> ContinueWish {
          m_painter.get_paint_count(),
          m_time.m_day + 1,
          m_time.m_day_progress,
-         m_registry.view<Cow>().size()
+         m_registry.view<IsCow>().size()
       );
       write_screen_text(gui_text, { 0, 0 });
    }
@@ -411,7 +412,7 @@ auto moo::game::game_loop() -> ContinueWish {
       ZoneScopedNC("SetConsoleCursorPosition()", 0x0000ff);
       SetConsoleCursorPosition(m_output_handle, zero_pos);
    }
-   write(m_output_handle, m_string);
+   write(m_output_handle, m_output_string);
    
    m_t_last = now;
    FrameMark;
@@ -419,26 +420,23 @@ auto moo::game::game_loop() -> ContinueWish {
 }
 
 
-void moo::game::one_pixel(
-   const BlockChar& block_char,
+void moo::game::write_one_block(
+   const BlockChar& fg_block_char,
    const RGB row_bg_color
 ) {
-   // the char is without BG at this point. That gets added later in this fun
-   const CharAndColor char_and_col = get_cell_char(block_char);
-   const bool no_bg_visible = block_char.is_all_visible();
-   if (no_bg_visible) {
-      const std::optional<TwoColors> two_colors = block_char.get_two_colors();
-      if (two_colors.has_value()) {
-         const wchar_t block_char_char = get_block_glyph(block_char, [&](const RGB& color) {return color == two_colors.value().first; });
-         m_painter.paint(two_colors.value().first, two_colors.value().second, m_string);
-         m_string += block_char_char;
-         return;
-      }
+   const std::optional<TwoColors> two_colors = fg_block_char.get_two_colors();
+   if (fg_block_char.is_all_visible() && two_colors.has_value()) {
+      // no BG visible and FG contains 2+ different colors. Can use two FG colors in this cell!
+      m_painter.paint(two_colors.value().first, two_colors.value().second, m_output_string);
+      const wchar_t block_char_char = get_block_glyph(fg_block_char, [&](const RGB& color) {return color == two_colors.value().first; });
+      m_output_string += block_char_char;
    }
-   const bool has_nontranssparent_color = char_and_col.color.is_visible();
-   if (has_nontranssparent_color)
-      m_painter.paint(char_and_col.color, row_bg_color, m_string);
-   m_string += char_and_col.ch;
+   else {
+      const CharAndColor char_and_col = get_cell_char(fg_block_char);
+      if (char_and_col.color.is_visible())
+         m_painter.paint(char_and_col.color, row_bg_color, m_output_string);
+      m_output_string += char_and_col.ch;
+   }
 }
 
 
@@ -447,7 +445,7 @@ void moo::game::set_new_ufo_strategies(){
    if (!m_registry.valid(some_ufo_entity))
       return;
    Ufo& ufo = m_registry.get<Ufo>(some_ufo_entity);
-   auto cows = m_registry.view<Cow>();
+   auto cows = m_registry.view<IsCow>();
    if (cows.empty()) {
       ufo.m_strategy = Shoot{};
       return;
@@ -461,30 +459,30 @@ void moo::game::set_new_ufo_strategies(){
 
 void moo::game::combine_buffers(){
    ZoneScoped;
-   m_string.clear();
+   m_output_string.clear();
    m_painter.reset_paint_count();
 
    for (LineCoordIt it = get_screen_it(); it.is_valid(); ++it) {
-      const RGB bg_color = m_bg_colors[to_screen_index(*it)];
-      m_painter.paint_layer(bg_color, Layer::Back, m_string);
+      const RGB bg_color = m_bg_buffer[to_screen_index(*it)];
+      m_painter.paint_layer(bg_color, Layer::Back, m_output_string);
 
       if (const char screen_char = m_screen_text[to_screen_index(*it)]; screen_char != '\0') {
-         m_painter.paint_layer(m_game_colors.get_red(), Layer::Front, m_string);
-         m_string += screen_char;
+         m_painter.paint_layer(m_game_colors.get_red(), Layer::Front, m_output_string);
+         m_output_string += screen_char;
          continue;
       }
-      one_pixel(get_block_char(*it), bg_color);
+      write_one_block(get_block_char_from_fg(*it), bg_color);
    }
 }
 
 
-auto moo::game::get_block_char(const LineCoord& line_coord) const -> BlockChar{
+auto moo::game::get_block_char_from_fg(const LineCoord& line_coord) const -> BlockChar{
    const PixelCoord tl = to_pixel_coord_tl(line_coord);
    return {
-      m_pixels[to_screen_index(tl + PixelCoord{0, 0})],
-      m_pixels[to_screen_index(tl + PixelCoord{0, 1})],
-      m_pixels[to_screen_index(tl + PixelCoord{1, 0})],
-      m_pixels[to_screen_index(tl + PixelCoord{1, 1})]
+      m_pixel_buffer[to_screen_index(tl + PixelCoord{0, 0})],
+      m_pixel_buffer[to_screen_index(tl + PixelCoord{0, 1})],
+      m_pixel_buffer[to_screen_index(tl + PixelCoord{1, 0})],
+      m_pixel_buffer[to_screen_index(tl + PixelCoord{1, 1})]
    };
 }
 
@@ -520,7 +518,7 @@ auto moo::game::iterate_grass_movement(const Seconds dt) -> void{
 
 auto moo::game::draw_sky_and_ground() -> void{
    for(LineCoordIt it = get_screen_it(); it.is_valid(); ++it)
-      m_bg_colors[it.to_range_index()] = get_bg_color(*it);
+      m_bg_buffer[it.to_range_index()] = get_bg_color(*it);
 }
 
 
@@ -530,9 +528,13 @@ auto moo::game::spawn_new_cows() -> void{
    std::uniform_int_distribution<> variant_dist(0, static_cast<int>(cow_animations.size()) - 1);
    if (const auto cow_pos = cow_spawner(); cow_pos.has_value()) {
       auto cow_entity = m_registry.create();
-      m_registry.emplace<Cow>(cow_entity, cow_pos.value(), grazing_progress_dist(get_rng()), cow_animations[variant_dist(get_rng())]);
+      //m_registry.emplace<Cow>(cow_entity, cow_pos.value(), grazing_progress_dist(get_rng()), cow_animations[variant_dist(get_rng())]);
       m_registry.emplace<Alpha>(cow_entity, 1.0);
       m_registry.emplace<BeingBeamed>(cow_entity, false);
+      m_registry.emplace<IsCow>(cow_entity);
+      m_registry.emplace<LanePosition>(cow_entity, cow_pos.value());
+      m_registry.emplace<AnimationFrame>(cow_entity, 2, 1.0, grazing_progress_dist(get_rng()));
+      m_registry.emplace<CowVariant>(cow_entity, cow_animations[variant_dist(get_rng())]);
    }
 }
 
@@ -555,7 +557,7 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
       const PixelCoord puff_pos = to_pixel_coord(puff.pos);
       const size_t index = to_screen_index(get_screen_clamped(puff_pos));
       const size_t bg_index = (puff_pos.i / 2) * static_columns + puff_pos.j / 2;
-      m_pixels[index] = get_color_mix(m_bg_colors[bg_index], puff.color, 0.7);
+      m_pixel_buffer[index] = get_color_mix(m_bg_buffer[bg_index], puff.color, 0.7);
    }
 
    const ScreenCoord bullet_pos = bullet.m_pos;
@@ -565,24 +567,23 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
 
       if (bullet.m_style == BulletStyle::Rocket) {
          for (const PixelCoord& coord : get_player_bullet_shape())
-            m_pixels[to_screen_index(get_screen_clamped(bullet_pixel_pos + coord))] = bullet_color;
+            m_pixel_buffer[to_screen_index(get_screen_clamped(bullet_pixel_pos + coord))] = bullet_color;
       }
       else {
          for (const PixelCoord& coord : get_alien_bullet_shape())
-            m_pixels[to_screen_index(get_screen_clamped(bullet_pixel_pos + coord))] = bullet_color;
+            m_pixel_buffer[to_screen_index(get_screen_clamped(bullet_pixel_pos + coord))] = bullet_color;
       }
    }
 }
 
 
-auto moo::game::draw_cows(const Seconds dt) -> void{
+auto moo::game::do_cow_logic(const Seconds dt) -> void{
    ZoneScoped;
-   auto view = m_registry.view<Cow, Alpha>();
-   for(auto cow_entity : view){
-      Cow& cow = view.get<Cow>(cow_entity);
-      Alpha& alpha = view.get<Alpha>(cow_entity);
+   auto cows = m_registry.view<IsCow>();
+   for (auto cow_entity : cows) {
+      Alpha& alpha = m_registry.get<Alpha>(cow_entity);
       bool& being_beamed = m_registry.get<BeingBeamed>(cow_entity).value;
-      cow.progress(dt);
+      m_registry.get<AnimationFrame>(cow_entity).progress(dt);
       if (being_beamed) {
          constexpr double seconds_to_face = 3.0;
          alpha.value -= dt / seconds_to_face;
@@ -598,15 +599,25 @@ auto moo::game::draw_cows(const Seconds dt) -> void{
       else {
          alpha.value = 1.0;
       }
-      const size_t animation_index = cow.m_animation_frame.get_index();
-      write_image_at_pos(
-         m_registry.get<CowAnimation>(cow.m_variant)[animation_index],
-         cow.m_pos.get_screen_pos(),
-         WriteAlignment::BottomCenter,
-         alpha.value,
-         std::nullopt
-      );
+   }
+}
+
+
+auto moo::game::draw_cows() -> void{
+   ZoneScoped;
+   m_registry.view<IsCow, Alpha, AnimationFrame, CowVariant, LanePosition>().each([&](
+      Alpha& alpha, AnimationFrame& anim_frame, CowVariant& cow_variant, LanePosition& lane_pos
+      ) {
+         const size_t animation_index = anim_frame.get_index();
+         write_image_at_pos(
+            m_registry.get<CowAnimation>(cow_variant)[animation_index],
+            lane_pos.get_screen_pos(),
+            WriteAlignment::BottomCenter,
+            alpha.value,
+            std::nullopt
+         );
       }
+   );
 }
 
 
@@ -624,7 +635,7 @@ auto moo::game::draw_shadow(
       const LineCoord ppos = shadow_center + LineCoord{0, -shadow_width / 2 + j + shadow_x_offset };
       const size_t index = to_screen_index(ppos);
       const double color_fraction = height_fraction * get_triangle(1.0 * j / shadow_width);
-      m_bg_colors[index] = get_offsetted_color(m_bg_colors[index], static_cast<int>(-20.0 * color_fraction));
+      m_bg_buffer[index] = get_offsetted_color(m_bg_buffer[index], static_cast<int>(-20.0 * color_fraction));
    }
 }
 
@@ -641,7 +652,7 @@ auto moo::game::draw_to_bg(
       if (!is_on_screen(bg_pos) || !image_it.get_image_pixel().is_visible())
          continue;
       const size_t index = to_screen_index(bg_pos);
-      m_bg_colors[index] = get_color_mix(m_bg_colors[index], image_it.get_image_pixel(), alpha);
+      m_bg_buffer[index] = get_color_mix(m_bg_buffer[index], image_it.get_image_pixel(), alpha);
    }
 }
 
@@ -662,13 +673,13 @@ void moo::game::write_image_at_pos(
       const PixelCoord canvas_coord = top_left_pos + *image_it;
       if (image_it.get_image_pixel().is_visible() && is_on_screen(canvas_coord)) {
          if (override_color.has_value()) {
-            m_pixels[to_screen_index(canvas_coord)] = override_color.value();
+            m_pixel_buffer[to_screen_index(canvas_coord)] = override_color.value();
          }
          else {
             auto bg_index = to_screen_index(to_line_coord(canvas_coord));
-            auto bg_color = m_bg_colors[bg_index];
+            auto bg_color = m_bg_buffer[bg_index];
             const RGB target_color = get_color_mix(bg_color, image_it.get_image_pixel(), alpha);
-            m_pixels[to_screen_index(canvas_coord)] = target_color;
+            m_pixel_buffer[to_screen_index(canvas_coord)] = target_color;
          }
       }
    }
@@ -696,7 +707,7 @@ void moo::game::write_screen_text(
 
 void moo::game::clear_buffers(){
    std::fill(m_screen_text.begin(), m_screen_text.end(), '\0');
-   std::fill(m_pixels.begin(), m_pixels.end(), RGB{});
+   std::fill(m_pixel_buffer.begin(), m_pixel_buffer.end(), RGB{});
 }
 
 
@@ -729,11 +740,9 @@ void moo::game::handle_mouse_click(){
 
 auto moo::game::cow_spawner() -> std::optional<LanePosition>{
    constexpr double free_area_threshold = 0.8;
-   bool enough_cows = false;
-   auto cows = m_registry.view<Cow>();
-   for(auto entity : cows){
-      Cow& cow = cows.get<Cow>(entity);
-      const bool cow_in_right_area = cow.m_pos.m_x_pos > free_area_threshold;
+   auto cows = m_registry.view<IsCow>();
+   for(auto cow : cows){
+      const bool cow_in_right_area = m_registry.get<LanePosition>(cow).m_x_pos > free_area_threshold;
       if (cow_in_right_area)
          return std::nullopt;
    }

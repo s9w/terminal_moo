@@ -4,11 +4,11 @@
 #include "block_char.h"
 #include "cloud.h"
 #include "color.h"
-#include "cow.h"
 #include "fps_counter.h"
 #include "game_time.h"
 #include "helpers.h"
 #include "image.h"
+#include "lane_position.h"
 #include "painter.h"
 #include "player.h"
 #include "win_api_helper.h"
@@ -48,18 +48,19 @@ namespace moo {
       auto iterate_grass_movement(const Seconds dt) -> void;
       void add_clouds(const int n, const bool off_screen);
       void early_test(const bool use_colors);
-      void one_pixel(
+      void write_one_block(
          const BlockChar& block_char,
          const RGB row_bg_color
       );
       void set_new_ufo_strategies();
 
-      [[nodiscard]] auto get_block_char(const LineCoord& line_coord) const -> BlockChar;
+      [[nodiscard]] auto get_block_char_from_fg(const LineCoord& line_coord) const -> BlockChar;
       auto draw_sky_and_ground() -> void;
       auto spawn_new_cows() -> void;
       auto draw_background() -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
-      auto draw_cows(const Seconds dt) -> void;
+      auto do_cow_logic(const Seconds dt) -> void;
+      auto draw_cows() -> void;
       auto draw_shadow(const ScreenCoord& player_pos, const int max_shadow_width, const int shadow_x_offset) -> void;
       auto draw_to_bg(const ImageWrapper& image, const LineCoord& top_left, const double alpha) -> void;
 
@@ -69,16 +70,16 @@ namespace moo {
       HANDLE m_input_handle;
       GameColors m_game_colors;
       Painter m_painter;
-      std::vector<RGB> m_bg_colors;
+      std::vector<RGB> m_bg_buffer;
       GrassNoise m_grass_noise;
       std::vector<char> m_screen_text;
-      std::wstring m_string;
+      std::wstring m_output_string;
       Animation m_player_animation;
       AnimationFrame m_player_anim_frame;
       std::vector<SingleImage> m_cloud_images;
       std::vector<Cloud> m_clouds;
       Animation m_ufo_animation;
-      std::vector<RGB> m_pixels;
+      std::vector<RGB> m_pixel_buffer;
       ScreenCoord m_mouse_pos;
       FpsCounter m_fps_counter;
       std::chrono::time_point<std::chrono::system_clock> m_t_last;

@@ -15,6 +15,11 @@ auto moo::LanePosition::get_row() const -> int{
    return get_sky_row_height() + m_lane;
 }
 
+
+auto moo::LanePosition::is_gone() const -> bool{
+   return m_x_pos < 0;
+}
+
 auto moo::get_new_lane_position(
    const int grass_rows,
    const double bitmap_width

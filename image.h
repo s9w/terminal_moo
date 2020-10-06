@@ -39,9 +39,8 @@ namespace moo {
       int m_height = 0;
    };
 
-   struct CowAnimation : Animation {
 
-   };
+   struct CowAnimation : Animation {};
 
 
    [[nodiscard]] auto load_images(const fs::path& path_base, const bool dimension_checks = true) -> std::vector<moo::SingleImage>;

@@ -75,10 +75,8 @@ constexpr auto moo::BlockChar::get_first_different_visible_color(const RGB& tabo
 
 constexpr auto moo::BlockChar::get_two_colors() const -> std::optional<TwoColors>{
    const std::optional<RGB> color1 = get_first_different_visible_color();
-   if (!color1.has_value()) {
-      printf("All pixels invisible. This should not happen.\n");
-      std::terminate();
-   }
+   if (!color1.has_value())
+      return std::nullopt;
    const std::optional<RGB> color2 = get_first_different_visible_color(color1.value());
    if (!color2.has_value())
       return std::nullopt;
