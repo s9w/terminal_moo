@@ -22,8 +22,8 @@ namespace moo {
       Trail(Trail&& move) noexcept = default;
       Trail& operator=(Trail&& move) noexcept = default;
 
-      auto thin_trail(std::mt19937_64& rng, const Seconds dt) -> void;
-      auto add_puff(std::mt19937_64& rng, const ScreenCoord& new_bullet_pos, const ScreenCoord& old_bullet_pos, const BulletStyle style, const double path_progress) -> void;
+      auto thin_trail(const Seconds dt) -> void;
+      auto add_puff(const ScreenCoord& new_bullet_pos, const ScreenCoord& old_bullet_pos, const BulletStyle style, const double path_progress) -> void;
       auto update_puff_colors(const ScreenCoord& bullet_pos) -> void;
 
       std::vector<TrailPuff> m_smoke_puffs;
@@ -38,7 +38,7 @@ namespace moo {
 
    struct Bullet {
       Bullet(const ScreenCoord& initial_pos, const ScreenCoord& trajectory, const BulletStyle style);
-      [[nodiscard]] auto progress(const Seconds dt, std::mt19937_64& rng) -> bool;
+      [[nodiscard]] auto progress(const Seconds dt) -> bool;
       auto update_puff_colors() -> void;
 
       ScreenCoord m_trajectory;

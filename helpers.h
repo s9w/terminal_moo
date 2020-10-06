@@ -50,8 +50,8 @@ namespace moo {
       (v.emplace_back(fun(args)), ...);
    }
    
-   [[nodiscard]] auto get_sky_row_height(const int rows) -> int;
-   [[nodiscard]] auto get_ground_row_height(const int rows) -> int;
+   [[nodiscard]] auto get_sky_row_height() -> int;
+   [[nodiscard]] auto get_ground_row_height() -> int;
    [[nodiscard]] auto get_shadow_center_pos(const ScreenCoord& player_pos)->LineCoord;
 
    /// <summary>If the position diff would not result in at least a change of "half" a pixel,

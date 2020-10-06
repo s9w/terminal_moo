@@ -50,11 +50,3 @@ void moo::Aliens::process_bullets(
       }
    }
 }
-
-
-void moo::Aliens::abduct_cow(const ID target_id, entt::registry& registry){
-   if(registry.empty<Ufo>())
-      return;
-   auto ufo_entity = registry.view<Ufo>().front();
-   Ufo& ufo = registry.get<Ufo>(ufo_entity);
-}

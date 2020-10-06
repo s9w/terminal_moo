@@ -1,5 +1,7 @@
-#include "config.h"
 #include "player.h"
+
+#include "config.h"
+#include "rng.h"
 
 #include <algorithm>
 
@@ -43,7 +45,6 @@ namespace {
 
 
    [[nodiscard]] auto get_bullet_trajectory(
-      std::mt19937_64& rng,
       const double base_spread
    ) -> moo::ScreenCoord
    {
@@ -51,7 +52,7 @@ namespace {
       const double positive_angle_spread = -5.0 * base_spread * negative_angle_spread; // this points down
 
       std::uniform_real_distribution<double> phi_dist(negative_angle_spread, positive_angle_spread);
-      const double phi = phi_dist(rng);
+      const double phi = phi_dist(moo::get_rng());
       return moo::get_normalized(moo::ScreenCoord{ std::cos(phi), std::sin(phi) });
    }
 
@@ -74,8 +75,7 @@ auto moo::Player::move_towards(
 
 
 auto moo::Player::try_to_fire(
-   std::mt19937_64& rng
-   , entt::registry& registry
+   entt::registry& registry
 ) -> void 
 {
    if (!is_zero(m_shooting_cooldown.m_value))
@@ -84,7 +84,7 @@ auto moo::Player::try_to_fire(
    const ScreenCoord initial_bullet_pos = m_pos + ScreenCoord{0.05, 0.0};
 
    auto entity = registry.create();
-   registry.emplace<Bullet>(entity, initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
+   registry.emplace<Bullet>(entity, initial_bullet_pos, get_bullet_trajectory(0.1), BulletStyle::Rocket);
    //return std::make_optional<Bullet>(initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
    //return Bullet(initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
 }

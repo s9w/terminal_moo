@@ -11,7 +11,7 @@ namespace moo {
 
    struct Player {
       auto move_towards(const ScreenCoord& target_pos, const Seconds dt, const int pixel_rows) -> void;
-      auto try_to_fire(std::mt19937_64& rng, entt::registry& registry) -> void;
+      auto try_to_fire(entt::registry& registry) -> void;
 
       ScreenCoord m_pos{0.5, 0.5};
       double m_speed = 0.2;

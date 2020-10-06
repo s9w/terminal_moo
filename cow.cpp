@@ -10,12 +10,11 @@ constexpr moo::Seconds cow_grazing_time = 5.0;
 moo::Cow::Cow(
    const LanePosition& pos,
    const double initial_progress,
-   const int variant
+   const entt::entity variant
 )
    : m_pos(pos)
    , m_variant(variant)
    , m_animation_frame(2, 1.0, initial_progress)
-   , m_id(get_id())
 {
    
 }

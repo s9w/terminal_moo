@@ -1,6 +1,8 @@
 #include "bullet.h"
+
 #include "config.h"
 #include "game_colors.h"
+#include "rng.h"
 #include "tweening.h"
 
 #if _MSC_VER < 1928 // Visual Studio 2019 version 16.8
@@ -15,7 +17,6 @@ namespace {
 
    [[nodiscard]] auto get_smoke_puff_pos(
       const moo::ScreenCoord& rocket_pos,
-      std::mt19937_64& rng,
       const double smoke_spread,
       const moo::ScreenCoord& bullet_trajectory,
       const moo::BulletStyle style,
@@ -24,7 +25,7 @@ namespace {
    {
       if (style == moo::BulletStyle::Rocket) {
          std::uniform_real_distribution<double> smoke_spread_dist(-smoke_spread, smoke_spread);
-         return rocket_pos + moo::ScreenCoord{ smoke_spread_dist(rng), smoke_spread_dist(rng) };
+         return rocket_pos + moo::ScreenCoord{ smoke_spread_dist(moo::get_rng()), smoke_spread_dist(moo::get_rng()) };
       }
       constexpr double alien_trail_sin_freq = 50.0;
       constexpr double alien_trail_sin_ampl = 0.02;
@@ -46,8 +47,7 @@ moo::Bullet::Bullet(const ScreenCoord& initial_pos, const ScreenCoord& trajector
 
 
 auto moo::Bullet::progress(
-   const Seconds dt, 
-   std::mt19937_64& rng
+   const Seconds dt
 ) -> bool
 {
    if (m_head_alive) {
@@ -59,11 +59,11 @@ auto moo::Bullet::progress(
       const ScreenCoord new_pos = m_pos + pos_change;
       {
          const double path_progress = get_length(m_pos - m_initial_pos);
-         m_trail.add_puff(rng, new_pos, m_pos, m_style, path_progress);
+         m_trail.add_puff(new_pos, m_pos, m_style, path_progress);
       }
       m_pos = new_pos;
    }
-   m_trail.thin_trail(rng, dt);
+   m_trail.thin_trail(dt);
 
    const bool head_can_be_deleted = !m_head_alive || !m_pos.is_on_screen();
    const bool should_be_deleted = m_trail.m_smoke_puffs.empty() && head_can_be_deleted;
@@ -83,7 +83,6 @@ moo::Trail::Trail(const BulletStyle style)
 
 
 auto moo::Trail::thin_trail(
-   std::mt19937_64& rng,
    const Seconds dt
 ) -> void
 {
@@ -91,7 +90,7 @@ auto moo::Trail::thin_trail(
    auto it = m_smoke_puffs.begin();
    while (it != m_smoke_puffs.end()) {
       const double elim_threshold = 5.0 * dt;
-      if (one_dist(rng) < elim_threshold)
+      if (one_dist(get_rng()) < elim_threshold)
          it = m_smoke_puffs.erase(it);
       else
          ++it;
@@ -100,7 +99,6 @@ auto moo::Trail::thin_trail(
 
 
 auto moo::Trail::add_puff(
-   std::mt19937_64& rng,
    const ScreenCoord& new_bullet_pos,
    const ScreenCoord& old_bullet_pos,
    const BulletStyle style,
@@ -118,7 +116,7 @@ auto moo::Trail::add_puff(
       smoke_spread = 0.0;
    const RGB smoke_color = GameColors::get_shot_trail_start_color(m_style);
    if (m_smoke_puffs.empty()) {
-      m_smoke_puffs.push_back({ get_smoke_puff_pos(new_bullet_pos, rng, smoke_spread, norm_pos_diff, style, path_progress), smoke_color });
+      m_smoke_puffs.push_back({ get_smoke_puff_pos(new_bullet_pos, smoke_spread, norm_pos_diff, style, path_progress), smoke_color });
       return;
    }
 
@@ -129,7 +127,7 @@ auto moo::Trail::add_puff(
    const double pos_diff_len = get_length(pos_diff);
    for (double trace_progress = 0.0; trace_progress < pos_diff_len; trace_progress += min_smoke_puff_distance) {
       const ScreenCoord pos = new_bullet_pos + trace_progress * norm_pos_diff;
-      m_smoke_puffs.push_back({ get_smoke_puff_pos(pos, rng, smoke_spread, norm_pos_diff, style, path_progress), smoke_color });
+      m_smoke_puffs.push_back({ get_smoke_puff_pos(pos, smoke_spread, norm_pos_diff, style, path_progress), smoke_color });
    }
 }
 

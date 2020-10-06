@@ -24,7 +24,7 @@
 namespace moo {
 
    struct GrassNoise {
-      GrassNoise(const int grass_rows, const int columns, std::mt19937_64& rng);
+      GrassNoise(const int grass_rows, const int columns);
       std::vector<std::vector<int>> m_row_noise;
       std::vector<double> m_anim_offsets;
    };
@@ -36,31 +36,34 @@ namespace moo {
       game();
       auto run() -> void;
       [[nodiscard]] auto game_loop() -> ContinueWish;
-      void write_string();
+      void combine_buffers();
       void write_image_at_pos(const ImageWrapper& image, const ScreenCoord& pos, const WriteAlignment write_alignment, const double alpha, const std::optional<RGB>& override_color);
       void write_screen_text(const std::string& text, const LineCoord& start_pos);
-      void clear_screen_text();
+      void clear_buffers();
       void refresh_mouse_pos();
       void refresh_window_rect();
       void handle_mouse_click();
       [[nodiscard]] auto cow_spawner() -> std::optional<LanePosition>;
+      auto get_bg_color(const LineCoord& line_coord) const -> RGB;
+      auto iterate_grass_movement(const Seconds dt) -> void;
       void add_clouds(const int n, const bool off_screen);
       void early_test(const bool use_colors);
       void one_pixel(
          const BlockChar& block_char,
          const RGB row_bg_color
       );
-      void new_strategy();
+      void set_new_ufo_strategies();
 
       [[nodiscard]] auto get_block_char(const LineCoord& line_coord) const -> BlockChar;
-      auto draw_sky_and_ground(const Seconds dt) -> void;
+      auto draw_sky_and_ground() -> void;
+      auto spawn_new_cows() -> void;
+      auto draw_background() -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
       auto draw_cows(const Seconds dt) -> void;
       auto draw_shadow(const ScreenCoord& player_pos, const int max_shadow_width, const int shadow_x_offset) -> void;
       auto draw_to_bg(const ImageWrapper& image, const LineCoord& top_left, const double alpha) -> void;
 
       ConsoleState m_initial_console_state;
-      std::mt19937_64 m_rng;
       Rect m_window_rect;
       HANDLE m_output_handle;
       HANDLE m_input_handle;
@@ -72,7 +75,6 @@ namespace moo {
       std::wstring m_string;
       Animation m_player_animation;
       AnimationFrame m_player_anim_frame;
-      std::vector<Animation> m_cow_animations;
       std::vector<SingleImage> m_cloud_images;
       std::vector<Cloud> m_clouds;
       Animation m_ufo_animation;
@@ -86,7 +88,5 @@ namespace moo {
       GameTime m_time;
       entt::registry m_registry;
    };
-
-
 
 }

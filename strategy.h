@@ -1,7 +1,5 @@
 #pragma once
 
-#include "id_type.h"
-
 #include <variant>
 
 #include <entt/entt.hpp>
