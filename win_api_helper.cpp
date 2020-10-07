@@ -49,6 +49,13 @@ auto moo::clear_screen() -> void{
 }
 
 
+auto moo::set_cursor_top_left(HANDLE output_handle) -> void{
+   ZoneScoped;
+   COORD zero_pos{ 0, 0 };
+   SetConsoleCursorPosition(output_handle, zero_pos);
+}
+
+
 void moo::disable_console_cursor(){
    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
    CONSOLE_CURSOR_INFO     cursorInfo;

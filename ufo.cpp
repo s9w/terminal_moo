@@ -80,8 +80,10 @@ auto moo::Ufo::fire(
    const ScreenCoord initial_bullet_pos = m_pos;
    const ScreenCoord norm_pos_diff = get_normalized(player_pos - m_pos);
 
-   auto entity = registry.create();
-   registry.emplace<Bullet>(entity, initial_bullet_pos, norm_pos_diff, BulletStyle::Alien);
+   auto bullet_entity = registry.create();
+   auto trail_entity = registry.create();
+   registry.emplace<Bullet>(bullet_entity, initial_bullet_pos, norm_pos_diff, BulletStyle::Alien, trail_entity);
+   registry.emplace<Trail>(trail_entity, BulletStyle::Alien, bullet_entity);
 }
 
 

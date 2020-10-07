@@ -83,8 +83,8 @@ auto moo::Player::try_to_fire(
    m_shooting_cooldown = shooting_interval_s;
    const ScreenCoord initial_bullet_pos = m_pos + ScreenCoord{0.05, 0.0};
 
-   auto entity = registry.create();
-   registry.emplace<Bullet>(entity, initial_bullet_pos, get_bullet_trajectory(0.1), BulletStyle::Rocket);
-   //return std::make_optional<Bullet>(initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
-   //return Bullet(initial_bullet_pos, get_bullet_trajectory(rng, 0.1), BulletStyle::Rocket);
+   auto bullet_entity = registry.create();
+   auto trail_entity = registry.create();
+   registry.emplace<Bullet>(bullet_entity, initial_bullet_pos, get_bullet_trajectory(0.1), BulletStyle::Rocket, trail_entity);
+   registry.emplace<Trail>(trail_entity, BulletStyle::Rocket, bullet_entity);
 }

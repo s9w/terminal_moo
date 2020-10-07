@@ -57,8 +57,14 @@ namespace moo {
       auto draw_sky_and_ground() -> void;
       auto spawn_new_cows() -> void;
       auto draw_background() -> void;
+      auto draw_trail(const Trail& trail) -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
+      auto draw_beam(const Ufo& ufo) -> void;
       auto do_cow_logic(const Seconds dt) -> void;
+      auto do_cloud_logic(const Seconds dt) -> void;
+      auto do_logic(const Seconds dt) -> void;
+      auto do_drawing() -> void;
+      auto draw_gui() -> void;
       auto draw_cows() -> void;
       auto draw_shadow(const ScreenCoord& player_pos, const int max_shadow_width, const int shadow_x_offset) -> void;
       auto draw_to_bg(const ImageWrapper& image, const LineCoord& top_left, const double alpha) -> void;

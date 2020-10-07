@@ -35,12 +35,12 @@ namespace {
 } // namespace {}
 
 
-moo::Bullet::Bullet(const ScreenCoord& initial_pos, const ScreenCoord& trajectory, const BulletStyle style)
+moo::Bullet::Bullet(const ScreenCoord& initial_pos, const ScreenCoord& trajectory, const BulletStyle style, entt::entity trail)
    : m_pos(initial_pos)
    , m_initial_pos(initial_pos)
    , m_trajectory(trajectory)
    , m_style(style)
-   , m_trail(style)
+   , m_trail(trail)
 {
 
 }
@@ -48,7 +48,7 @@ moo::Bullet::Bullet(const ScreenCoord& initial_pos, const ScreenCoord& trajector
 
 auto moo::Bullet::progress(
    const Seconds dt
-) -> bool
+) -> void
 {
    if (m_head_alive) {
       double gravity_accel = moo::get_config().gravity_strength;
@@ -57,27 +57,14 @@ auto moo::Bullet::progress(
       m_gravity_speed += dt.m_value * ScreenCoord{ 0.0, gravity_accel };
       const ScreenCoord pos_change = dt.m_value * (m_bullet_speed * m_trajectory + m_gravity_speed);
       const ScreenCoord new_pos = m_pos + pos_change;
-      {
-         const double path_progress = get_length(m_pos - m_initial_pos);
-         m_trail.add_puff(new_pos, m_pos, m_style, path_progress);
-      }
       m_pos = new_pos;
    }
-   m_trail.thin_trail(dt);
-
-   const bool head_can_be_deleted = !m_head_alive || !m_pos.is_on_screen();
-   const bool should_be_deleted = m_trail.m_smoke_puffs.empty() && head_can_be_deleted;
-   return should_be_deleted;
 }
 
 
-auto moo::Bullet::update_puff_colors() -> void{
-   m_trail.update_puff_colors(m_pos);
-}
-
-
-moo::Trail::Trail(const BulletStyle style)
+moo::Trail::Trail(const BulletStyle style, entt::entity bullet)
    : m_style(style)
+   , m_bullet_ref(bullet)
 {
 }
 
@@ -101,7 +88,6 @@ auto moo::Trail::thin_trail(
 auto moo::Trail::add_puff(
    const ScreenCoord& new_bullet_pos,
    const ScreenCoord& old_bullet_pos,
-   const BulletStyle style,
    const double path_progress
 ) -> void
 {
@@ -116,7 +102,7 @@ auto moo::Trail::add_puff(
       smoke_spread = 0.0;
    const RGB smoke_color = GameColors::get_shot_trail_start_color(m_style);
    if (m_smoke_puffs.empty()) {
-      m_smoke_puffs.push_back({ get_smoke_puff_pos(new_bullet_pos, smoke_spread, norm_pos_diff, style, path_progress), smoke_color });
+      m_smoke_puffs.push_back({ get_smoke_puff_pos(new_bullet_pos, smoke_spread, norm_pos_diff, m_style, path_progress), smoke_color });
       return;
    }
 
@@ -127,7 +113,7 @@ auto moo::Trail::add_puff(
    const double pos_diff_len = get_length(pos_diff);
    for (double trace_progress = 0.0; trace_progress < pos_diff_len; trace_progress += min_smoke_puff_distance) {
       const ScreenCoord pos = new_bullet_pos + trace_progress * norm_pos_diff;
-      m_smoke_puffs.push_back({ get_smoke_puff_pos(pos, smoke_spread, norm_pos_diff, style, path_progress), smoke_color });
+      m_smoke_puffs.push_back({ get_smoke_puff_pos(pos, smoke_spread, norm_pos_diff, m_style, path_progress), smoke_color });
    }
 }
 

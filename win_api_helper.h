@@ -19,6 +19,7 @@ namespace moo {
    [[nodiscard]] auto get_console_state() -> ConsoleState;
    [[nodiscard]] auto set_console_state(const ConsoleState& console_state) -> void;
    auto clear_screen() -> void;
+   auto set_cursor_top_left(HANDLE output_handle) -> void;
    void disable_console_cursor();
    void enable_vt_mode(HANDLE output_handle);
    [[nodiscard]] auto get_window_rect() -> Rect;
