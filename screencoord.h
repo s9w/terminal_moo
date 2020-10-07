@@ -19,6 +19,13 @@ namespace moo {
             y <= 1.0;
       }
 
+
+      auto constexpr operator+=(const DoubleCoord& other)->DoubleCoord& {
+         x += other.x;
+         y += other.y;
+         return *this;
+      }
+
       double x = 0.0;
       double y = 0.0;
    };

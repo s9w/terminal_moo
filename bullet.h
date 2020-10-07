@@ -33,8 +33,6 @@ namespace moo {
    static_assert(!std::is_copy_assignable_v<Trail>);
    static_assert(std::is_move_constructible_v<Trail>);
    static_assert(std::is_move_assignable_v<Trail>);
-   
-
 
    struct Bullet {
       Bullet(const ScreenCoord& initial_pos, const ScreenCoord& trajectory, const BulletStyle style);

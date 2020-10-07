@@ -81,7 +81,6 @@ namespace moo {
       FpsCounter m_fps_counter;
       std::chrono::time_point<std::chrono::system_clock> m_t_last;
       Player m_player;
-      std::vector<Bullet> m_bullets;
       Aliens m_aliens;
       GameTime m_time;
       entt::registry m_registry;
