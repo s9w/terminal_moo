@@ -2,7 +2,6 @@
 
 #include "aliens.h"
 #include "block_char.h"
-#include "cloud.h"
 #include "color.h"
 #include "fps_counter.h"
 #include "game_time.h"
@@ -76,8 +75,6 @@ namespace moo {
       std::wstring m_output_string;
       Animation m_player_animation;
       AnimationFrame m_player_anim_frame;
-      std::vector<SingleImage> m_cloud_images;
-      std::vector<Cloud> m_clouds;
       Animation m_ufo_animation;
       std::vector<RGB> m_pixel_buffer;
       ScreenCoord m_mouse_pos;

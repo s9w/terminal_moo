@@ -195,6 +195,10 @@ moo::game::game()
       auto entity = m_registry.create();
       m_registry.emplace<CowAnimation>(entity, std::move(animation));
    }
+   for (SingleImage& cloud_image : load_images("cloud.png", false)) {
+      auto entity = m_registry.create();
+      m_registry.emplace<CloudImage>(entity, std::move(cloud_image));
+   }
    {
       auto entity = m_registry.create();
       const ScreenCoord desired{ 0.83, 0.3 };
@@ -202,10 +206,6 @@ moo::game::game()
    }
 
    m_output_string.reserve(100000);
-   {
-      constexpr bool dimension_checks = false;
-      m_cloud_images = load_images("cloud.png", dimension_checks);
-   }
 
    add_clouds(get_config().cloud_count, false);
 
@@ -343,10 +343,7 @@ auto moo::game::game_loop() -> ContinueWish {
    draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
    draw_cows();
 
-   auto bullet_view = m_registry.view<Bullet>();
-   for (auto entity : bullet_view) {
-      ZoneScopedN("tracy bullet iteration");
-      Bullet& bullet = bullet_view.get<Bullet>(entity);
+   m_registry.view<Bullet>().each([&](auto entity, Bullet& bullet) {
       draw_bullet(bullet);
       bullet.update_puff_colors();
       bool remove_bullet = bullet.progress(dt);
@@ -354,7 +351,7 @@ auto moo::game::game_loop() -> ContinueWish {
          m_aliens.process_bullets(bullet, m_registry);
       if (remove_bullet)
          m_registry.destroy(entity);
-   }
+      });
    m_registry.view<Ufo>().each([&](Ufo& ufo) {
       std::optional<RGB> override_color;
       if (ufo.is_invul())
@@ -369,26 +366,26 @@ auto moo::game::game_loop() -> ContinueWish {
       });
    
    m_player_anim_frame.progress(dt);
-   for (auto cow_entity : m_registry.view<IsCow>()) {
-      bool& being_beamed = m_registry.get<BeingBeamed>(cow_entity).value;
-      if (being_beamed)
-         continue;
-      LanePosition& cow_pos = m_registry.get<LanePosition>(cow_entity);
-      cow_pos.m_x_pos -= get_lane_speed(cow_pos.m_lane, dt);
-      if (cow_pos.is_gone())
-         m_registry.destroy(cow_entity);
-   }
+   m_registry.view<IsCow, BeingBeamed, LanePosition>().each([&](auto cow, BeingBeamed& being_beamed, LanePosition& pos) {
+      if (being_beamed.value)
+         return;
+      pos.m_x_pos -= get_lane_speed(pos.m_lane, dt);
+      if (pos.is_gone())
+         m_registry.destroy(cow);
+      });
    {
-      auto cloud_it = m_clouds.begin();
       int add_count = 0;
-      while (cloud_it != m_clouds.end()) {
-         if (cloud_it->progress(get_lane_speed(0, dt))) {
+      m_registry.view<IsCloud, CloudImageRef, ScreenCoord>().each([&](auto entity, CloudImageRef& cloud_image_ref, ScreenCoord& pos) {
+         pos.x -= get_lane_speed(0, dt);
+         const double cloud_image_width = m_registry.get<CloudImage>(cloud_image_ref).m_width;
+         const double fractional_width = 1.0 * cloud_image_width / static_columns;
+         const ScreenCoord rightmost_pos = pos + ScreenCoord{ 0.5 * fractional_width, 0.0 };
+         const bool is_left_off_screen = rightmost_pos.x < 0.0;
+         if (is_left_off_screen) {
+            m_registry.destroy(entity);
             ++add_count;
-            cloud_it = m_clouds.erase(cloud_it);
          }
-         else
-            ++cloud_it;
-      }
+         });
       add_clouds(add_count, true);
    }
 
@@ -528,7 +525,6 @@ auto moo::game::spawn_new_cows() -> void{
    std::uniform_int_distribution<> variant_dist(0, static_cast<int>(cow_animations.size()) - 1);
    if (const auto cow_pos = cow_spawner(); cow_pos.has_value()) {
       auto cow_entity = m_registry.create();
-      //m_registry.emplace<Cow>(cow_entity, cow_pos.value(), grazing_progress_dist(get_rng()), cow_animations[variant_dist(get_rng())]);
       m_registry.emplace<Alpha>(cow_entity, 1.0);
       m_registry.emplace<BeingBeamed>(cow_entity, false);
       m_registry.emplace<IsCow>(cow_entity);
@@ -542,11 +538,14 @@ auto moo::game::spawn_new_cows() -> void{
 auto moo::game::draw_background() -> void {
    ZoneScoped;
    draw_sky_and_ground();
-   for (const Cloud& cloud : m_clouds) {
-      const ImageWrapper& cloud_image = m_cloud_images[cloud.m_image_index];
-      const LineCoord top_left = get_top_left(to_line_coord(cloud.m_pos), cloud_image.get_dim<LineCoord>());
-      draw_to_bg(cloud_image, top_left, cloud.m_alpha);
-   }
+   m_registry.view<IsCloud, CloudImageRef, ScreenCoord>().each([&](
+      CloudImageRef image_ref, const ScreenCoord& pos
+      ) {
+         const ImageWrapper& cloud_image = m_registry.get<CloudImage>(image_ref);
+         const LineCoord top_left = get_top_left(to_line_coord(pos), cloud_image.get_dim<LineCoord>());
+         draw_to_bg(cloud_image, top_left, 0.1);
+      }
+   );
 }
 
 
@@ -579,9 +578,7 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
 
 auto moo::game::do_cow_logic(const Seconds dt) -> void{
    ZoneScoped;
-   auto cows = m_registry.view<IsCow>();
-   for (auto cow_entity : cows) {
-      Alpha& alpha = m_registry.get<Alpha>(cow_entity);
+   m_registry.view<IsCow, Alpha>().each([&](auto cow_entity, Alpha& alpha) {
       bool& being_beamed = m_registry.get<BeingBeamed>(cow_entity).value;
       m_registry.get<AnimationFrame>(cow_entity).progress(dt);
       if (being_beamed) {
@@ -592,14 +589,14 @@ auto moo::game::do_cow_logic(const Seconds dt) -> void{
             auto ufo_entity = m_registry.view<Ufo>().front();
             m_registry.get<Ufo>(ufo_entity).m_beaming = false;
             set_new_ufo_strategies();
-            continue;
+            return;
          }
          alpha.value = std::clamp(alpha.value, 0.0, 1.0);
       }
       else {
          alpha.value = 1.0;
       }
-   }
+      });
 }
 
 
@@ -760,14 +757,19 @@ void moo::game::add_clouds(const int n, const bool off_screen){
    const double max_y_pos = get_config().sky_fraction - 0.1;
    std::uniform_real_distribution<double> x_pos_dist(0.0, 1.0);
    std::uniform_real_distribution<double> y_pos_dist(0.0, max_y_pos);
-   std::uniform_real_distribution<double> alpha_dist(0.1, 0.2);
    for (int i = 0; i < n; ++i) {
-      const size_t image_index = rand() % m_cloud_images.size();
-      const double fractional_width = 1.0 * m_cloud_images[image_index].m_width / static_columns;
+      auto cloud_images = m_registry.view<CloudImage>();
+      auto cloud_image_ref = cloud_images[rand() % cloud_images.size()];
+      const CloudImage& cloud_image = m_registry.get<CloudImage>(cloud_image_ref);
+      const double fractional_width = 1.0 * cloud_image.m_width / static_columns;
       ScreenCoord cloud_pos{ x_pos_dist(get_rng()), y_pos_dist(get_rng()) };
       if (off_screen)
          cloud_pos.x = 1.0 + 0.5 * fractional_width;
-      m_clouds.push_back({ cloud_pos, image_index, fractional_width, alpha_dist(get_rng()) });
+
+      auto entity = m_registry.create();
+      m_registry.emplace<IsCloud>(entity);
+      m_registry.emplace<ScreenCoord>(entity, cloud_pos);
+      m_registry.emplace<CloudImageRef>(entity, cloud_image_ref);
    }
 }
 

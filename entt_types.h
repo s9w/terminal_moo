@@ -13,6 +13,8 @@ namespace moo {
    };
 
    using IsCow = entt::tag<"is_cow"_hs>;
+   using IsCloud = entt::tag<"is_cloud"_hs>;
    using CowVariant = entt::entity;
+   using CloudImageRef = entt::entity;
 
 }
