@@ -173,6 +173,19 @@ namespace {
    }
 
 
+   [[nodiscard]] auto get_beam_intensity(
+      const double day_progress,
+      const double y_ratio
+   ) -> double
+   {
+      const double vert_factor = 1.0 + 0.3 * std::sin(500.0 * day_progress + 10.0 * y_ratio);
+      const double oscil_factor = 1.0 + 0.1 * std::sin(500.0 * day_progress);
+      constexpr double base_beam_intensity = 0.3;
+      const double beam_intensity = oscil_factor * base_beam_intensity * vert_factor;
+      return beam_intensity;
+   }
+
+
 } // namespace {}
 
 
@@ -490,17 +503,12 @@ auto moo::game::draw_beam(const Ufo& ufo) -> void{
       const double y_ratio = 1.0 * i / beam_pixel_height;
       const int j_offset = (start_beam_width - beam_width) / 2;
       for (int j = 0; j < beam_width; ++j) {
-         const double vert_factor = 1.0 + 0.3 * std::sin(500.0 * m_time.m_day_progress + 10.0 * y_ratio);
-         const double oscil_factor = (1.0 + 0.1 * std::sin(500.0 * m_time.m_day_progress));
-         constexpr double base_beam_intensity = 0.3;
-         const double beam_intensity = oscil_factor * base_beam_intensity * vert_factor;
-
          const LineCoord pos{ i, j + j_offset };
          const LineCoord line_pos = to_line_coord(ufo.m_pos) + pos + LineCoord{ m_ufo_animation.m_height / 2 - safety_i, -start_beam_width / 2 };
          if (!is_on_screen(line_pos))
             continue;;
          const size_t bg_index = to_screen_index(line_pos);
-         m_bg_buffer[bg_index] = get_color_mix(m_bg_buffer[bg_index], { 255, 255, 255 }, beam_intensity);
+         m_bg_buffer[bg_index] = get_color_mix(m_bg_buffer[bg_index], { 255, 255, 255 }, get_beam_intensity(m_time.m_day_progress, y_ratio));
       }
       beam_width += 2;
    }
@@ -550,7 +558,7 @@ auto moo::game::do_cloud_logic(const Seconds dt) -> void{
 
 auto moo::game::do_logic(const Seconds dt) -> void{
    spawn_new_cows();
-   m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt, 2 * static_rows);
+   m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt);
    iterate_grass_movement(dt);
    do_cow_logic(dt);
    do_cloud_logic(dt);
