@@ -18,6 +18,19 @@ namespace {
       }
    }
 
+
+   template<class T>
+   constexpr auto get_height_change(
+      const T& requirement
+   ) -> int
+   {
+      const std::uniform_int_distribution<> height_dist(-1, 1);
+      int height_diff = height_dist(moo::get_rng());
+      while (!requirement(height_diff))
+         height_diff = height_dist(moo::get_rng());
+      return height_diff;
+   }
+
 } // namespace {}
 
 
@@ -69,9 +82,13 @@ auto moo::MountainGenerator::get_next_height() -> int{
 
    if (m_step % 4 == 0) {
       const std::uniform_int_distribution<> height_dist(-1, 1);
-      const int new_height = m_current_height + height_dist(get_rng());
-      if (new_height >= m_min_height && new_height <= m_max_height)
-         m_current_height = new_height;
+      auto range_checker = [&](const int change) {
+         const int new_height = m_current_height + change;
+         return new_height >= m_min_height && new_height <= m_max_height;
+      };
+
+      const auto gen_fun = [&]() {return m_current_height + get_height_change(range_checker); };
+      m_current_height = m_streak_preventer.get_checked_value(gen_fun);
    }
    return m_current_height;
 }
@@ -81,6 +98,7 @@ moo::MountainGenerator::MountainGenerator(const int min_height, const int max_he
    : m_current_height(min_height)
    , m_min_height(min_height)
    , m_max_height(max_height)
+   , m_streak_preventer(3)
 {
    
 }

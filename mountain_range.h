@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "buffer.h"
+#include "streak_preventer.h"
 
 namespace moo {
 
@@ -16,6 +17,8 @@ namespace moo {
       int m_step = 0;
       int m_min_height = 0;
       int m_max_height = 0;
+      int m_streak = 0;
+      StreakPreventer m_streak_preventer;
    };
 
 
