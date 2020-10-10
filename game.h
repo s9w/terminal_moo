@@ -73,7 +73,6 @@ namespace moo {
       
       auto draw_cows() -> void;
       auto draw_shadow(const ScreenCoord& player_pos, const int max_shadow_width, const int shadow_x_offset) -> void;
-      auto draw_to_bg(const ImageWrapper& image, const LineCoord& top_left, const double alpha, const std::optional<RGB> override_color) -> void;
       auto draw_buffer_to_bg(const BgBuffer& buffer) -> void;
 
       ConsoleState m_initial_console_state;
@@ -81,7 +80,7 @@ namespace moo {
       HANDLE m_output_handle;
       HANDLE m_input_handle;
       Painter m_painter;
-      std::vector<RGB> m_bg_buffer;
+      BgColorBuffer m_bg_buffer;
       GrassNoise m_grass_noise;
       std::vector<char> m_screen_text;
       std::wstring m_output_string;
@@ -95,7 +94,7 @@ namespace moo {
       Player m_player;
       Aliens m_aliens;
       entt::registry m_registry;
-      BgBuffer m_mountain_buffer;
+      BgBuffer m_blending_buffer;
       MountainRange m_front_mountain;
       MountainRange m_middle_mountain;
       MountainRange m_back_mountain;

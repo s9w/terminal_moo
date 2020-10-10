@@ -158,6 +158,25 @@ namespace {
    }
 
 
+   auto draw_to_bg(
+      moo::BgBuffer& target,
+      moo::LineCoordIt image_it,
+      const moo::LineCoord& image_top_left,
+      const double alpha
+   ) -> void
+   {
+      ZoneScoped;
+      for (; image_it.is_valid(); ++image_it) {
+         const moo::LineCoord bg_pos = image_top_left + *image_it;
+         if (!is_on_screen(bg_pos) || !image_it.get_image_pixel().is_visible())
+            continue;
+         const size_t index = to_screen_index(bg_pos);
+         target[index].m_rgb = image_it.get_image_pixel();
+         target[index].m_alpha += alpha;
+      }
+   }
+
+
    constexpr auto get_alien_bullet_shape() -> auto{
       /* draw bullet in the shape of
        ███
@@ -194,7 +213,6 @@ moo::game::game()
    , m_window_rect(get_window_rect())
    , m_output_handle(GetStdHandle(STD_OUTPUT_HANDLE))
    , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
-   , m_bg_buffer(get_char_count())
    , m_grass_noise(get_ground_row_height(), static_columns)
    , m_screen_text(get_char_count(), '\0')
    , m_player_animation(load_animation("player.png"))
@@ -447,17 +465,16 @@ auto moo::game::draw_mountain(
          target[index].m_alpha += alpha;
       }
    }
-
 }
 
 
 auto moo::game::draw_mountain_range(const MountainRange& mountains) -> void{
-   m_mountain_buffer.clear();
+   m_blending_buffer.clear();
    const double fmod = sane_fmod(mountains.m_position * static_columns, 1.0);
-   draw_mountain(mountains.m_next_mountain, m_mountain_buffer, 1.0 - fmod);
-   draw_mountain(mountains.m_mountain, m_mountain_buffer, fmod);
+   draw_mountain(mountains.m_next_mountain, m_blending_buffer, 1.0 - fmod);
+   draw_mountain(mountains.m_mountain, m_blending_buffer, fmod);
 
-   draw_buffer_to_bg(m_mountain_buffer);
+   draw_buffer_to_bg(m_blending_buffer);
 }
 
 
@@ -492,8 +509,14 @@ auto moo::game::draw_background() -> void {
       CloudImageRef image_ref, const ScreenCoord& pos
       ) {
          const ImageWrapper& cloud_image = m_registry.get<CloudImage>(image_ref);
+         const double fmod = sane_fmod(pos.x * static_columns, 1.0);
          const LineCoord top_left = get_top_left(to_line_coord(pos), cloud_image.get_dim<LineCoord>());
-         draw_to_bg(cloud_image, top_left, 0.1, std::nullopt);
+         const LineCoord top_left_dash = top_left + LineCoord{0, -1};
+
+         m_blending_buffer.clear();
+         draw_to_bg(m_blending_buffer, LineCoordIt(cloud_image), top_left_dash, 1.0 - fmod);
+         draw_to_bg(m_blending_buffer, LineCoordIt(cloud_image), top_left, fmod);
+         draw_buffer_to_bg(m_blending_buffer);
       }
    );
 }
@@ -730,25 +753,6 @@ auto moo::game::draw_shadow(
 }
 
 
-auto moo::game::draw_to_bg(
-   const ImageWrapper& image,
-   const LineCoord& top_left,
-   const double alpha,
-   const std::optional<RGB> override_color
-) -> void
-{
-   ZoneScoped;
-   for (LineCoordIt image_it(image); image_it.is_valid(); ++image_it) {
-      const LineCoord bg_pos = top_left + *image_it;
-      if (!is_on_screen(bg_pos) || !image_it.get_image_pixel().is_visible())
-         continue;
-      const size_t index = to_screen_index(bg_pos);
-      const RGB color = override_color.value_or(image_it.get_image_pixel());
-      m_bg_buffer[index] = get_color_mix(m_bg_buffer[index], color, alpha);
-   }
-}
-
-
 auto moo::game::draw_buffer_to_bg(const BgBuffer& buffer) -> void{
    for (int i = 0; i < static_rows; ++i) {
       for (int j = 0; j < static_columns; ++j) {
@@ -868,15 +872,14 @@ auto moo::game::cow_spawner() -> std::optional<LanePosition>{
 
 
 void moo::game::add_clouds(const int n, const bool off_screen){
-   const double max_y_pos = get_config().sky_fraction - 0.1;
-   std::uniform_real_distribution<double> x_pos_dist(0.0, 1.0);
+   constexpr double max_y_pos = 0.5;
    std::uniform_real_distribution<double> y_pos_dist(0.0, max_y_pos);
    for (int i = 0; i < n; ++i) {
       auto cloud_images = m_registry.view<CloudImage>();
       auto cloud_image_ref = cloud_images[rand() % cloud_images.size()];
       const CloudImage& cloud_image = m_registry.get<CloudImage>(cloud_image_ref);
       const double fractional_width = 1.0 * cloud_image.m_width / static_columns;
-      ScreenCoord cloud_pos{ x_pos_dist(get_rng()), y_pos_dist(get_rng()) };
+      ScreenCoord cloud_pos{ (i + 0.5) / n , y_pos_dist(get_rng()) };
       if (off_screen)
          cloud_pos.x = 1.0 + 0.5 * fractional_width;
 

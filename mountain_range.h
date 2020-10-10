@@ -10,9 +10,9 @@ namespace moo {
 
    struct MountainGenerator {
       MountainGenerator(const int min_height, const int max_height);
-      auto iterate() -> int;
+      auto get_next_height() -> int;
 
-      int m_last_height = 0;
+      int m_current_height = 0;
       int m_step = 0;
       int m_min_height = 0;
       int m_max_height = 0;
@@ -22,8 +22,8 @@ namespace moo {
    struct MountainRange {
       MountainRange(const int height_baseline, const RGB& color);
       auto move(const Seconds& dt) -> void;
-      auto iterate() -> void;
-      auto new_right_column() -> void;
+      auto shift_mountain() -> void;
+      auto write_new_right_column() -> void;
 
       BgColorBuffer m_mountain;
       BgColorBuffer m_next_mountain;

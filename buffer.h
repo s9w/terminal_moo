@@ -7,8 +7,6 @@
 
 namespace moo {
 
-   enum class Blending{Add};
-
    template<class T>
    struct Buffer {
 

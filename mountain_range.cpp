@@ -26,7 +26,7 @@ moo::MountainRange::MountainRange(const int height_baseline, const RGB& color)
    , m_color(color)
 {
    for (int i = 0; i < static_columns; ++i)
-      iterate();
+      shift_mountain();
 }
 
 
@@ -34,22 +34,22 @@ auto moo::MountainRange::move(const Seconds& dt) -> void{
    m_position -= get_lane_speed(0, dt);
    const double threshold = 1.0 / static_columns;
    if (m_position < -threshold) {
-      iterate();
+      shift_mountain();
       m_position += threshold;
    }
 }
 
 
-auto moo::MountainRange::iterate() -> void{
+auto moo::MountainRange::shift_mountain() -> void{
    m_mountain = m_next_mountain;
    shift_left(m_next_mountain);
-   new_right_column();
+   write_new_right_column();
 }
 
 
-auto moo::MountainRange::new_right_column() -> void{
+auto moo::MountainRange::write_new_right_column() -> void{
    const int sky_row_height = get_sky_row_height();
-   const int new_height = m_generator.iterate();
+   const int new_height = m_generator.get_next_height();
    const int min_mountain_i = sky_row_height - 1 - new_height;
 
    for (int i = 0; i < sky_row_height; ++i) {
@@ -64,21 +64,21 @@ auto moo::MountainRange::new_right_column() -> void{
 }
 
 
-auto moo::MountainGenerator::iterate() -> int{
+auto moo::MountainGenerator::get_next_height() -> int{
    ++m_step;
 
    if (m_step % 4 == 0) {
       const std::uniform_int_distribution<> height_dist(-1, 1);
-      const int new_height = m_last_height + height_dist(get_rng());
+      const int new_height = m_current_height + height_dist(get_rng());
       if (new_height >= m_min_height && new_height <= m_max_height)
-         m_last_height = new_height;
+         m_current_height = new_height;
    }
-   return m_last_height;
+   return m_current_height;
 }
 
 
 moo::MountainGenerator::MountainGenerator(const int min_height, const int max_height)
-   : m_last_height(min_height)
+   : m_current_height(min_height)
    , m_min_height(min_height)
    , m_max_height(max_height)
 {

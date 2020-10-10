@@ -65,6 +65,8 @@ auto moo::sane_fmod(const double a, const double b) -> double{
 }
 TEST_CASE("sane_fmod()") {
    using namespace moo;
+   CHECK(sane_fmod(0.1, 1.0) == doctest::Approx(0.1));
+   CHECK(sane_fmod(-0.1, 1.0) == doctest::Approx(0.9));
    CHECK(sane_fmod(2.2, 2.0) == doctest::Approx(0.2));
    CHECK(sane_fmod(-0.5, 1.0) == doctest::Approx(0.5));
    CHECK(sane_fmod(-0.2, 1.0) == doctest::Approx(0.8));
