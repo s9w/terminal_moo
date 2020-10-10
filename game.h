@@ -2,12 +2,14 @@
 
 #include "aliens.h"
 #include "block_char.h"
+#include "buffer.h"
 #include "color.h"
+#include "entt_types.h"
 #include "fps_counter.h"
-#include "game_time.h"
 #include "helpers.h"
 #include "image.h"
 #include "lane_position.h"
+#include "mountain_range.h"
 #include "painter.h"
 #include "player.h"
 #include "win_api_helper.h"
@@ -55,6 +57,9 @@ namespace moo {
 
       [[nodiscard]] auto get_block_char_from_fg(const LineCoord& line_coord) const -> BlockChar;
       auto draw_sky_and_ground() -> void;
+      auto draw_mountain(const BgColorBuffer& mountain, BgBuffer& target, const double alpha) -> void;
+      auto draw_mountain_range(const MountainRange& mountains) -> void;
+      auto draw_mountains() -> void;
       auto spawn_new_cows() -> void;
       auto draw_background() -> void;
       auto draw_trail(const Trail& trail) -> void;
@@ -65,15 +70,16 @@ namespace moo {
       auto do_logic(const Seconds dt) -> void;
       auto do_drawing() -> void;
       auto draw_gui() -> void;
+      
       auto draw_cows() -> void;
       auto draw_shadow(const ScreenCoord& player_pos, const int max_shadow_width, const int shadow_x_offset) -> void;
-      auto draw_to_bg(const ImageWrapper& image, const LineCoord& top_left, const double alpha) -> void;
+      auto draw_to_bg(const ImageWrapper& image, const LineCoord& top_left, const double alpha, const std::optional<RGB> override_color) -> void;
+      auto draw_buffer_to_bg(const BgBuffer& buffer) -> void;
 
       ConsoleState m_initial_console_state;
       Rect m_window_rect;
       HANDLE m_output_handle;
       HANDLE m_input_handle;
-      GameColors m_game_colors;
       Painter m_painter;
       std::vector<RGB> m_bg_buffer;
       GrassNoise m_grass_noise;
@@ -88,8 +94,15 @@ namespace moo {
       std::chrono::time_point<std::chrono::system_clock> m_t_last;
       Player m_player;
       Aliens m_aliens;
-      GameTime m_time;
       entt::registry m_registry;
+      BgBuffer m_mountain_buffer;
+      MountainRange m_front_mountain;
+      MountainRange m_middle_mountain;
+      MountainRange m_back_mountain;
+      double m_time = 0.0;
+
+   private:
+      void do_mountain_logic(const Seconds dt);
    };
 
 }

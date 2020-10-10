@@ -4,7 +4,8 @@
 namespace fs = std::filesystem;
 #include <vector>
 
-#include "game_colors.h"
+#include "color.h"
+
 
 namespace moo {
    
@@ -44,6 +45,7 @@ namespace moo {
    struct CloudImage : SingleImage {};
 
 
+   [[nodiscard]] auto load_image(const fs::path& path, const bool dimension_checks)->moo::SingleImage;
    [[nodiscard]] auto load_images(const fs::path& path_base, const bool dimension_checks = true) -> std::vector<moo::SingleImage>;
    [[nodiscard]] auto load_animation(const fs::path& path_base, const bool dimension_checks = true) -> Animation;
    [[nodiscard]] auto load_ufo_animation(const fs::path& path) -> Animation;

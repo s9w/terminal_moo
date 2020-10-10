@@ -4,6 +4,7 @@ namespace fs = std::filesystem;
 #include <random>
 
 #include "config.h"
+#include "entt_helper.h"
 #include "entt_types.h"
 #include "game.h"
 #include "helpers.h"
@@ -185,7 +186,6 @@ namespace {
       return beam_intensity;
    }
 
-
 } // namespace {}
 
 
@@ -203,6 +203,9 @@ moo::game::game()
    , m_pixel_buffer(get_pixel_count(), RGB{})
    , m_t_last(std::chrono::system_clock::now())
    , m_aliens({ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) })
+   , m_front_mountain(0, get_color_mix(get_ground_color(0.0), get_sky_color(0.6), 0.2))
+   , m_middle_mountain(2, get_color_mix(get_ground_color(0.0), get_sky_color(0.6), 0.6))
+   , m_back_mountain(4, get_color_mix(get_ground_color(0.0), get_sky_color(0.6), 1.0))
 {
    for (Animation& animation : load_animations(true, "cow.png", "cow_white_brown.png", "cow_white_black.png")) {
       auto entity = m_registry.create();
@@ -212,6 +215,7 @@ moo::game::game()
       auto entity = m_registry.create();
       m_registry.emplace<CloudImage>(entity, std::move(cloud_image));
    }
+
    {
       auto entity = m_registry.create();
       const ScreenCoord desired{ 0.83, 0.3 };
@@ -307,8 +311,10 @@ auto moo::game::game_loop() -> ContinueWish {
 
    const auto now = std::chrono::system_clock::now();
    const Seconds dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_t_last).count() / 1000.0;
-   m_time.progress(dt);
    m_fps_counter.step(now);
+
+   const double day_len_in_s = get_config().day_length;
+   m_time += dt / day_len_in_s;
 
    clear_buffers();
    do_logic(dt);
@@ -371,7 +377,7 @@ void moo::game::combine_buffers(){
       m_painter.paint_layer(bg_color, Layer::Back, m_output_string);
 
       if (const char screen_char = m_screen_text[to_screen_index(*it)]; screen_char != '\0') {
-         m_painter.paint_layer(m_game_colors.get_red(), Layer::Front, m_output_string);
+         m_painter.paint_layer({255, 0, 0}, Layer::Front, m_output_string);
          m_output_string += screen_char;
          continue;
       }
@@ -397,7 +403,7 @@ auto moo::game::get_bg_color(const LineCoord& coord) const -> RGB{
    const bool is_sky = coord.i < sky_height;
    if (is_sky) {
       const double sky_fraction = 1.0 * coord.i / sky_height;
-      return m_game_colors.get_sky_color(sky_fraction, m_time.m_day_progress);
+      return get_sky_color(sky_fraction);
    }
    else {
       const int lane = coord.i - sky_height;
@@ -405,7 +411,7 @@ auto moo::game::get_bg_color(const LineCoord& coord) const -> RGB{
       const int anim_offset = static_cast<int>(static_columns * m_grass_noise.m_anim_offsets[lane]);
       const size_t noise_row_index = (coord.j + anim_offset) % (2 * static_columns);
       const int color_offset = m_grass_noise.m_row_noise[lane][noise_row_index];
-      const RGB base_color = m_game_colors.get_ground_color(ground_fraction);
+      const RGB base_color = get_ground_color(ground_fraction);
       return get_offsetted_color(base_color, color_offset);
    }
 }
@@ -423,6 +429,42 @@ auto moo::game::iterate_grass_movement(const Seconds dt) -> void{
 auto moo::game::draw_sky_and_ground() -> void{
    for(LineCoordIt it = get_screen_it(); it.is_valid(); ++it)
       m_bg_buffer[it.to_range_index()] = get_bg_color(*it);
+}
+
+
+auto moo::game::draw_mountain(
+   const BgColorBuffer& mountain, 
+   BgBuffer& target,
+   const double alpha
+) -> void
+{
+   for (int i = 0; i < static_rows; ++i) {
+      for (int j = 0; j < static_columns; ++j) {
+         const int index = i * static_columns + j;
+         if(mountain[index].is_invisible())
+            continue;
+         target[index].m_rgb = mountain[index];
+         target[index].m_alpha += alpha;
+      }
+   }
+
+}
+
+
+auto moo::game::draw_mountain_range(const MountainRange& mountains) -> void{
+   m_mountain_buffer.clear();
+   const double fmod = sane_fmod(mountains.m_position * static_columns, 1.0);
+   draw_mountain(mountains.m_next_mountain, m_mountain_buffer, 1.0 - fmod);
+   draw_mountain(mountains.m_mountain, m_mountain_buffer, fmod);
+
+   draw_buffer_to_bg(m_mountain_buffer);
+}
+
+
+auto moo::game::draw_mountains() -> void{
+   draw_mountain_range(m_back_mountain);
+   draw_mountain_range(m_middle_mountain);
+   draw_mountain_range(m_front_mountain);
 }
 
 
@@ -445,12 +487,13 @@ auto moo::game::spawn_new_cows() -> void{
 auto moo::game::draw_background() -> void {
    ZoneScoped;
    draw_sky_and_ground();
+   draw_mountains();
    m_registry.view<IsCloud, CloudImageRef, ScreenCoord>().each([&](
       CloudImageRef image_ref, const ScreenCoord& pos
       ) {
          const ImageWrapper& cloud_image = m_registry.get<CloudImage>(image_ref);
          const LineCoord top_left = get_top_left(to_line_coord(pos), cloud_image.get_dim<LineCoord>());
-         draw_to_bg(cloud_image, top_left, 0.1);
+         draw_to_bg(cloud_image, top_left, 0.1, std::nullopt);
       }
    );
 }
@@ -471,7 +514,7 @@ auto moo::game::draw_trail(const Trail& trail) -> void{
 auto moo::game::draw_bullet(const Bullet& bullet) -> void{
    const ScreenCoord bullet_pos = bullet.m_pos;
    if (bullet.m_head_alive && bullet_pos.is_on_screen()) {
-      const RGB bullet_color = m_game_colors.get_red();
+      constexpr RGB bullet_color = {255, 0, 0};
       const PixelCoord bullet_pixel_pos = to_pixel_coord(bullet_pos);
 
       if (bullet.m_style == BulletStyle::Rocket) {
@@ -508,7 +551,7 @@ auto moo::game::draw_beam(const Ufo& ufo) -> void{
          if (!is_on_screen(line_pos))
             continue;;
          const size_t bg_index = to_screen_index(line_pos);
-         m_bg_buffer[bg_index] = get_color_mix(m_bg_buffer[bg_index], { 255, 255, 255 }, get_beam_intensity(m_time.m_day_progress, y_ratio));
+         m_bg_buffer[bg_index] = get_color_mix(m_bg_buffer[bg_index], { 255, 255, 255 }, get_beam_intensity(m_time, y_ratio));
       }
       beam_width += 2;
    }
@@ -562,6 +605,7 @@ auto moo::game::do_logic(const Seconds dt) -> void{
    iterate_grass_movement(dt);
    do_cow_logic(dt);
    do_cloud_logic(dt);
+   do_mountain_logic(dt);
 
    m_registry.view<Trail>().each([&](auto trail_entity, Trail& trail) {
       trail.thin_trail(dt);
@@ -606,6 +650,7 @@ auto moo::game::do_logic(const Seconds dt) -> void{
 
 auto moo::game::do_drawing() -> void{
    draw_background();
+
    m_registry.view<Ufo>().each([&](Ufo& ufo) {
       draw_beam(ufo);
       });
@@ -621,7 +666,7 @@ auto moo::game::do_drawing() -> void{
    m_registry.view<Ufo>().each([&](Ufo& ufo) {
       std::optional<RGB> override_color;
       if (ufo.is_invul())
-         override_color = m_game_colors.get_white();
+         override_color = {255, 255, 255};
       write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, 1.0, override_color);
       });
 
@@ -634,17 +679,17 @@ auto moo::game::do_drawing() -> void{
 auto moo::game::draw_gui() -> void{
    ZoneScopedN("Drawing GUI");
    const std::string gui_text = fmt::format(
-      "FPS: {:.1f}, color changes: {}, day: \"{}\", time: {:.2f}, cows: {}, bullets: {}, trails: {}",
+      "FPS: {:.1f}, color changes: {}, time: {:.2f}, cows: {}, bullets: {}, trails: {}",
       m_fps_counter.m_current_fps,
       m_painter.get_paint_count(),
-      m_time.m_day + 1,
-      m_time.m_day_progress,
+      m_time,
       m_registry.view<IsCow>().size(),
       m_registry.view<Bullet>().size(),
       m_registry.view<Trail>().size()
    );
    write_screen_text(gui_text, { 0, 0 });
 }
+
 
 
 auto moo::game::draw_cows() -> void{
@@ -687,7 +732,8 @@ auto moo::game::draw_shadow(
 auto moo::game::draw_to_bg(
    const ImageWrapper& image,
    const LineCoord& top_left,
-   const double alpha
+   const double alpha,
+   const std::optional<RGB> override_color
 ) -> void
 {
    ZoneScoped;
@@ -696,8 +742,28 @@ auto moo::game::draw_to_bg(
       if (!is_on_screen(bg_pos) || !image_it.get_image_pixel().is_visible())
          continue;
       const size_t index = to_screen_index(bg_pos);
-      m_bg_buffer[index] = get_color_mix(m_bg_buffer[index], image_it.get_image_pixel(), alpha);
+      const RGB color = override_color.value_or(image_it.get_image_pixel());
+      m_bg_buffer[index] = get_color_mix(m_bg_buffer[index], color, alpha);
    }
+}
+
+
+auto moo::game::draw_buffer_to_bg(const BgBuffer& buffer) -> void{
+   for (int i = 0; i < static_rows; ++i) {
+      for (int j = 0; j < static_columns; ++j) {
+         const int index = i * static_columns + j;
+         if (is_zero(buffer[index].m_alpha))
+            continue;
+         m_bg_buffer[index] = get_color_mix(m_bg_buffer[index], buffer[index].m_rgb, buffer[index].m_alpha);
+      }
+   }
+}
+
+
+void moo::game::do_mountain_logic(const Seconds dt){
+   m_front_mountain.move(dt);
+   m_middle_mountain.move(0.5 * dt);
+   m_back_mountain.move(0.3 * dt);
 }
 
 

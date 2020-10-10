@@ -9,13 +9,13 @@
 
 namespace moo {
 
+   struct RGB;
+
    struct TrailPuff {
       ScreenCoord pos;
       RGB color;
    };
 
-
-   enum class BulletStyle { Rocket, Alien };
 
    struct Trail {
       Trail(const BulletStyle style, entt::entity bullet);

@@ -28,35 +28,6 @@ namespace {
    }
 
 
-   [[nodiscard]] auto load_image(
-      const fs::path& path,
-      const bool dimension_checks
-   ) -> moo::SingleImage
-   {
-      if (!fs::exists(path)) {
-         printf("File doesn't exist (%s).\n", path.string().c_str());
-         std::terminate();
-      }
-      int png_bpp = -1, png_width = -1, png_height = -1;
-      unsigned char* png_data = stbi_load(path.string().c_str(), &png_width, &png_height, &png_bpp, 0);
-      if (png_bpp != 3) {
-         printf("Image doesn't have RGB colors. (%s, %ibpp)\n", path.string().c_str(), png_bpp);
-         std::terminate();
-      }
-      if (dimension_checks && (png_width % 2 != 0 || png_height % 2 != 0)) {
-         printf("Image (%s) doesn't have even dimensions\n", path.string().c_str());
-         std::terminate();
-      }
-      moo::SingleImage image(png_width, png_height);
-      for (int i = 0; i < png_width * png_height; ++i) {
-         static_assert(sizeof(moo::RGB::r) == sizeof(stbi_uc)); // making sure the following cast is elegant instead of evil
-         moo::RGB rgb_color = reinterpret_cast<moo::RGB&>(png_data[i * 3]);
-         image.m_pixels[i] = rgb_color;
-      }
-      return image;
-   }
-
-
    [[nodiscard]] auto are_all_images_same_dimensions(const std::vector<moo::SingleImage>& images) -> bool {
       const int first_width = images.front().m_width;
       const int first_height = images.front().m_height;
@@ -116,6 +87,35 @@ namespace {
 
 
 } // namespace {}
+
+
+[[nodiscard]] auto moo::load_image(
+   const fs::path& path,
+   const bool dimension_checks
+) -> moo::SingleImage
+{
+   if (!fs::exists(path)) {
+      printf("File doesn't exist (%s).\n", path.string().c_str());
+      std::terminate();
+   }
+   int png_bpp = -1, png_width = -1, png_height = -1;
+   unsigned char* png_data = stbi_load(path.string().c_str(), &png_width, &png_height, &png_bpp, 0);
+   if (png_bpp != 3) {
+      printf("Image doesn't have RGB colors. (%s, %ibpp)\n", path.string().c_str(), png_bpp);
+      std::terminate();
+   }
+   if (dimension_checks && (png_width % 2 != 0 || png_height % 2 != 0)) {
+      printf("Image (%s) doesn't have even dimensions\n", path.string().c_str());
+      std::terminate();
+   }
+   moo::SingleImage image(png_width, png_height);
+   for (int i = 0; i < png_width * png_height; ++i) {
+      static_assert(sizeof(moo::RGB::r) == sizeof(stbi_uc)); // making sure the following cast is elegant instead of evil
+      moo::RGB rgb_color = reinterpret_cast<moo::RGB&>(png_data[i * 3]);
+      image.m_pixels[i] = rgb_color;
+   }
+   return image;
+}
 
 
 auto moo::load_images(

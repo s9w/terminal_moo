@@ -1,7 +1,6 @@
 #include "bullet.h"
 
 #include "config.h"
-#include "game_colors.h"
 #include "rng.h"
 #include "tweening.h"
 
@@ -100,7 +99,7 @@ auto moo::Trail::add_puff(
    double smoke_spread = moo::get_config().smoke_puff_spread;
    if (m_style == BulletStyle::Alien)
       smoke_spread = 0.0;
-   const RGB smoke_color = GameColors::get_shot_trail_start_color(m_style);
+   const RGB smoke_color = get_shot_trail_start_color(m_style);
    if (m_smoke_puffs.empty()) {
       m_smoke_puffs.push_back({ get_smoke_puff_pos(new_bullet_pos, smoke_spread, norm_pos_diff, m_style, path_progress), smoke_color });
       return;
@@ -122,8 +121,8 @@ auto moo::Trail::update_puff_colors(
    const ScreenCoord& bullet_pos
 ) -> void
 {
-   const RGB start_color = GameColors::get_shot_trail_start_color(m_style);
-   const RGB end_color = GameColors::get_shot_trail_end_color(m_style);
+   const RGB start_color = get_shot_trail_start_color(m_style);
+   const RGB end_color = get_shot_trail_end_color(m_style);
    for (size_t i = 0; i < m_smoke_puffs.size(); ++i) {
       TrailPuff& puff = m_smoke_puffs[i];
       const double progress = get_rising(get_length(puff.pos - bullet_pos), 0.0, 0.5);
