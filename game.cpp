@@ -625,7 +625,8 @@ auto moo::game::do_logic(const Seconds dt) -> void{
          trail.add_puff(new_pos, bullet.m_pos, path_progress);
       }
 
-      const bool remove_bullet = !bullet.m_head_alive || !bullet.m_pos.is_on_screen();
+      const bool bullet_under_horizon = bullet.m_pos.y > (get_sky_row_height() + 0.5 * get_ground_row_height()) / static_rows;
+      const bool remove_bullet = !bullet.m_head_alive || !bullet.m_pos.is_on_screen() || bullet_under_horizon;
 
       if (!remove_bullet)
          m_aliens.process_bullets(bullet, m_registry);
