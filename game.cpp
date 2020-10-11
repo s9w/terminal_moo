@@ -205,6 +205,24 @@ namespace {
       return beam_intensity;
    }
 
+
+   [[nodiscard]] auto get_closest_cow(
+      const moo::ScreenCoord& ufo_pos,
+      entt::registry& registry
+   ) -> entt::entity
+   {
+      entt::entity closest_entity;
+      double closest_dist = 10.0;
+      registry.view<moo::IsCow, moo::LanePosition>().each([&](entt::entity entity, const moo::LanePosition& pos) {
+         const double dist = std::abs(pos.m_x_pos - ufo_pos.x);
+         if (dist < closest_dist) {
+            closest_entity = entity;
+            closest_dist = dist;
+         }
+         });
+      return closest_entity;
+   }
+
 } // namespace {}
 
 
@@ -378,9 +396,9 @@ void moo::game::set_new_ufo_strategies(){
       ufo.m_strategy = Shoot{};
       return;
    }
-   auto some_cow_entity = cows.front();
+   auto closest_cow = get_closest_cow(ufo.m_pos, m_registry);
    m_registry.view<Ufo>().each([&](Ufo& ufo) {
-      ufo.m_strategy = Abduct{ some_cow_entity };
+      ufo.m_strategy = Abduct{ closest_cow };
       });
 }
 
