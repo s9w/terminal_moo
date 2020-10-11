@@ -7,4 +7,5 @@ smoke_puff_spread = 0.01 #Spread of smoke puffs off player bullet trajectory; in
 enable_mouse = true
 cloud_count = 3
 ufo_hit_invul_duration = 0.3 #How long ufos turn white and invulnerable after a hit (in Seconds)
+player_hit_invul_duration = 0.3 #How long player turns white and invulnerable after a hit (in Seconds)
 day_length = 20.0 #game Day length in real seconds

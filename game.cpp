@@ -677,6 +677,7 @@ auto moo::game::do_logic(const Seconds dt) -> void{
          m_aliens.process_bullets(bullet, m_registry);
          if (does_bullet_hit(bullet, m_player.m_pos, player_dim, BulletStyle::Alien)) {
             m_player.m_hitpoints -= 1.0;
+            m_player.m_hit_timer = get_config().player_hit_invul_duration;;
             bullet.m_head_alive = false;
          }
       }
@@ -689,6 +690,13 @@ auto moo::game::do_logic(const Seconds dt) -> void{
       });
 
    m_player_anim_frame.progress(dt);
+   {
+      if (m_player.is_invul()) {
+         m_player.m_hit_timer -= dt;
+         if (m_player.m_hit_timer < 0.0)
+            m_player.m_hit_timer = 0.0;
+      }
+   }
    m_registry.view<IsCow, BeingBeamed, LanePosition>().each([&](auto cow, BeingBeamed& being_beamed, LanePosition& pos) {
       if (being_beamed.value)
          return;
@@ -723,7 +731,11 @@ auto moo::game::do_drawing() -> void{
       write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, 1.0, override_color);
       });
 
-   write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, 1.0, std::nullopt);
+
+   std::optional<RGB> player_override_color;
+   if (m_player.is_invul())
+      player_override_color = { 255, 255, 255 };
+   write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, 1.0, player_override_color);
 
    draw_gui();
 }

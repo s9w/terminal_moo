@@ -10,6 +10,7 @@ namespace moo {
       bool enable_mouse = true;
       int cloud_count = 3;
       double ufo_hit_invul_duration = 0.1;
+      double player_hit_invul_duration = 0.1;
       double day_length = 60.0;
    };
 

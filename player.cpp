@@ -84,3 +84,9 @@ auto moo::Player::try_to_fire(
    registry.emplace<Bullet>(bullet_entity, initial_bullet_pos, get_bullet_trajectory(0.1), BulletStyle::Rocket, trail_entity);
    registry.emplace<Trail>(trail_entity, BulletStyle::Rocket, bullet_entity);
 }
+
+
+auto moo::Player::is_invul() const -> bool{
+   return !is_zero(m_hit_timer.m_value);
+}
+
