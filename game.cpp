@@ -221,9 +221,9 @@ moo::game::game()
    , m_pixel_buffer(get_pixel_count(), RGB{})
    , m_t_last(std::chrono::system_clock::now())
    , m_aliens({ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) })
-   , m_front_mountain(0, get_color_mix(get_ground_color(0.0), get_sky_color(0.6), 0.2))
-   , m_middle_mountain(2, get_color_mix(get_ground_color(0.0), get_sky_color(0.6), 0.6))
-   , m_back_mountain(4, get_color_mix(get_ground_color(0.0), get_sky_color(0.6), 1.0))
+   , m_front_mountain(0, RGB{62, 85, 103})
+   , m_middle_mountain(2, RGB{ 69, 104, 126 })
+   , m_back_mountain(4, RGB{ 104, 145, 165 })
 {
    for (Animation& animation : load_animations(true, "cow.png", "cow_white_brown.png", "cow_white_black.png")) {
       auto entity = m_registry.create();

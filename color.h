@@ -122,8 +122,10 @@ constexpr auto moo::get_offsetted_color(
 
 
 constexpr auto moo::get_sky_color(const double fraction) ->RGB{
-   constexpr RGB horizon{ 197, 214, 219 };
-   constexpr RGB sky{ 0, 34, 57 };
+   constexpr RGB horizon{ 149, 179, 228 };
+   constexpr RGB sky{ 245, 244, 240 };
+   //constexpr RGB horizon{ 167, 142, 172 };
+   //constexpr RGB sky{ 237, 215, 155 };
    const RGB final_color = get_color_mix(sky, horizon, fraction);
 
    return final_color;
