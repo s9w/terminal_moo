@@ -54,6 +54,7 @@ namespace moo {
    [[nodiscard]] auto get_ground_row_height() -> int;
    [[nodiscard]] auto get_shadow_center_pos(const ScreenCoord& player_pos)->LineCoord;
 
+
    /// <summary>If the position diff would not result in at least a change of "half" a pixel,
    /// the resulting position could immediately jump back. For small differences, that would
    /// result in optical flickering</summary>
@@ -89,4 +90,3 @@ namespace moo {
       less_equal(bullet_pos.y, target_pos.y + 0.5 * target_dimensions.y);
    return is_x_in && is_y_in;
 }
-

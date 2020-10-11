@@ -653,8 +653,14 @@ auto moo::game::do_logic(const Seconds dt) -> void{
       const bool bullet_under_horizon = bullet.m_pos.y > (get_sky_row_height() + 0.5 * get_ground_row_height()) / static_rows;
       const bool remove_bullet = !bullet.m_head_alive || !bullet.m_pos.is_on_screen() || bullet_under_horizon;
 
-      if (!remove_bullet)
+      if (!remove_bullet) {
+         const ScreenCoord player_dim{ m_player_animation.m_width / (2.0 * static_columns), m_player_animation.m_height / (2.0 * static_rows) };
          m_aliens.process_bullets(bullet, m_registry);
+         if (does_bullet_hit(bullet, m_player.m_pos, player_dim, BulletStyle::Alien)) {
+            m_player.m_hitpoints -= 1.0;
+            bullet.m_head_alive = false;
+         }
+      }
       if (remove_bullet)
          m_registry.destroy(bullet_entity);
       });
@@ -668,8 +674,10 @@ auto moo::game::do_logic(const Seconds dt) -> void{
       if (being_beamed.value)
          return;
       pos.m_x_pos -= get_lane_speed(pos.m_lane, dt);
-      if (pos.is_gone())
+      if (pos.is_gone()) {
          m_registry.destroy(cow);
+         m_player.m_hitpoints += 0.1;
+      }
       });
 }
 
@@ -705,13 +713,10 @@ auto moo::game::do_drawing() -> void{
 auto moo::game::draw_gui() -> void{
    ZoneScopedN("Drawing GUI");
    const std::string gui_text = fmt::format(
-      "FPS: {:.1f}, color changes: {}, time: {:.2f}, cows: {}, bullets: {}, trails: {}",
+      "FPS: {:.1f}, color changes: {}, HP: {:.1f}",
       m_fps_counter.m_current_fps,
       m_painter.get_paint_count(),
-      m_time,
-      m_registry.view<IsCow>().size(),
-      m_registry.view<Bullet>().size(),
-      m_registry.view<Trail>().size()
+      m_player.m_hitpoints
    );
    write_screen_text(gui_text, { 0, 0 });
 }

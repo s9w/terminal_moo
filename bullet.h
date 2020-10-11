@@ -52,5 +52,18 @@ namespace moo {
       BulletStyle m_style = BulletStyle::Rocket;
    };
 
+
+   [[nodiscard]] constexpr auto does_bullet_hit(
+      const moo::Bullet& bullet,
+      const moo::ScreenCoord& obj_pos,
+      const moo::ScreenCoord& obj_dimensions,
+      const moo::BulletStyle& hitting_style
+   ) -> bool
+   {
+      return bullet.m_head_alive &&
+         bullet.m_style == hitting_style &&
+         is_hit(bullet.m_pos, obj_pos, obj_dimensions);
+   }
+
 }
 

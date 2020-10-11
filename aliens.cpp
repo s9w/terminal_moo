@@ -1,23 +1,11 @@
 #include "aliens.h"
 
-//#include "cow.h"
 #include "entt_types.h"
 
 #include <entt/entt.hpp>
 
 namespace {
 
-   [[nodiscard]] constexpr auto does_bullet_hit(
-      const moo::Bullet& bullet,
-      const moo::Ufo& ufo,
-      const moo::ScreenCoord& ufo_dimensions
-   ) -> bool
-   {
-      return bullet.m_head_alive &&
-         bullet.m_style == moo::BulletStyle::Rocket &&
-         !ufo.is_invul() &&
-         is_hit(bullet.m_pos, ufo.m_pos, ufo_dimensions);
-   }
 
 } // namespace {}
 
@@ -36,7 +24,7 @@ void moo::Aliens::process_bullets(
    for (auto entity : registry.view<Ufo>()) {
       Ufo& ufo = registry.get<Ufo>(entity);
       bool ufo_killed = false;
-      if (does_bullet_hit(bullet, ufo, m_ufo_dimensions)) {
+      if (!ufo.is_invul() && does_bullet_hit(bullet, ufo.m_pos, m_ufo_dimensions, BulletStyle::Rocket)) {
          bullet.m_head_alive = false;
          ufo_killed = ufo.hit();
       }

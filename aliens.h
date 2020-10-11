@@ -2,8 +2,6 @@
 
 #include "ufo.h"
 
-#include <vector>
-
 #include <entt/fwd.hpp>
 
 
