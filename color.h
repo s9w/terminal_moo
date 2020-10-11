@@ -33,7 +33,6 @@ namespace moo {
    [[nodiscard]] auto get_noised_color(const moo::RGB& color, const int noise_strength, std::mt19937_64& rng) -> RGB;
    [[nodiscard]] constexpr auto get_offsetted_color(const moo::RGB& color, const int noise) -> RGB;
    [[nodiscard]] auto get_gradient(const RGB& from, const RGB& to, const unsigned int n) -> std::vector<RGB>;
-   [[nodiscard]] constexpr auto get_color_mix(const RGB& a, const RGB& b) -> RGB;
    [[nodiscard]] constexpr auto get_color_mix(const RGB& a, const RGB& b, const double factor) -> RGB;
    [[nodiscard]] constexpr auto get_sky_color(const double fraction)->RGB;
    [[nodiscard]] constexpr auto get_ground_color(const double fraction)->RGB;
@@ -82,15 +81,6 @@ constexpr auto moo::is_color_visible(const moo::RGB& color) -> bool {
 
 constexpr auto moo::RGB::is_invisible() const -> bool {
    return r == 0 && g == 0 && b == 0;
-}
-
-
-constexpr auto moo::get_color_mix(const RGB& a, const RGB& b) -> RGB {
-   return {
-      std::midpoint(a.r, b.r),
-      std::midpoint(a.g, b.g),
-      std::midpoint(a.b, b.b)
-   };
 }
 
 

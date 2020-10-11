@@ -42,7 +42,7 @@ constexpr auto moo::BlockChar::get_best_color() const -> RGB {
    const std::optional<RGB> first_color = get_first_different_visible_color();
    const std::optional<RGB> second_color = get_first_different_visible_color(first_color.value());
    if (second_color.has_value())
-      return get_color_mix(first_color.value(), second_color.value());
+      return get_color_mix(first_color.value(), second_color.value(), 0.5);
    return first_color.value();
 }
 TEST_CASE("BlockChar.get_best_color()") {
