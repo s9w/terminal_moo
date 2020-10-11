@@ -445,6 +445,7 @@ auto moo::game::iterate_grass_movement(const Seconds dt) -> void{
 
 
 auto moo::game::draw_sky_and_ground() -> void{
+   ZoneScoped;
    for(LineCoordIt it = get_screen_it(); it.is_valid(); ++it)
       m_bg_buffer[it.to_range_index()] = get_bg_color(*it);
 }
@@ -479,6 +480,7 @@ auto moo::game::draw_mountain_range(const MountainRange& mountains) -> void{
 
 
 auto moo::game::draw_mountains() -> void{
+   ZoneScoped;
    draw_mountain_range(m_back_mountain);
    draw_mountain_range(m_middle_mountain);
    draw_mountain_range(m_front_mountain);
@@ -587,8 +589,8 @@ auto moo::game::do_cow_logic(const Seconds dt) -> void{
       bool& being_beamed = m_registry.get<BeingBeamed>(cow_entity).value;
       m_registry.get<AnimationFrame>(cow_entity).progress(dt);
       if (being_beamed) {
-         constexpr double seconds_to_face = 3.0;
-         alpha.value -= dt / seconds_to_face;
+         constexpr double seconds_to_fade = 3.0;
+         alpha.value -= dt / seconds_to_fade;
          if (alpha.value < 0) {
             m_registry.destroy(cow_entity);
             auto ufo_entity = m_registry.view<Ufo>().front();

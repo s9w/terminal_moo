@@ -52,8 +52,7 @@ constexpr auto moo::get_triangle(const double x) -> double {
       return 2.0 - 2.0 * x;
 }
 TEST_CASE("get_triangle()") {
-   using namespace moo;
-   CHECK_EQ(get_triangle(0.0), doctest::Approx(0.0));
-   CHECK_EQ(get_triangle(0.5), doctest::Approx(1.0));
-   CHECK_EQ(get_triangle(1.0), doctest::Approx(0.0));
+   CHECK_EQ(moo::get_triangle(0.0), doctest::Approx(0.0));
+   CHECK_EQ(moo::get_triangle(0.5), doctest::Approx(1.0));
+   CHECK_EQ(moo::get_triangle(1.0), doctest::Approx(0.0));
 }
