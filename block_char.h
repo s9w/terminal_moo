@@ -49,7 +49,7 @@ TEST_CASE("BlockChar.get_best_color()") {
    using namespace moo;
    constexpr RGB red{ 255, 0, 0 };
    constexpr RGB green{ 0, 255, 0 };
-   constexpr RGB mustard_ish{ 128, 127, 0 };
+   constexpr RGB mustard_ish{ 127, 127, 0 };
    CHECK(BlockChar({ red, {}, {}, {} }).get_best_color() == red);
    CHECK(BlockChar({ red, green, {}, {} }).get_best_color() == mustard_ish);
 
