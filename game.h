@@ -99,9 +99,11 @@ namespace moo {
       MountainRange m_middle_mountain;
       MountainRange m_back_mountain;
       double m_time = 0.0;
+      double m_escalation_cooldown = 30.0;
 
    private:
       void do_mountain_logic(const Seconds dt);
+      void do_alien_strategy_logic(const Seconds dt);
    };
 
 }

@@ -643,6 +643,7 @@ auto moo::game::do_cloud_logic(const Seconds dt) -> void{
 
 
 auto moo::game::do_logic(const Seconds dt) -> void{
+   do_alien_strategy_logic(dt);
    spawn_new_cows();
    m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt);
    iterate_grass_movement(dt);
@@ -731,10 +732,11 @@ auto moo::game::do_drawing() -> void{
 auto moo::game::draw_gui() -> void{
    ZoneScopedN("Drawing GUI");
    const std::string gui_text = fmt::format(
-      "FPS: {:.1f}, color changes: {}, HP: {:.1f}",
+      "FPS: {:.1f}, color changes: {}, HP: {:.1f}, escalation: {:.1f}",
       m_fps_counter.m_current_fps,
       m_painter.get_paint_count(),
-      m_player.m_hitpoints
+      m_player.m_hitpoints,
+      m_escalation_cooldown
    );
    write_screen_text(gui_text, { 0, 0 });
 }
@@ -794,6 +796,17 @@ void moo::game::do_mountain_logic(const Seconds dt){
    m_front_mountain.move(dt);
    m_middle_mountain.move(0.5 * dt);
    m_back_mountain.move(0.3 * dt);
+}
+
+
+void moo::game::do_alien_strategy_logic(const Seconds dt){
+   m_escalation_cooldown -= dt.m_value;
+   if (m_escalation_cooldown < 0) {
+      auto entity = m_registry.create();
+      m_registry.emplace<Ufo>(entity, ScreenCoord{0.5, 0.5}, 0.0);
+
+      m_escalation_cooldown = 30.0;
+   }
 }
 
 
