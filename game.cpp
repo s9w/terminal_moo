@@ -7,6 +7,7 @@ namespace fs = std::filesystem;
 #include "entt_helper.h"
 #include "entt_types.h"
 #include "game.h"
+#include "gameplay.h"
 #include "helpers.h"
 #include "rng.h"
 #include "tweening.h"
@@ -205,24 +206,6 @@ namespace {
       return beam_intensity;
    }
 
-
-   [[nodiscard]] auto get_closest_cow(
-      const moo::ScreenCoord& ufo_pos,
-      entt::registry& registry
-   ) -> entt::entity
-   {
-      entt::entity closest_entity;
-      double closest_dist = 10.0;
-      registry.view<moo::IsCow, moo::LanePosition>().each([&](entt::entity entity, const moo::LanePosition& pos) {
-         const double dist = std::abs(pos.m_x_pos - ufo_pos.x);
-         if (dist < closest_dist) {
-            closest_entity = entity;
-            closest_dist = dist;
-         }
-         });
-      return closest_entity;
-   }
-
 } // namespace {}
 
 
@@ -242,6 +225,7 @@ moo::game::game()
    , m_front_mountain(0, RGB{62, 85, 103})
    , m_middle_mountain(2, RGB{ 69, 104, 126 })
    , m_back_mountain(4, RGB{ 104, 145, 165 })
+   , m_strategy_change_cooldown(get_config().new_strategy_interval)
 {
    for (Animation& animation : load_animations(true, "cow.png", "cow_white_brown.png", "cow_white_black.png")) {
       auto entity = m_registry.create();
@@ -252,11 +236,7 @@ moo::game::game()
       m_registry.emplace<CloudImage>(entity, std::move(cloud_image));
    }
 
-   {
-      auto entity = m_registry.create();
-      const ScreenCoord desired{ 0.83, 0.3 };
-      m_registry.emplace<Ufo>(entity, get_beam_aligned_coord(desired), 0.0);
-   }
+   spawn_ufo();
 
    m_output_string.reserve(100000);
 
@@ -388,18 +368,7 @@ void moo::game::write_one_block(
 
 void moo::game::set_new_ufo_strategies(){
    entt::entity some_ufo_entity = m_registry.view<Ufo>().front();
-   if (!m_registry.valid(some_ufo_entity))
-      return;
-   Ufo& ufo = m_registry.get<Ufo>(some_ufo_entity);
-   auto cows = m_registry.view<IsCow>();
-   if (cows.empty()) {
-      ufo.m_strategy = Shoot{};
-      return;
-   }
-   auto closest_cow = get_closest_cow(ufo.m_pos, m_registry);
-   m_registry.view<Ufo>().each([&](Ufo& ufo) {
-      ufo.m_strategy = Abduct{ closest_cow };
-      });
+   set_ufo_abducting(some_ufo_entity, m_registry);
 }
 
 
@@ -744,11 +713,12 @@ auto moo::game::do_drawing() -> void{
 auto moo::game::draw_gui() -> void{
    ZoneScopedN("Drawing GUI");
    const std::string gui_text = fmt::format(
-      "FPS: {:.1f}, color changes: {}, HP: {:.1f}, escalation: {:.1f}",
+      "FPS: {:.1f}, color changes: {}, HP: {:.1f}, level: {}, strategy cooldown: {:.1f}",
       m_fps_counter.m_current_fps,
       m_painter.get_paint_count(),
       m_player.m_hitpoints,
-      m_escalation_cooldown
+      m_level,
+      m_strategy_change_cooldown
    );
    write_screen_text(gui_text, { 0, 0 });
 }
@@ -812,13 +782,34 @@ void moo::game::do_mountain_logic(const Seconds dt){
 
 
 void moo::game::do_alien_strategy_logic(const Seconds dt){
-   m_escalation_cooldown -= dt.m_value;
-   if (m_escalation_cooldown < 0) {
-      auto entity = m_registry.create();
-      m_registry.emplace<Ufo>(entity, ScreenCoord{0.5, 0.5}, 0.0);
-
-      m_escalation_cooldown = 30.0;
+   m_strategy_change_cooldown -= dt.m_value;
+   auto ufos = m_registry.view<Ufo>();
+   if (ufos.empty()) {
+      spawn_ufo();
+      m_level++;
    }
+   if (m_strategy_change_cooldown < 0) {
+      if (ufos.empty())
+         return;
+      const entt::entity some_ufo_entity = ufos.front();
+      const Ufo& ufo = m_registry.get<Ufo>(some_ufo_entity);
+      if (std::holds_alternative<Shoot>(ufo.m_strategy)) {
+         set_ufo_abducting(some_ufo_entity, m_registry);
+      }
+      else {
+         set_ufo_shooting(some_ufo_entity, m_registry);
+      }
+         
+      m_strategy_change_cooldown = get_config().new_strategy_interval;
+   }
+}
+
+
+void moo::game::spawn_ufo(){
+   const std::uniform_real_distribution<double> x_dist(0.1, 0.9);
+   const std::uniform_real_distribution<double> y_dist(0.1, 0.5);
+   auto entity = m_registry.create();
+   m_registry.emplace<Ufo>(entity, ScreenCoord{ x_dist(get_rng()), y_dist(get_rng()) }, 0.0);
 }
 
 
