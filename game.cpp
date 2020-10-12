@@ -387,7 +387,15 @@ void moo::game::write_one_block(
 
 
 void moo::game::set_new_ufo_strategies(){
-   set_ufo_abducting(m_ufo, m_registry);
+   const auto cows = m_registry.view<IsCow>();
+   if (cows.empty()) {
+      set_ufo_shooting(m_ufo, m_registry);
+      return;
+   }
+   if (std::holds_alternative<Shoot>(m_ufo.m_strategy))
+      set_ufo_abducting(m_ufo, m_registry);
+   else
+      set_ufo_shooting(m_ufo, m_registry);
 }
 
 
@@ -601,7 +609,7 @@ auto moo::game::do_cow_logic(const Seconds dt) -> void{
             m_registry.destroy(cow_entity);
             m_ufo.m_beaming = false;
             set_new_ufo_strategies();
-            return;
+            //return;
          }
          alpha.value = std::clamp(alpha.value, 0.0, 1.0);
       }
@@ -818,13 +826,7 @@ void moo::game::do_alien_strategy_logic(const Seconds dt){
    //   m_level++;
    //}
    if (m_strategy_change_cooldown < 0) {
-      if (std::holds_alternative<Shoot>(m_ufo.m_strategy)) {
-         set_ufo_abducting(m_ufo, m_registry);
-      }
-      else {
-         set_ufo_shooting(m_ufo, m_registry);
-      }
-         
+      set_new_ufo_strategies();
       m_strategy_change_cooldown = get_config().new_strategy_interval;
    }
 }

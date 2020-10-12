@@ -62,9 +62,7 @@ auto moo::set_ufo_abducting(
       ufo.m_beaming = false;
       return;
    }
-   registry.view<moo::Ufo>().each([&](moo::Ufo& ufo) {
-      ufo.m_strategy = moo::Abduct{ closest_cow.value() };
-      });
+   ufo.m_strategy = moo::Abduct{ closest_cow.value() };
 }
 
 
@@ -75,8 +73,10 @@ auto moo::set_ufo_shooting(
 {
    if (std::holds_alternative<moo::Abduct>(ufo.m_strategy)) {
       const moo::Abduct& strategy = std::get<moo::Abduct>(ufo.m_strategy);
-      moo::BeingBeamed& being_beamed = registry.get<moo::BeingBeamed>(strategy.m_target_cow);
-      being_beamed.value = false;
+      if (registry.valid(strategy.m_target_cow)) {
+         moo::BeingBeamed& being_beamed = registry.get<moo::BeingBeamed>(strategy.m_target_cow);
+         being_beamed.value = false;
+      }
       ufo.m_beaming = false;
    }
    ufo.m_strategy = moo::Shoot{};
