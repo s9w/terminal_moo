@@ -555,7 +555,7 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
 }
 
 
-auto moo::game::draw_beam(const Ufo& ufo) -> void{
+auto moo::game::draw_beam(const Ufo& ufo, const ScreenCoord& ufo_pos) -> void{
    if (!ufo.m_beaming)
       return;
    const auto cow_entity = std::get<Abduct>(ufo.m_strategy).m_target_cow;
@@ -566,14 +566,14 @@ auto moo::game::draw_beam(const Ufo& ufo) -> void{
    constexpr int start_beam_width = 6;
    constexpr int safety_i = 1;
    constexpr int one_row = 1; // This is not evil, I'm just too tired to explain right now
-   const int beam_pixel_height = cow_position.get_row() + one_row - (static_cast<int>(ufo.m_pos.y * static_rows) + m_ufo_animation.m_height / 2) + safety_i;
+   const int beam_pixel_height = cow_position.get_row() + one_row - (static_cast<int>(ufo_pos.y * static_rows) + m_ufo_animation.m_height / 2) + safety_i;
    int beam_width = start_beam_width;
    for (int i = 0; i < beam_pixel_height; ++i) {
       const double y_ratio = 1.0 * i / beam_pixel_height;
       const int j_offset = (start_beam_width - beam_width) / 2;
       for (int j = 0; j < beam_width; ++j) {
          const LineCoord pos{ i, j + j_offset };
-         const LineCoord line_pos = to_line_coord(ufo.m_pos) + pos + LineCoord{ m_ufo_animation.m_height / 2 - safety_i, -start_beam_width / 2 };
+         const LineCoord line_pos = to_line_coord(ufo_pos) + pos + LineCoord{ m_ufo_animation.m_height / 2 - safety_i, -start_beam_width / 2 };
          if (!is_on_screen(line_pos))
             continue;;
          const size_t bg_index = to_screen_index(line_pos);
@@ -625,6 +625,9 @@ auto moo::game::do_cloud_logic(const Seconds dt) -> void{
 }
 
 
+
+
+
 auto moo::game::do_logic(const Seconds dt) -> void{
    do_alien_strategy_logic(dt);
    spawn_new_cows();
@@ -668,8 +671,8 @@ auto moo::game::do_logic(const Seconds dt) -> void{
          m_registry.destroy(bullet_entity);
       });
 
-   m_registry.view<Ufo>().each([&](Ufo& ufo) {
-      ufo.progress(dt, m_player.m_pos, m_registry);
+   m_registry.view<Ufo, ScreenCoord>().each([&](Ufo& ufo, ScreenCoord& ufo_pos) {
+      ufo_progress(dt, m_player.m_pos, ufo, ufo_pos, m_registry);
       });
 
    m_player_anim_frame.progress(dt);
@@ -695,8 +698,8 @@ auto moo::game::do_logic(const Seconds dt) -> void{
 auto moo::game::do_drawing() -> void{
    draw_background();
 
-   m_registry.view<Ufo>().each([&](Ufo& ufo) {
-      draw_beam(ufo);
+   m_registry.view<Ufo, ScreenCoord>().each([&](const Ufo& ufo, const ScreenCoord& ufo_pos) {
+      draw_beam(ufo, ufo_pos);
       });
    draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
    draw_cows();
@@ -707,11 +710,11 @@ auto moo::game::do_drawing() -> void{
       draw_bullet(bullet);
       });
 
-   m_registry.view<Ufo>().each([&](Ufo& ufo) {
+   m_registry.view<Ufo, ScreenCoord>().each([&](const Ufo& ufo, const ScreenCoord& ufo_pos) {
       std::optional<RGB> override_color;
       if (ufo.is_invul())
          override_color = {255, 255, 255};
-      write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, 1.0, override_color, 0.0);
+      write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo_pos, WriteAlignment::Center, 1.0, override_color, 0.0);
       });
 
 
@@ -823,7 +826,8 @@ void moo::game::spawn_ufo(){
    const std::uniform_real_distribution<double> x_dist(0.1, 0.9);
    const std::uniform_real_distribution<double> y_dist(0.1, 0.5);
    auto entity = m_registry.create();
-   m_registry.emplace<Ufo>(entity, ScreenCoord{ x_dist(get_rng()), y_dist(get_rng()) }, 0.0);
+   m_registry.emplace<Ufo>(entity, 0.0);
+   m_registry.emplace<ScreenCoord>(entity, ScreenCoord{ x_dist(get_rng()), y_dist(get_rng()) });
 }
 
 

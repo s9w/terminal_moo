@@ -12,15 +12,11 @@
 namespace moo {
 
    struct Ufo {
-      Ufo(const ScreenCoord initial_pos, const double anim_progress);
-      auto progress(const Seconds& dt, const ScreenCoord& player_pos, entt::registry& registry) -> void;
+      Ufo(const double anim_progress);
       [[nodiscard]] auto hit() -> bool;
       [[nodiscard]] auto is_invul() const -> bool;
-      auto fire(const ScreenCoord& player_pos, entt::registry& registry) -> void;
-      auto move_towards(const ScreenCoord& target, const Seconds& dt) -> void;
-      auto move_towards(const PixelCoord& target, const Seconds& dt) -> void;
+      auto fire(const ScreenCoord& player_pos, const ScreenCoord& ufo_pos, entt::registry& registry) -> void;
 
-      ScreenCoord m_pos;
       double m_health = 1.0;
       Seconds m_hit_timer{0.0};
       AnimationFrame m_animation_frame;

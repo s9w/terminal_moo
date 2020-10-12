@@ -21,10 +21,10 @@ void moo::Aliens::process_bullets(
    Bullet& bullet,
    entt::registry& registry
 ) {
-   for (auto entity : registry.view<Ufo>()) {
-      Ufo& ufo = registry.get<Ufo>(entity);
+   const auto ufos = registry.view<Ufo, ScreenCoord>();
+   ufos.each([&](const entt::entity entity, Ufo& ufo, const ScreenCoord& ufo_pos) {
       bool ufo_killed = false;
-      if (!ufo.is_invul() && does_bullet_hit(bullet, ufo.m_pos, m_ufo_dimensions, BulletStyle::Rocket)) {
+      if (!ufo.is_invul() && does_bullet_hit(bullet, ufo_pos, m_ufo_dimensions, BulletStyle::Rocket)) {
          bullet.m_head_alive = false;
          ufo_killed = ufo.hit();
       }
@@ -36,5 +36,5 @@ void moo::Aliens::process_bullets(
             cow_being_beamed.value = false;
          }
       }
-   }
+      });
 }

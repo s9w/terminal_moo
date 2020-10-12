@@ -1,5 +1,7 @@
 #pragma once
 
+#include "helpers.h"
+
 namespace moo {
 
    struct Config {
@@ -13,6 +15,7 @@ namespace moo {
       double player_hit_invul_duration = 0.1;
       double day_length = 60.0;
       double new_strategy_interval = 10.0;
+      Seconds ufo_shooting_interal = 1.0;
    };
 
    auto setup_config() -> void;

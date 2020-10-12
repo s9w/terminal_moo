@@ -64,7 +64,7 @@ namespace moo {
       auto draw_background() -> void;
       auto draw_trail(const Trail& trail) -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
-      auto draw_beam(const Ufo& ufo) -> void;
+      auto draw_beam(const Ufo& ufo, const ScreenCoord& ufo_pos) -> void;
       auto do_cow_logic(const Seconds dt) -> void;
       auto do_cloud_logic(const Seconds dt) -> void;
       auto do_logic(const Seconds dt) -> void;

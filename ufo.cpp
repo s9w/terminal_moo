@@ -7,52 +7,10 @@
 #include <entt/entt.hpp>
 
 
-moo::Ufo::Ufo(const ScreenCoord initial_pos, const double anim_progress)
-   : m_pos(initial_pos)
-   , m_animation_frame(5, 1.0, anim_progress)
+moo::Ufo::Ufo(const double anim_progress)
+   : m_animation_frame(5, 1.0, anim_progress)
 {
 
-}
-
-constexpr moo::Seconds shooting_interval_s = 1.0;
-
-
-auto moo::Ufo::progress(
-   const Seconds& dt,
-   const ScreenCoord& player_pos,
-   entt::registry& registry
-) -> void
-{
-   m_animation_frame.progress(dt);
-   if (is_invul()) {
-      m_hit_timer -= dt;
-      if (m_hit_timer < 0.0)
-         m_hit_timer = 0.0;
-   }
-   
-   m_shooting_cooldown = std::clamp(m_shooting_cooldown - dt, Seconds{ 0.0 }, shooting_interval_s);
-
-   if (std::holds_alternative<Shoot>(m_strategy)) {
-      fire(player_pos, registry);
-   }
-   else if (std::holds_alternative<Abduct>(m_strategy)) {
-      if (m_beaming)
-         return;
-      const Abduct strategy = std::get<Abduct>(m_strategy);
-      if (!registry.valid(strategy.m_target_cow)) { // moved off screen
-         m_strategy = Shoot{};
-         return;
-      }
-      const ScreenCoord raw_target_pos = registry.get<LanePosition>(strategy.m_target_cow).get_screen_pos() + ScreenCoord{0.0, -0.3};
-      const PixelCoord target_pixel_coord = get_beam_aligned_pixel_coord(raw_target_pos);
-      const bool position_reached = to_pixel_coord(m_pos) == target_pixel_coord;
-      if (position_reached) {
-         BeingBeamed& being_beamed = registry.get<BeingBeamed>(strategy.m_target_cow);
-         being_beamed.value = true;
-         m_beaming = true;
-      }
-      move_towards(target_pixel_coord, dt);
-   }
 }
 
 
@@ -70,33 +28,20 @@ auto moo::Ufo::is_invul() const -> bool{
 
 
 auto moo::Ufo::fire(
-   const ScreenCoord& player_pos, 
+   const ScreenCoord& player_pos,
+   const ScreenCoord& ufo_pos,
    entt::registry& registry
 ) -> void
 {
    if (!is_zero(m_shooting_cooldown.m_value))
       return;
-   m_shooting_cooldown = shooting_interval_s;
-   const ScreenCoord initial_bullet_pos = m_pos;
-   const ScreenCoord norm_pos_diff = get_normalized(player_pos - m_pos);
+   m_shooting_cooldown = get_config().ufo_shooting_interal;
+   const ScreenCoord initial_bullet_pos = ufo_pos;
+   const ScreenCoord norm_pos_diff = get_normalized(player_pos - ufo_pos);
 
    auto bullet_entity = registry.create();
    auto trail_entity = registry.create();
    registry.emplace<Bullet>(bullet_entity, initial_bullet_pos, norm_pos_diff, BulletStyle::Alien, trail_entity);
    registry.emplace<Trail>(trail_entity, BulletStyle::Alien, bullet_entity);
-}
-
-
-auto moo::Ufo::move_towards(const PixelCoord& target, const Seconds& dt) -> void {
-   const ScreenCoord pos_diff = get_screen_coord(target) - m_pos;
-   const ScreenCoord pos_change = dt.m_value * m_speed * get_normalized(pos_diff);
-   m_pos = m_pos + pos_change;
-}
-
-
-auto moo::Ufo::move_towards(const ScreenCoord& target, const Seconds& dt) -> void{
-   const ScreenCoord pos_diff = target - m_pos;
-   const ScreenCoord pos_change = dt.m_value * m_speed * get_sanitized_position_diff(get_normalized(pos_diff));
-   m_pos = m_pos + pos_change;
 }
 
