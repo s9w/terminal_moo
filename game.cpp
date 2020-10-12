@@ -208,10 +208,9 @@ namespace {
 
 
    [[nodiscard]] auto get_cow_fade(const moo::LanePosition& lane_pos) -> double {
-      const int proper_lane = lane_pos.m_lane;
       const int max_ground_lane = moo::get_ground_row_height() - 1;
       constexpr double max_fade = 0.3;
-      const double factor = 1.0 - moo::get_rising(1.0 * proper_lane / max_ground_lane, 0.0, 1.0);
+      const double factor = 1.0 - moo::get_rising(1.0 * lane_pos.m_lane / max_ground_lane, 0.0, 1.0);
       const double fading = max_fade * factor;
       return fading;
    }
