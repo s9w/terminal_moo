@@ -38,7 +38,7 @@ namespace moo {
       ~game();
       auto run() -> void;
       [[nodiscard]] auto game_loop() -> ContinueWish;
-      void combine_buffers();
+      void combine_buffers(const bool draw_fg);
       void write_image_at_pos(const ImageWrapper& image, const ScreenCoord& pos, const WriteAlignment write_alignment, const double alpha, const std::optional<RGB>& override_color, const double fade);
       void write_screen_text(const std::string& text, const LineCoord& start_pos);
       void clear_buffers();
@@ -51,7 +51,8 @@ namespace moo {
       void early_test(const bool use_colors);
       void write_one_block(
          const BlockChar& block_char,
-         const RGB row_bg_color
+         const RGB row_bg_color,
+         const bool draw_foreground
       );
       void set_new_ufo_strategies();
 
@@ -68,7 +69,7 @@ namespace moo {
       auto do_cloud_logic(const Seconds dt) -> void;
       auto process_alien_bullets(Bullet& bullet) -> void;
       auto do_logic(const Seconds dt) -> void;
-      auto do_drawing() -> void;
+      auto do_drawing(const bool draw_fg) -> void;
       auto draw_gui() -> void;
       
       auto draw_cows() -> void;
@@ -101,6 +102,7 @@ namespace moo {
       int m_level = 0;
       double m_strategy_change_cooldown = 10.0;
       Ufo m_ufo;
+      bool m_draw_fg = true;
 
    private:
       void do_mountain_logic(const Seconds dt);

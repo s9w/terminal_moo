@@ -359,9 +359,9 @@ auto moo::game::game_loop() -> ContinueWish {
 
    clear_buffers();
    do_logic(dt);
-   do_drawing();
+   do_drawing(m_draw_fg);
 
-   combine_buffers();
+   combine_buffers(m_draw_fg);
    set_cursor_top_left(m_output_handle);
    write(m_output_handle, m_output_string);
    
@@ -373,8 +373,14 @@ auto moo::game::game_loop() -> ContinueWish {
 
 void moo::game::write_one_block(
    const BlockChar& fg_block_char,
-   const RGB row_bg_color
+   const RGB row_bg_color,
+   const bool draw_fg
 ) {
+   if (!draw_fg) {
+      m_painter.paint(RGB{}, row_bg_color, m_output_string);
+      m_output_string += L" ";
+      return;
+   }
    const std::optional<TwoColors> two_colors = fg_block_char.get_two_colors();
    if (fg_block_char.is_all_visible() && two_colors.has_value()) {
       // no BG visible and FG contains 2+ different colors. Can use two FG colors in this cell!
@@ -404,7 +410,7 @@ void moo::game::set_new_ufo_strategies(){
 }
 
 
-void moo::game::combine_buffers(){
+void moo::game::combine_buffers(const bool draw_fg){
    ZoneScoped;
    m_output_string.clear();
    m_painter.reset_paint_count();
@@ -418,7 +424,7 @@ void moo::game::combine_buffers(){
          m_output_string += screen_char;
          continue;
       }
-      write_one_block(get_block_char_from_fg(*it), bg_color);
+      write_one_block(get_block_char_from_fg(*it), bg_color, draw_fg);
    }
 }
 
@@ -708,11 +714,12 @@ auto moo::game::do_logic(const Seconds dt) -> void{
 }
 
 
-auto moo::game::do_drawing() -> void{
+auto moo::game::do_drawing(const bool draw_fg) -> void{
    draw_background();
 
    draw_beam(m_ufo);
-   draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
+   if(draw_fg)
+      draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
    draw_cows();
    m_registry.view<Trail>().each([&](Trail& trail) {
       draw_trail(trail);
@@ -734,7 +741,8 @@ auto moo::game::do_drawing() -> void{
       player_override_color = { 255, 255, 255 };
    write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, 1.0, player_override_color, 0.0);
 
-   draw_gui();
+   if(draw_fg)
+      draw_gui();
 }
 
 
