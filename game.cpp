@@ -853,9 +853,9 @@ void moo::game::write_image_at_pos(
          else {
             auto bg_index = to_screen_index(to_line_coord(canvas_coord));
             auto bg_color = m_bg_buffer[bg_index];
-            const RGB alpha_blended = get_color_mix(bg_color, image_it.get_image_pixel(), alpha);
-            const RGB faded = get_color_mix(alpha_blended, RGB{0, 0, 0}, fade);
-            m_pixel_buffer[to_screen_index(canvas_coord)] = faded;
+            const RGB faded = get_color_mix(image_it.get_image_pixel(), RGB{ 0, 0, 0 }, fade);
+            const RGB alpha_blended = get_color_mix(bg_color, faded, alpha);
+            m_pixel_buffer[to_screen_index(canvas_coord)] = alpha_blended;
          }
       }
    }
