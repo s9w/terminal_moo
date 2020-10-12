@@ -7,8 +7,9 @@
 #include <entt/entt.hpp>
 
 
-moo::Ufo::Ufo(const double anim_progress)
-   : m_animation_frame(5, 1.0, anim_progress)
+moo::Ufo::Ufo(const ScreenCoord& initial_pos, const double anim_progress)
+   : m_pos(initial_pos)
+   , m_animation_frame(5, 1.0, anim_progress)
 {
 
 }
@@ -29,15 +30,14 @@ auto moo::Ufo::is_invul() const -> bool{
 
 auto moo::Ufo::fire(
    const ScreenCoord& player_pos,
-   const ScreenCoord& ufo_pos,
    entt::registry& registry
 ) -> void
 {
    if (!is_zero(m_shooting_cooldown.m_value))
       return;
    m_shooting_cooldown = get_config().ufo_shooting_interal;
-   const ScreenCoord initial_bullet_pos = ufo_pos;
-   const ScreenCoord norm_pos_diff = get_normalized(player_pos - ufo_pos);
+   const ScreenCoord initial_bullet_pos = m_pos;
+   const ScreenCoord norm_pos_diff = get_normalized(player_pos - m_pos);
 
    auto bullet_entity = registry.create();
    auto trail_entity = registry.create();

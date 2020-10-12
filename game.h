@@ -1,6 +1,5 @@
 #pragma once
 
-#include "aliens.h"
 #include "block_char.h"
 #include "buffer.h"
 #include "color.h"
@@ -12,6 +11,7 @@
 #include "mountain_range.h"
 #include "painter.h"
 #include "player.h"
+#include "ufo.h"
 #include "win_api_helper.h"
 
 #include <string>
@@ -64,9 +64,10 @@ namespace moo {
       auto draw_background() -> void;
       auto draw_trail(const Trail& trail) -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
-      auto draw_beam(const Ufo& ufo, const ScreenCoord& ufo_pos) -> void;
+      auto draw_beam(const Ufo& ufo) -> void;
       auto do_cow_logic(const Seconds dt) -> void;
       auto do_cloud_logic(const Seconds dt) -> void;
+      auto process_alien_bullets(Bullet& bullet) -> void;
       auto do_logic(const Seconds dt) -> void;
       auto do_drawing() -> void;
       auto draw_gui() -> void;
@@ -92,7 +93,6 @@ namespace moo {
       FpsCounter m_fps_counter;
       std::chrono::time_point<std::chrono::system_clock> m_t_last;
       Player m_player;
-      Aliens m_aliens;
       entt::registry m_registry;
       BgBuffer m_blending_buffer;
       MountainRange m_front_mountain;
@@ -101,11 +101,11 @@ namespace moo {
       double m_time = 0.0;
       int m_level = 0;
       double m_strategy_change_cooldown = 10.0;
+      Ufo m_ufo;
 
    private:
       void do_mountain_logic(const Seconds dt);
       void do_alien_strategy_logic(const Seconds dt);
-      void spawn_ufo();
    };
 
 }

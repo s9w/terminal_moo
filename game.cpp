@@ -220,6 +220,14 @@ namespace {
       CHECK_EQ(get_cow_fade({ 0.0, max_ground_lane }), doctest::Approx(0.0));
    }
 
+
+   [[nodiscard]] auto get_ufo() -> moo::Ufo {
+      const std::uniform_real_distribution<double> x_dist(0.1, 0.9);
+      const std::uniform_real_distribution<double> y_dist(0.1, 0.5);
+      const moo::ScreenCoord initial_pos{ x_dist(moo::get_rng()), y_dist(moo::get_rng()) };
+      return moo::Ufo(initial_pos, 0.0);
+   }
+
 } // namespace {}
 
 
@@ -235,11 +243,11 @@ moo::game::game()
    , m_ufo_animation(load_ufo_animation("ufo.png"))
    , m_pixel_buffer(get_pixel_count(), RGB{})
    , m_t_last(std::chrono::system_clock::now())
-   , m_aliens({ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) })
    , m_front_mountain(0, RGB{62, 85, 103})
    , m_middle_mountain(2, RGB{ 69, 104, 126 })
    , m_back_mountain(4, RGB{ 104, 145, 165 })
    , m_strategy_change_cooldown(get_config().new_strategy_interval)
+   , m_ufo(get_ufo())
 {
    for (Animation& animation : load_animations(true, "cow.png", "cow_white_brown.png", "cow_white_black.png")) {
       auto entity = m_registry.create();
@@ -249,8 +257,6 @@ moo::game::game()
       auto entity = m_registry.create();
       m_registry.emplace<CloudImage>(entity, std::move(cloud_image));
    }
-
-   spawn_ufo();
 
    m_output_string.reserve(100000);
 
@@ -381,8 +387,7 @@ void moo::game::write_one_block(
 
 
 void moo::game::set_new_ufo_strategies(){
-   entt::entity some_ufo_entity = m_registry.view<Ufo>().front();
-   set_ufo_abducting(some_ufo_entity, m_registry);
+   set_ufo_abducting(m_ufo, m_registry);
 }
 
 
@@ -555,7 +560,7 @@ auto moo::game::draw_bullet(const Bullet& bullet) -> void{
 }
 
 
-auto moo::game::draw_beam(const Ufo& ufo, const ScreenCoord& ufo_pos) -> void{
+auto moo::game::draw_beam(const Ufo& ufo) -> void{
    if (!ufo.m_beaming)
       return;
    const auto cow_entity = std::get<Abduct>(ufo.m_strategy).m_target_cow;
@@ -566,14 +571,14 @@ auto moo::game::draw_beam(const Ufo& ufo, const ScreenCoord& ufo_pos) -> void{
    constexpr int start_beam_width = 6;
    constexpr int safety_i = 1;
    constexpr int one_row = 1; // This is not evil, I'm just too tired to explain right now
-   const int beam_pixel_height = cow_position.get_row() + one_row - (static_cast<int>(ufo_pos.y * static_rows) + m_ufo_animation.m_height / 2) + safety_i;
+   const int beam_pixel_height = cow_position.get_row() + one_row - (static_cast<int>(ufo.m_pos.y * static_rows) + m_ufo_animation.m_height / 2) + safety_i;
    int beam_width = start_beam_width;
    for (int i = 0; i < beam_pixel_height; ++i) {
       const double y_ratio = 1.0 * i / beam_pixel_height;
       const int j_offset = (start_beam_width - beam_width) / 2;
       for (int j = 0; j < beam_width; ++j) {
          const LineCoord pos{ i, j + j_offset };
-         const LineCoord line_pos = to_line_coord(ufo_pos) + pos + LineCoord{ m_ufo_animation.m_height / 2 - safety_i, -start_beam_width / 2 };
+         const LineCoord line_pos = to_line_coord(ufo.m_pos) + pos + LineCoord{ m_ufo_animation.m_height / 2 - safety_i, -start_beam_width / 2 };
          if (!is_on_screen(line_pos))
             continue;;
          const size_t bg_index = to_screen_index(line_pos);
@@ -594,8 +599,7 @@ auto moo::game::do_cow_logic(const Seconds dt) -> void{
          alpha.value -= dt / seconds_to_fade;
          if (alpha.value < 0) {
             m_registry.destroy(cow_entity);
-            auto ufo_entity = m_registry.view<Ufo>().front();
-            m_registry.get<Ufo>(ufo_entity).m_beaming = false;
+            m_ufo.m_beaming = false;
             set_new_ufo_strategies();
             return;
          }
@@ -625,7 +629,21 @@ auto moo::game::do_cloud_logic(const Seconds dt) -> void{
 }
 
 
-
+auto moo::game::process_alien_bullets(Bullet& bullet) -> void {
+   bool ufo_killed = false;
+   const ScreenCoord ufo_dimensions{ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) };
+   if (!m_ufo.is_invul() && does_bullet_hit(bullet, m_ufo.m_pos, ufo_dimensions, BulletStyle::Rocket)) {
+      bullet.m_head_alive = false;
+      ufo_killed = m_ufo.hit();
+   }
+   if (ufo_killed) {
+      if (std::holds_alternative<Abduct>(m_ufo.m_strategy)) {
+         auto target_cow = std::get<Abduct>(m_ufo.m_strategy).m_target_cow;
+         BeingBeamed& cow_being_beamed = m_registry.get<BeingBeamed>(target_cow);
+         cow_being_beamed.value = false;
+      }
+   }
+}
 
 
 auto moo::game::do_logic(const Seconds dt) -> void{
@@ -660,7 +678,7 @@ auto moo::game::do_logic(const Seconds dt) -> void{
 
       if (!remove_bullet) {
          const ScreenCoord player_dim{ m_player_animation.m_width / (2.0 * static_columns), m_player_animation.m_height / (2.0 * static_rows) };
-         m_aliens.process_bullets(bullet, m_registry);
+         process_alien_bullets(bullet);
          if (does_bullet_hit(bullet, m_player.m_pos, player_dim, BulletStyle::Alien)) {
             m_player.m_hitpoints -= 1.0;
             m_player.m_hit_timer = get_config().player_hit_invul_duration;;
@@ -671,9 +689,7 @@ auto moo::game::do_logic(const Seconds dt) -> void{
          m_registry.destroy(bullet_entity);
       });
 
-   m_registry.view<Ufo, ScreenCoord>().each([&](Ufo& ufo, ScreenCoord& ufo_pos) {
-      ufo_progress(dt, m_player.m_pos, ufo, ufo_pos, m_registry);
-      });
+   ufo_progress(dt, m_player.m_pos, m_ufo, m_registry);
 
    m_player_anim_frame.progress(dt);
    {
@@ -698,9 +714,7 @@ auto moo::game::do_logic(const Seconds dt) -> void{
 auto moo::game::do_drawing() -> void{
    draw_background();
 
-   m_registry.view<Ufo, ScreenCoord>().each([&](const Ufo& ufo, const ScreenCoord& ufo_pos) {
-      draw_beam(ufo, ufo_pos);
-      });
+   draw_beam(m_ufo);
    draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
    draw_cows();
    m_registry.view<Trail>().each([&](Trail& trail) {
@@ -710,12 +724,12 @@ auto moo::game::do_drawing() -> void{
       draw_bullet(bullet);
       });
 
-   m_registry.view<Ufo, ScreenCoord>().each([&](const Ufo& ufo, const ScreenCoord& ufo_pos) {
+   {
       std::optional<RGB> override_color;
-      if (ufo.is_invul())
-         override_color = {255, 255, 255};
-      write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo_pos, WriteAlignment::Center, 1.0, override_color, 0.0);
-      });
+      if (m_ufo.is_invul())
+         override_color = { 255, 255, 255 };
+      write_image_at_pos(m_ufo_animation[m_ufo.m_animation_frame.get_index()], m_ufo.m_pos, WriteAlignment::Center, 1.0, override_color, 0.0);
+   }
 
 
    std::optional<RGB> player_override_color;
@@ -800,34 +814,19 @@ void moo::game::do_mountain_logic(const Seconds dt){
 
 void moo::game::do_alien_strategy_logic(const Seconds dt){
    m_strategy_change_cooldown -= dt.m_value;
-   auto ufos = m_registry.view<Ufo>();
-   if (ufos.empty()) {
-      spawn_ufo();
-      m_level++;
-   }
+   //if (ufos.empty()) {
+   //   m_level++;
+   //}
    if (m_strategy_change_cooldown < 0) {
-      if (ufos.empty())
-         return;
-      const entt::entity some_ufo_entity = ufos.front();
-      const Ufo& ufo = m_registry.get<Ufo>(some_ufo_entity);
-      if (std::holds_alternative<Shoot>(ufo.m_strategy)) {
-         set_ufo_abducting(some_ufo_entity, m_registry);
+      if (std::holds_alternative<Shoot>(m_ufo.m_strategy)) {
+         set_ufo_abducting(m_ufo, m_registry);
       }
       else {
-         set_ufo_shooting(some_ufo_entity, m_registry);
+         set_ufo_shooting(m_ufo, m_registry);
       }
          
       m_strategy_change_cooldown = get_config().new_strategy_interval;
    }
-}
-
-
-void moo::game::spawn_ufo(){
-   const std::uniform_real_distribution<double> x_dist(0.1, 0.9);
-   const std::uniform_real_distribution<double> y_dist(0.1, 0.5);
-   auto entity = m_registry.create();
-   m_registry.emplace<Ufo>(entity, 0.0);
-   m_registry.emplace<ScreenCoord>(entity, ScreenCoord{ x_dist(get_rng()), y_dist(get_rng()) });
 }
 
 
