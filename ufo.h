@@ -23,7 +23,6 @@ namespace moo {
       Seconds m_shooting_cooldown = 0.0;
       bool m_beaming = false;
       UfoStrategy m_strategy = Shoot{};
-      double m_speed = 0.1;
    };
 
 }

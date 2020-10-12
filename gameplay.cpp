@@ -128,6 +128,6 @@ auto moo::ufo_progress(
          being_beamed.value = true;
          ufo.m_beaming = true;
       }
-      ufo_pos = get_new_ufo_pos(ufo_pos, ufo.m_speed, target_pixel_coord, dt);
+      ufo_pos = get_new_ufo_pos(ufo_pos, get_config().ufo_speed, target_pixel_coord, dt);
    }
 }
