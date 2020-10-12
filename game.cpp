@@ -206,6 +206,21 @@ namespace {
       return beam_intensity;
    }
 
+
+   [[nodiscard]] auto get_cow_fade(const moo::LanePosition& lane_pos) -> double {
+      const int proper_lane = lane_pos.m_lane;
+      const int max_ground_lane = moo::get_ground_row_height() - 1;
+      constexpr double max_fade = 0.3;
+      const double factor = 1.0 - moo::get_rising(1.0 * proper_lane / max_ground_lane, 0.0, 1.0);
+      const double fading = max_fade * factor;
+      return fading;
+   }
+   TEST_CASE("get_cow_fade()") {
+      const int max_ground_lane = moo::get_ground_row_height() - 1;
+      CHECK_EQ(get_cow_fade({ 0.0, 0 }), doctest::Approx(0.3));
+      CHECK_EQ(get_cow_fade({ 0.0, max_ground_lane }), doctest::Approx(0.0));
+   }
+
 } // namespace {}
 
 
@@ -697,14 +712,14 @@ auto moo::game::do_drawing() -> void{
       std::optional<RGB> override_color;
       if (ufo.is_invul())
          override_color = {255, 255, 255};
-      write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, 1.0, override_color);
+      write_image_at_pos(m_ufo_animation[ufo.m_animation_frame.get_index()], ufo.m_pos, WriteAlignment::Center, 1.0, override_color, 0.0);
       });
 
 
    std::optional<RGB> player_override_color;
    if (m_player.is_invul())
       player_override_color = { 255, 255, 255 };
-   write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, 1.0, player_override_color);
+   write_image_at_pos(m_player_animation[m_player_anim_frame.get_index()], m_player.m_pos, WriteAlignment::Center, 1.0, player_override_color, 0.0);
 
    draw_gui();
 }
@@ -724,7 +739,6 @@ auto moo::game::draw_gui() -> void{
 }
 
 
-
 auto moo::game::draw_cows() -> void{
    ZoneScoped;
    m_registry.view<IsCow, Alpha, AnimationFrame, CowVariant, LanePosition>().each([&](
@@ -736,7 +750,8 @@ auto moo::game::draw_cows() -> void{
             lane_pos.get_screen_pos(),
             WriteAlignment::BottomCenter,
             alpha.value,
-            std::nullopt
+            std::nullopt,
+            get_cow_fade(lane_pos)
          );
       }
    );
@@ -818,7 +833,8 @@ void moo::game::write_image_at_pos(
    const ScreenCoord& screen_pos,
    const WriteAlignment write_alignment,
    const double alpha,
-   const std::optional<RGB>& override_color
+   const std::optional<RGB>& override_color,
+   const double fade
 ){
    ZoneScoped;
    PixelCoord top_left_pos = get_top_left(to_pixel_coord(screen_pos), image.get_dim<PixelCoord>());
@@ -834,8 +850,9 @@ void moo::game::write_image_at_pos(
          else {
             auto bg_index = to_screen_index(to_line_coord(canvas_coord));
             auto bg_color = m_bg_buffer[bg_index];
-            const RGB target_color = get_color_mix(bg_color, image_it.get_image_pixel(), alpha);
-            m_pixel_buffer[to_screen_index(canvas_coord)] = target_color;
+            const RGB alpha_blended = get_color_mix(bg_color, image_it.get_image_pixel(), alpha);
+            const RGB faded = get_color_mix(alpha_blended, RGB{0, 0, 0}, fade);
+            m_pixel_buffer[to_screen_index(canvas_coord)] = faded;
          }
       }
    }

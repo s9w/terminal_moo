@@ -38,7 +38,7 @@ namespace moo {
       auto run() -> void;
       [[nodiscard]] auto game_loop() -> ContinueWish;
       void combine_buffers();
-      void write_image_at_pos(const ImageWrapper& image, const ScreenCoord& pos, const WriteAlignment write_alignment, const double alpha, const std::optional<RGB>& override_color);
+      void write_image_at_pos(const ImageWrapper& image, const ScreenCoord& pos, const WriteAlignment write_alignment, const double alpha, const std::optional<RGB>& override_color, const double fade);
       void write_screen_text(const std::string& text, const LineCoord& start_pos);
       void clear_buffers();
       void refresh_mouse_pos();
