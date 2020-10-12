@@ -501,22 +501,6 @@ auto moo::game::draw_mountains() -> void{
 }
 
 
-auto moo::game::spawn_new_cows() -> void{
-   std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
-   const auto cow_animations = m_registry.view<CowAnimation>();
-   std::uniform_int_distribution<> variant_dist(0, static_cast<int>(cow_animations.size()) - 1);
-   if (const auto cow_pos = cow_spawner(); cow_pos.has_value()) {
-      auto cow_entity = m_registry.create();
-      m_registry.emplace<Alpha>(cow_entity, 1.0);
-      m_registry.emplace<BeingBeamed>(cow_entity, false);
-      m_registry.emplace<IsCow>(cow_entity);
-      m_registry.emplace<LanePosition>(cow_entity, cow_pos.value());
-      m_registry.emplace<AnimationFrame>(cow_entity, 2, 1.0, grazing_progress_dist(get_rng()));
-      m_registry.emplace<CowVariant>(cow_entity, cow_animations[variant_dist(get_rng())]);
-   }
-}
-
-
 auto moo::game::draw_background() -> void {
    ZoneScoped;
    draw_sky_and_ground();
@@ -656,7 +640,7 @@ auto moo::game::process_alien_bullets(Bullet& bullet) -> void {
 
 auto moo::game::do_logic(const Seconds dt) -> void{
    do_alien_strategy_logic(dt);
-   spawn_new_cows();
+   spawn_new_cows(m_registry);
    m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt);
    iterate_grass_movement(dt);
    do_cow_logic(dt);
@@ -825,10 +809,10 @@ void moo::game::do_alien_strategy_logic(const Seconds dt){
    //if (ufos.empty()) {
    //   m_level++;
    //}
-   if (m_strategy_change_cooldown < 0) {
-      set_new_ufo_strategies();
-      m_strategy_change_cooldown = get_config().new_strategy_interval;
-   }
+   //if (m_strategy_change_cooldown < 0) {
+   //   set_new_ufo_strategies();
+   //   m_strategy_change_cooldown = get_config().new_strategy_interval;
+   //}
 }
 
 
@@ -912,24 +896,6 @@ void moo::game::handle_mouse_click(){
    if (mmb_clicked){
       set_new_ufo_strategies();
    }
-}
-
-
-auto moo::game::cow_spawner() -> std::optional<LanePosition>{
-   constexpr double free_area_threshold = 0.8;
-   auto cows = m_registry.view<IsCow>();
-   for(auto cow : cows){
-      const bool cow_in_right_area = m_registry.get<LanePosition>(cow).m_x_pos > free_area_threshold;
-      if (cow_in_right_area)
-         return std::nullopt;
-   }
-   const entt::entity cow_anim_ett = m_registry.view<CowAnimation>().front();
-   const CowAnimation& cow_animation = m_registry.get<CowAnimation>(cow_anim_ett);
-   const double fractional_cow_bitmap_width = 1.0 * cow_animation.m_width / static_columns;
-   LanePosition new_cow_position = get_new_lane_position(get_ground_row_height(), fractional_cow_bitmap_width);
-   //while(!m_cows.empty() && std::abs(new_cow_position.m_lane - m_cows.back().m_pos.m_lane) <= 1)
-   //   new_cow_position = get_new_lane_position(m_rng, get_ground_row_height(static_rows), fractional_cow_bitmap_width);
-   return new_cow_position;
 }
 
 

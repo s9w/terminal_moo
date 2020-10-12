@@ -15,12 +15,12 @@ namespace moo {
    }
 
 
-   template<typename... Args>
+   template<typename T>
    [[nodiscard]] auto get_random_view_entity(
       entt::registry& registry
    ) -> entt::entity
    {
-      const auto view = registry.view<Args...>();
+      const auto view = registry.view<T>();
       const std::uniform_int_distribution<> index_dist(0, get_view_size(view) - 1);
       auto it = view.begin();
       const auto index = index_dist(moo::get_rng());

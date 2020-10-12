@@ -44,7 +44,6 @@ namespace moo {
       void refresh_mouse_pos();
       void refresh_window_rect();
       void handle_mouse_click();
-      [[nodiscard]] auto cow_spawner() -> std::optional<LanePosition>;
       auto get_bg_color(const LineCoord& line_coord) const -> RGB;
       auto iterate_grass_movement(const Seconds dt) -> void;
       void add_clouds(const int n, const bool off_screen);
@@ -60,7 +59,6 @@ namespace moo {
       auto draw_mountain(const BgColorBuffer& mountain, BgBuffer& target, const double alpha) -> void;
       auto draw_mountain_range(const MountainRange& mountains) -> void;
       auto draw_mountains() -> void;
-      auto spawn_new_cows() -> void;
       auto draw_background() -> void;
       auto draw_trail(const Trail& trail) -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
@@ -107,5 +105,5 @@ namespace moo {
       void do_mountain_logic(const Seconds dt);
       void do_alien_strategy_logic(const Seconds dt);
    };
-
+   
 }
