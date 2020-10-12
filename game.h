@@ -35,6 +35,7 @@ namespace moo {
 
    struct game {
       game();
+      ~game();
       auto run() -> void;
       [[nodiscard]] auto game_loop() -> ContinueWish;
       void combine_buffers();

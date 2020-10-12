@@ -268,6 +268,12 @@ moo::game::game()
 }
 
 
+moo::game::~game(){
+   set_console_state(m_initial_console_state);
+   clear_screen();
+}
+
+
 void moo::game::early_test(const bool use_colors) {
    constexpr int color_count = 1000;
    constexpr int color_keep_period = 4;
@@ -289,13 +295,12 @@ void moo::game::early_test(const bool use_colors) {
          });
    }
 
-   COORD zero_pos{ 0, 0 };
    std::wstring str, fps_str;
    str.reserve(100000);
    while (true) {
       {
          ZoneScopedNC("SetConsoleCursorPosition()", 0x0000ff);
-         SetConsoleCursorPosition(m_output_handle, zero_pos);
+         set_cursor_top_left(m_output_handle);
       }
       str.clear();
       {
