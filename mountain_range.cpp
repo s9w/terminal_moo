@@ -98,7 +98,7 @@ moo::MountainGenerator::MountainGenerator(const int min_height, const int max_he
    : m_current_height(min_height)
    , m_min_height(min_height)
    , m_max_height(max_height)
-   , m_streak_preventer(3)
+   , m_streak_preventer(5)
 {
    
 }

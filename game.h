@@ -102,11 +102,14 @@ namespace moo {
       int m_level = 0;
       double m_strategy_change_cooldown = 10.0;
       Ufo m_ufo;
-      bool m_draw_fg = true;
+      double m_bg_fade = 0.7;
+      bool m_draw_fg = false;
+      bool m_draw_logo = true;
 
    private:
       void do_mountain_logic(const Seconds dt);
       void do_alien_strategy_logic(const Seconds dt);
+      void write_logo();
    };
    
 }

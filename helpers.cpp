@@ -60,3 +60,19 @@ template<class T>
    return ::get_height_fraction(pos, get_config().sky_fraction);
 }
 template auto moo::get_height_fraction(const ScreenCoord& pos) -> double;
+
+
+auto get_split_string(const std::string& s, const std::string& delimiter) -> std::vector<std::string> {
+   if (s.empty())
+      return {};
+   std::vector<std::string> parts;
+   size_t start = 0U;
+   auto end = s.find(delimiter);
+   while (end != std::string::npos) {
+      parts.emplace_back(s.substr(start, end - start));
+      start = end + delimiter.length();
+      end = s.find(delimiter, start);
+   }
+   parts.emplace_back(s.substr(start, end));
+   return parts;
+}

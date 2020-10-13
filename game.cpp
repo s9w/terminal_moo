@@ -361,6 +361,8 @@ auto moo::game::game_loop() -> ContinueWish {
    do_logic(dt);
    do_drawing(m_draw_fg);
 
+   if(m_draw_logo)
+      write_logo();
    combine_buffers(m_draw_fg);
    set_cursor_top_left(m_output_handle);
    write(m_output_handle, m_output_string);
@@ -416,11 +418,12 @@ void moo::game::combine_buffers(const bool draw_fg){
    m_painter.reset_paint_count();
 
    for (LineCoordIt it = get_screen_it(); it.is_valid(); ++it) {
-      const RGB bg_color = m_bg_buffer[to_screen_index(*it)];
+      const RGB bg_color = get_color_mix(m_bg_buffer[to_screen_index(*it)], RGB{0, 0, 0}, m_bg_fade);
       m_painter.paint_layer(bg_color, Layer::Back, m_output_string);
 
       if (const char screen_char = m_screen_text[to_screen_index(*it)]; screen_char != '\0') {
-         m_painter.paint_layer({255, 0, 0}, Layer::Front, m_output_string);
+         constexpr RGB text_color{ 255, 180, 0 };
+         m_painter.paint_layer(text_color, Layer::Front, m_output_string);
          m_output_string += screen_char;
          continue;
       }
@@ -603,8 +606,7 @@ auto moo::game::do_cow_logic(const Seconds dt) -> void{
          if (alpha.value < 0) {
             m_registry.destroy(cow_entity);
             m_ufo.m_beaming = false;
-            set_new_ufo_strategies();
-            //return;
+            set_ufo_abducting(m_ufo, m_registry);
          }
          alpha.value = std::clamp(alpha.value, 0.0, 1.0);
       }
@@ -640,6 +642,7 @@ auto moo::game::process_alien_bullets(Bullet& bullet) -> void {
       ufo_killed = m_ufo.hit();
    }
    if (ufo_killed) {
+      // TODO
       if (std::holds_alternative<Abduct>(m_ufo.m_strategy)) {
          auto target_cow = std::get<Abduct>(m_ufo.m_strategy).m_target_cow;
          BeingBeamed& cow_being_beamed = m_registry.get<BeingBeamed>(target_cow);
@@ -717,9 +720,10 @@ auto moo::game::do_logic(const Seconds dt) -> void{
 auto moo::game::do_drawing(const bool draw_fg) -> void{
    draw_background();
 
-   draw_beam(m_ufo);
-   if(draw_fg)
+   if (draw_fg) {
+      draw_beam(m_ufo);
       draw_shadow(m_player.m_pos, m_player_animation.m_width / 2, 1);
+   }
    draw_cows();
    m_registry.view<Trail>().each([&](Trail& trail) {
       draw_trail(trail);
@@ -822,10 +826,26 @@ void moo::game::do_alien_strategy_logic(const Seconds dt){
    //if (ufos.empty()) {
    //   m_level++;
    //}
-   //if (m_strategy_change_cooldown < 0) {
-   //   set_new_ufo_strategies();
-   //   m_strategy_change_cooldown = get_config().new_strategy_interval;
-   //}
+   if (m_strategy_change_cooldown < 0) {
+      set_new_ufo_strategies();
+      m_strategy_change_cooldown = get_config().new_strategy_interval;
+   }
+}
+
+
+void moo::game::write_logo(){
+   constexpr const char* logo_str = R"(  _____ _____ ____  __  __ ___ _   _    _    _       __  __  ___   ___  
+ |_   _| ____|  _ \|  \/  |_ _| \ | |  / \  | |     |  \/  |/ _ \ / _ \ 
+   | | |  _| | |_) | |\/| || ||  \| | / _ \ | |     | |\/| | | | | | | |
+   | | | |___|  _ <| |  | || || |\  |/ ___ \| |___  | |  | | |_| | |_| |
+   |_| |_____|_| \_\_|  |_|___|_| \_/_/   \_\_____| |_|  |_|\___/ \___/)";
+   const auto logo_lines = get_split_string(logo_str, "\n");
+
+   LineCoord start_pos{ 0, 0 };
+   for (const auto line : logo_lines) {
+      write_screen_text(line, start_pos);
+      ++start_pos.i;
+   }
 }
 
 
@@ -906,9 +926,9 @@ void moo::game::handle_mouse_click(){
    const bool space_clicked = GetKeyState(VK_SPACE) < 0;
    if (lmb_clicked || space_clicked)
       m_player.try_to_fire(m_registry);
-   if (mmb_clicked){
-      set_new_ufo_strategies();
-   }
+   //if (mmb_clicked){
+   //   set_new_ufo_strategies();
+   //}
 }
 
 

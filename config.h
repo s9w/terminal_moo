@@ -14,7 +14,7 @@ namespace moo {
       double ufo_hit_invul_duration = 0.1;
       double player_hit_invul_duration = 0.1;
       double day_length = 60.0;
-      double new_strategy_interval = 10.0;
+      double new_strategy_interval = 8.0;
       Seconds ufo_shooting_interal = 1.0;
       double ufo_speed = 0.1;
    };

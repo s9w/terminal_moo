@@ -90,3 +90,5 @@ namespace moo {
       less_equal(bullet_pos.y, target_pos.y + 0.5 * target_dimensions.y);
    return is_x_in && is_y_in;
 }
+
+[[nodiscard]] auto get_split_string(const std::string& s, const std::string& delimiter)->std::vector<std::string>;
