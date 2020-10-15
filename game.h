@@ -112,11 +112,11 @@ namespace moo {
       double m_bg_fade = 0.7;
       bool m_draw_fg = false;
       bool m_draw_logo = true;
-      Cooldown m_ufo_spawn_countdown{5.0};
+      Cooldown m_ufo_spawn_timer{5.0};
 
    private:
       void do_mountain_logic(const Seconds dt);
-      void do_alien_strategy_logic(const Seconds dt);
+      void run_ufo_strategy_logic(const Seconds dt);
       void write_logo();
    };
    

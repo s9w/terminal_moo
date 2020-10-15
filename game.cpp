@@ -347,7 +347,7 @@ auto moo::game::game_loop() -> ContinueWish {
       m_draw_logo = false;
       m_draw_fg = true;
       m_bg_fade = 0.0;
-      m_ufo_spawn_countdown.restart();
+      m_ufo_spawn_timer.restart();
    }
    refresh_window_rect();
    refresh_mouse_pos();
@@ -652,20 +652,20 @@ auto moo::game::process_alien_bullets(Bullet& bullet) -> void {
          cow_being_beamed.value = false;
       }
       m_ufo.reset();
-      m_ufo_spawn_countdown.restart();
+      m_ufo_spawn_timer.restart();
       ++m_level;
    }
 }
 
 
 auto moo::game::do_logic(const Seconds dt) -> void {
-   m_ufo_spawn_countdown.iterate(dt);
-   if (!m_draw_logo && m_ufo_spawn_countdown.get_ready()) {
+   m_ufo_spawn_timer.iterate(dt);
+   if (m_ufo_spawn_timer.get_ready()) {
       m_ufo = get_ufo();
       m_strategy_change_cooldown.restart();
    }
    if(m_ufo.has_value())
-      do_alien_strategy_logic(dt);
+      run_ufo_strategy_logic(dt);
    
    {
       const bool is_inactive = m_draw_logo;
@@ -777,7 +777,7 @@ auto moo::game::draw_gui() -> void{
       m_level,
       m_strategy_change_cooldown.to_string(),
       m_ufo.has_value(),
-      m_ufo_spawn_countdown.to_string()
+      m_ufo_spawn_timer.to_string()
    );
    write_screen_text(gui_text, { 0, 0 }, RGB{255, 0, 0});
 }
@@ -840,11 +840,10 @@ void moo::game::do_mountain_logic(const Seconds dt){
 }
 
 
-void moo::game::do_alien_strategy_logic(const Seconds dt){
+void moo::game::run_ufo_strategy_logic(const Seconds dt){
    m_strategy_change_cooldown.iterate(dt);
-   const bool is_inactive = m_draw_logo;
 
-   if (!is_inactive && m_strategy_change_cooldown.get_ready()) {
+   if (m_strategy_change_cooldown.get_ready()) {
       set_new_ufo_strategies();
       m_strategy_change_cooldown.restart();
    }
