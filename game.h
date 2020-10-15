@@ -3,6 +3,7 @@
 #include "block_char.h"
 #include "buffer.h"
 #include "color.h"
+#include "cooldown.h"
 #include "entt_types.h"
 #include "fps_counter.h"
 #include "helpers.h"
@@ -30,6 +31,12 @@ namespace moo {
       std::vector<double> m_anim_offsets;
    };
 
+   struct OverlayCharacter {
+      char ch;
+      std::optional<RGB> color;
+   };
+   
+
    enum class WriteAlignment{Center, BottomCenter};
    enum class ContinueWish{Continue, Exit};
 
@@ -40,7 +47,7 @@ namespace moo {
       [[nodiscard]] auto game_loop() -> ContinueWish;
       void combine_buffers(const bool draw_fg);
       void write_image_at_pos(const ImageWrapper& image, const ScreenCoord& pos, const WriteAlignment write_alignment, const double alpha, const std::optional<RGB>& override_color, const double fade);
-      void write_screen_text(const std::string& text, const LineCoord& start_pos);
+      void write_screen_text(const std::string& text, const LineCoord& start_pos, const std::optional<RGB>& color);
       void clear_buffers();
       void refresh_mouse_pos();
       void refresh_window_rect();
@@ -83,7 +90,7 @@ namespace moo {
       Painter m_painter;
       BgColorBuffer m_bg_buffer;
       GrassNoise m_grass_noise;
-      std::vector<char> m_screen_text;
+      std::vector<OverlayCharacter> m_screen_text;
       std::wstring m_output_string;
       Animation m_player_animation;
       AnimationFrame m_player_anim_frame;
@@ -100,11 +107,12 @@ namespace moo {
       MountainRange m_back_mountain;
       double m_time = 0.0;
       int m_level = 0;
-      double m_strategy_change_cooldown = 10.0;
-      Ufo m_ufo;
+      Cooldown m_strategy_change_cooldown = 10.0;
+      std::optional<Ufo> m_ufo;
       double m_bg_fade = 0.7;
       bool m_draw_fg = false;
       bool m_draw_logo = true;
+      Cooldown m_ufo_spawn_countdown{5.0};
 
    private:
       void do_mountain_logic(const Seconds dt);

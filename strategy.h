@@ -11,9 +11,7 @@ namespace moo {
       entt::entity m_target_cow;
    };
 
-   struct Shoot {
-
-   };
+   struct Shoot {};
 
    using UfoStrategy = std::variant<Abduct, Shoot>;
 

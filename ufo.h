@@ -2,6 +2,7 @@
 
 #include "animation_frame.h"
 #include "bullet.h"
+#include "cooldown.h"
 #include "helpers.h"
 #include "strategy.h"
 
@@ -20,7 +21,7 @@ namespace moo {
       double m_health = 1.0;
       Seconds m_hit_timer{0.0};
       AnimationFrame m_animation_frame;
-      Seconds m_shooting_cooldown = 0.0;
+      Cooldown m_shooting_cooldown;
       bool m_beaming = false;
       UfoStrategy m_strategy = Shoot{};
       ScreenCoord m_pos;

@@ -10,6 +10,7 @@
 moo::Ufo::Ufo(const ScreenCoord& initial_pos, const double anim_progress)
    : m_pos(initial_pos)
    , m_animation_frame(5, 1.0, anim_progress)
+   , m_shooting_cooldown(Cooldown::get_ready_cooldown(get_config().ufo_shooting_interal))
 {
 
 }
@@ -27,15 +28,14 @@ auto moo::Ufo::is_invul() const -> bool{
    return !is_zero(m_hit_timer.m_value);
 }
 
-
 auto moo::Ufo::fire(
    const ScreenCoord& player_pos,
    entt::registry& registry
 ) -> void
 {
-   if (!is_zero(m_shooting_cooldown.m_value))
+   if(!m_shooting_cooldown.get_ready())
       return;
-   m_shooting_cooldown = get_config().ufo_shooting_interal;
+   m_shooting_cooldown.restart();
    const ScreenCoord initial_bullet_pos = m_pos;
    const ScreenCoord norm_pos_diff = get_normalized(player_pos - m_pos);
 

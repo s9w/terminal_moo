@@ -38,8 +38,6 @@ namespace {
       return new_pos;
    }
 
-   constexpr moo::Seconds shooting_interval_s = 0.2;
-
 
    [[nodiscard]] auto get_bullet_trajectory(
       const double base_spread
@@ -66,7 +64,7 @@ auto moo::Player::move_towards(
    const auto pos_diff = dt.m_value * m_speed * get_indep_normalized(diff_to_target);
    m_pos = get_limited_pos(m_pos + pos_diff);
 
-   m_shooting_cooldown = std::clamp(m_shooting_cooldown - dt, Seconds{ 0.0 }, shooting_interval_s);
+   m_shooting_cooldown.iterate(dt);
 }
 
 
@@ -74,9 +72,9 @@ auto moo::Player::try_to_fire(
    entt::registry& registry
 ) -> void 
 {
-   if (!is_zero(m_shooting_cooldown.m_value))
+   if(!m_shooting_cooldown.get_ready())
       return;
-   m_shooting_cooldown = shooting_interval_s;
+   m_shooting_cooldown.restart();
    const ScreenCoord initial_bullet_pos = m_pos + ScreenCoord{0.05, 0.0};
 
    auto bullet_entity = registry.create();

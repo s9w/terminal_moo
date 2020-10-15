@@ -79,6 +79,11 @@ namespace {
       return fractional_cow_bitmap_width;
    }
 
+
+   [[nodiscard]] auto get_ufo_speed(const int level) -> double {
+      return moo::get_config().ufo_base_speed + level * moo::get_config().ufo_speed_bonus;
+   }
+
 } // namespace {}
 
 
@@ -118,7 +123,8 @@ auto moo::ufo_progress(
    const Seconds& dt, 
    const ScreenCoord& player_pos,
    Ufo& ufo,
-   entt::registry& registry
+   entt::registry& registry,
+   const int level
 ) -> void
 {
    ufo.m_animation_frame.progress(dt);
@@ -128,7 +134,7 @@ auto moo::ufo_progress(
          ufo.m_hit_timer = 0.0;
    }
 
-   ufo.m_shooting_cooldown = std::clamp(ufo.m_shooting_cooldown - dt, Seconds{ 0.0 }, get_config().ufo_shooting_interal);
+   ufo.m_shooting_cooldown.iterate(dt);
 
    if (std::holds_alternative<Shoot>(ufo.m_strategy)) {
       ufo.fire(player_pos, registry);
@@ -149,7 +155,7 @@ auto moo::ufo_progress(
          being_beamed.value = true;
          ufo.m_beaming = true;
       }
-      ufo.m_pos = get_new_ufo_pos(ufo.m_pos, get_config().ufo_speed, target_pixel_coord, dt);
+      ufo.m_pos = get_new_ufo_pos(ufo.m_pos, get_ufo_speed(level), target_pixel_coord, dt);
    }
 }
 
@@ -167,7 +173,13 @@ auto moo::get_new_cow_position(entt::registry& registry) -> std::optional<LanePo
 }
 
 
-auto moo::spawn_new_cows(entt::registry& registry) -> void {
+auto moo::spawn_new_cows(
+   entt::registry& registry,
+   const bool inactive
+) -> void
+{
+   if (inactive)
+      return;
    std::uniform_real_distribution<double> grazing_progress_dist(0.0, 1.0);
    if (const auto cow_pos = get_new_cow_position(registry); cow_pos.has_value()) {
       auto cow_entity = registry.create();
