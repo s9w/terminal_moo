@@ -33,13 +33,15 @@ namespace moo {
       constexpr auto iterate(const Seconds& dt) -> void;
       [[nodiscard]] inline auto get_ready() -> bool;
       inline auto restart() -> void;
+      inline auto set_inactive() -> void;
       [[nodiscard]] inline auto to_string() const -> std::string;
       
-      std::variant<Inactive, ReadyToFire, Seconds> m_state;
+      
 
       constexpr auto operator<=>(const Cooldown&) const = default;
 
    private:
+      std::variant<Inactive, ReadyToFire, Seconds> m_state;
       double m_period;
    };
 
@@ -87,4 +89,9 @@ auto moo::Cooldown::to_string() const -> std::string{
       return "ReadyToFire";
    else
       return fmt::format("{:.1f}", std::get<Seconds>(m_state).m_value);
+}
+
+
+auto moo::Cooldown::set_inactive() -> void{
+   m_state.emplace<Inactive>();
 }

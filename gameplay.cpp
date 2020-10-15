@@ -230,12 +230,54 @@ auto moo::do_trail_logic(
 }
 
 
-auto moo::discard_ground_bullets(entt::registry& registry) -> void{
-   registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
-      const bool bullet_under_horizon = bullet.m_pos.y > (get_sky_row_height() + 0.5 * get_ground_row_height()) / static_rows;
-      const bool remove_bullet = !bullet.m_pos.is_on_screen() || bullet_under_horizon;
+auto moo::discard_ground_bullet(
+   entt::registry& registry,
+   entt::entity bullet_entity,
+   const Bullet& bullet
+) -> void
+{
+   const bool bullet_under_horizon = bullet.m_pos.y > (get_sky_row_height() + 0.5 * get_ground_row_height()) / static_rows;
+   const bool remove_bullet = !bullet.m_pos.is_on_screen() || bullet_under_horizon;
 
-      if (remove_bullet)
-         registry.destroy(bullet_entity);
-      });
+   if (remove_bullet)
+      registry.destroy(bullet_entity);
+}
+
+
+auto moo::set_new_ufo_strategies(
+   entt::registry& registry,
+   Ufo& ufo
+) -> void
+{
+   const auto cows = registry.view<IsCow>();
+   if (cows.empty()) {
+      set_ufo_shooting(ufo, registry);
+      return;
+   }
+   if (std::holds_alternative<Shoot>(ufo.m_strategy))
+      set_ufo_abducting(ufo, registry);
+   else
+      set_ufo_shooting(ufo, registry);
+}
+
+
+auto moo::process_human_bullet(
+   Bullet& bullet,
+   entt::registry& registry,
+   Ufo& ufo,
+   const ScreenCoord& ufo_dimensions
+) -> BulletRunResult
+{
+   BulletRunResult result;
+   
+   if (!ufo.is_invul() && does_bullet_hit(bullet, ufo.m_pos, ufo_dimensions, BulletStyle::Rocket)) {
+      result.m_kill_bullet = true;
+      result.m_ufo_killed = ufo.hit();
+   }
+   if (result.m_ufo_killed && std::holds_alternative<Abduct>(ufo.m_strategy)) {
+         auto target_cow = std::get<Abduct>(ufo.m_strategy).m_target_cow;
+         BeingBeamed& cow_being_beamed = registry.get<BeingBeamed>(target_cow);
+         cow_being_beamed.value = false;
+   }
+   return result;
 }

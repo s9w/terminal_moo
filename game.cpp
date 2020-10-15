@@ -405,19 +405,6 @@ void moo::game::write_one_block(
 }
 
 
-void moo::game::set_new_ufo_strategies(){
-   const auto cows = m_registry.view<IsCow>();
-   if (cows.empty()) {
-      set_ufo_shooting(m_ufo.value(), m_registry);
-      return;
-   }
-   if (std::holds_alternative<Shoot>(m_ufo->m_strategy))
-      set_ufo_abducting(m_ufo.value(), m_registry);
-   else
-      set_ufo_shooting(m_ufo.value(), m_registry);
-}
-
-
 void moo::game::combine_buffers(const bool draw_fg){
    ZoneScoped;
    m_output_string.clear();
@@ -641,36 +628,12 @@ auto moo::game::do_cloud_logic(const Seconds dt) -> void{
 }
 
 
-auto moo::game::process_alien_bullet(Bullet& bullet) -> bool {
-   bool kill_bullet = false;
-   bool ufo_killed = false;
-   const ScreenCoord ufo_dimensions{ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) };
-   if (!m_ufo->is_invul() && does_bullet_hit(bullet, m_ufo->m_pos, ufo_dimensions, BulletStyle::Rocket)) {
-      kill_bullet = true;
-      ufo_killed = m_ufo->hit();
-   }
-   if (ufo_killed) {
-      if (std::holds_alternative<Abduct>(m_ufo->m_strategy)) {
-         auto target_cow = std::get<Abduct>(m_ufo->m_strategy).m_target_cow;
-         BeingBeamed& cow_being_beamed = m_registry.get<BeingBeamed>(target_cow);
-         cow_being_beamed.value = false;
-      }
-      m_ufo.reset();
-      m_ufo_spawn_timer.restart();
-      ++m_level;
-   }
-   return kill_bullet;
-}
+
 
 
 auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
-   m_ufo_spawn_timer.iterate(dt);
-   if (m_ufo_spawn_timer.get_ready()) {
-      m_ufo = get_ufo();
-      m_strategy_change_cooldown.restart();
-   }
-   if(m_ufo.has_value())
-      run_ufo_strategy_logic(dt);
+   run_ufo_spawning_logic(dt);
+   run_ufo_strategy_logic(dt);
 
    spawn_new_cows(m_registry, m_draw_logo);
    m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt);
@@ -680,23 +643,31 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
    do_mountain_logic(dt);
    do_trail_logic(m_registry, dt);
 
-   m_registry.view<Bullet>().each([&](Bullet& bullet) {
-      bullet.move(dt);
-      });
-   discard_ground_bullets(m_registry);
+   const ScreenCoord ufo_dimensions{ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) };
+   const ScreenCoord player_dim{ m_player_animation.m_width / (2.0 * static_columns), m_player_animation.m_height / (2.0 * static_rows) };
+
    m_registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
-      const ScreenCoord player_dim{ m_player_animation.m_width / (2.0 * static_columns), m_player_animation.m_height / (2.0 * static_rows) };
-      const auto kill_bullet = process_alien_bullet(bullet);
-      if (kill_bullet) {
-         m_registry.destroy(bullet_entity);
-         return;
+      bullet.move(dt);
+      discard_ground_bullet(m_registry, bullet_entity, bullet);
+      
+      if (m_ufo.has_value()) {
+         const BulletRunResult human_bullet_result = process_human_bullet(bullet, m_registry, m_ufo.value(), ufo_dimensions);
+         if (human_bullet_result.m_kill_bullet) {
+            m_registry.destroy(bullet_entity);
+         }
+         if (human_bullet_result.m_ufo_killed) {
+            m_ufo.reset();
+            m_ufo_spawn_timer.restart();
+            ++m_level;
+            m_strategy_change_cooldown.set_inactive();
+         }
       }
       if (does_bullet_hit(bullet, m_player.m_pos, player_dim, BulletStyle::Alien)) {
          m_player.m_hitpoints -= 1.0;
          m_player.m_hit_timer = get_config().player_hit_invul_duration;
          m_registry.destroy(bullet_entity);
-         return;
       }
+
       });
 
    if(m_ufo.has_value())
@@ -835,9 +806,17 @@ void moo::game::do_mountain_logic(const Seconds dt){
 
 void moo::game::run_ufo_strategy_logic(const Seconds dt){
    m_strategy_change_cooldown.iterate(dt);
-
    if (m_strategy_change_cooldown.get_ready()) {
-      set_new_ufo_strategies();
+      set_new_ufo_strategies(m_registry, m_ufo.value());
+      m_strategy_change_cooldown.restart();
+   }
+}
+
+
+void moo::game::run_ufo_spawning_logic(const Seconds dt){
+   m_ufo_spawn_timer.iterate(dt);
+   if (m_ufo_spawn_timer.get_ready()) {
+      m_ufo.emplace(get_ufo());
       m_strategy_change_cooldown.restart();
    }
 }

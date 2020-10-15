@@ -62,7 +62,6 @@ namespace moo {
          const RGB row_bg_color,
          const bool draw_foreground
       );
-      void set_new_ufo_strategies();
 
       [[nodiscard]] auto get_block_char_from_fg(const LineCoord& line_coord) const -> BlockChar;
       auto draw_sky_and_ground() -> void;
@@ -75,9 +74,6 @@ namespace moo {
       auto draw_beam(const Ufo& ufo) -> void;
       auto do_cow_logic(const Seconds dt) -> void;
       auto do_cloud_logic(const Seconds dt) -> void;
-      
-      // returns if bullet should be killed
-      auto process_alien_bullet(Bullet& bullet) -> bool;
       auto do_logic(const Seconds dt) -> std::optional<ContinueWish>;
       auto do_drawing(const bool draw_fg) -> void;
       auto draw_gui() -> void;
@@ -120,6 +116,7 @@ namespace moo {
    private:
       void do_mountain_logic(const Seconds dt);
       void run_ufo_strategy_logic(const Seconds dt);
+      void run_ufo_spawning_logic(const Seconds dt);
       void write_logo();
    };
    
