@@ -46,7 +46,6 @@ namespace moo {
       ScreenCoord m_pos;
       ScreenCoord m_initial_pos;
       ScreenCoord m_gravity_speed;
-      bool m_head_alive = true;
       entt::entity m_trail;
       double m_bullet_speed = 1.0;
       BulletStyle m_style = BulletStyle::Rocket;
@@ -60,9 +59,7 @@ namespace moo {
       const moo::BulletStyle& hitting_style
    ) -> bool
    {
-      return bullet.m_head_alive &&
-         bullet.m_style == hitting_style &&
-         is_hit(bullet.m_pos, obj_pos, obj_dimensions);
+      return bullet.m_style == hitting_style && is_hit(bullet.m_pos, obj_pos, obj_dimensions);
    }
 
 }

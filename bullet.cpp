@@ -49,15 +49,13 @@ auto moo::Bullet::move(
    const Seconds dt
 ) -> void
 {
-   if (m_head_alive) {
-      double gravity_accel = moo::get_config().gravity_strength;
-      if (m_style == BulletStyle::Alien)
-         gravity_accel = 0.0;
-      m_gravity_speed += dt.m_value * ScreenCoord{ 0.0, gravity_accel };
-      const ScreenCoord pos_change = dt.m_value * (m_bullet_speed * m_trajectory + m_gravity_speed);
-      const ScreenCoord new_pos = m_pos + pos_change;
-      m_pos = new_pos;
-   }
+   double gravity_accel = moo::get_config().gravity_strength;
+   if (m_style == BulletStyle::Alien)
+      gravity_accel = 0.0;
+   m_gravity_speed += dt.m_value * ScreenCoord{ 0.0, gravity_accel };
+   const ScreenCoord pos_change = dt.m_value * (m_bullet_speed * m_trajectory + m_gravity_speed);
+   const ScreenCoord new_pos = m_pos + pos_change;
+   m_pos = new_pos;
 }
 
 

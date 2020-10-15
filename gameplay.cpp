@@ -225,8 +225,7 @@ auto moo::do_trail_logic(
    registry.view<Bullet>().each([&](Bullet& bullet) {
       Trail& trail = registry.get<Trail>(bullet.m_trail);
       trail.update_puff_colors(bullet.m_pos);
-      if (bullet.m_head_alive)
-         add_trail_puffs(bullet, trail, dt);
+      add_trail_puffs(bullet, trail, dt);
       });
 }
 
@@ -234,7 +233,7 @@ auto moo::do_trail_logic(
 auto moo::discard_ground_bullets(entt::registry& registry) -> void{
    registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
       const bool bullet_under_horizon = bullet.m_pos.y > (get_sky_row_height() + 0.5 * get_ground_row_height()) / static_rows;
-      const bool remove_bullet = !bullet.m_head_alive || !bullet.m_pos.is_on_screen() || bullet_under_horizon;
+      const bool remove_bullet = !bullet.m_pos.is_on_screen() || bullet_under_horizon;
 
       if (remove_bullet)
          registry.destroy(bullet_entity);

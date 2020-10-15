@@ -73,7 +73,9 @@ namespace moo {
       auto draw_beam(const Ufo& ufo) -> void;
       auto do_cow_logic(const Seconds dt) -> void;
       auto do_cloud_logic(const Seconds dt) -> void;
-      auto process_alien_bullet(Bullet& bullet) -> void;
+      
+      // returns if bullet should be killed
+      auto process_alien_bullet(Bullet& bullet) -> bool;
       auto do_logic(const Seconds dt) -> std::optional<ContinueWish>;
       auto do_drawing(const bool draw_fg) -> void;
       auto draw_gui() -> void;

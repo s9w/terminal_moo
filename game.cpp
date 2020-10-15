@@ -556,7 +556,7 @@ auto moo::game::draw_trail(const Trail& trail) -> void{
 
 auto moo::game::draw_bullet(const Bullet& bullet) -> void{
    const ScreenCoord bullet_pos = bullet.m_pos;
-   if (bullet.m_head_alive && bullet_pos.is_on_screen()) {
+   if (bullet_pos.is_on_screen()) {
       constexpr RGB bullet_color = {255, 0, 0};
       const PixelCoord bullet_pixel_pos = to_pixel_coord(bullet_pos);
 
@@ -640,11 +640,12 @@ auto moo::game::do_cloud_logic(const Seconds dt) -> void{
 }
 
 
-auto moo::game::process_alien_bullet(Bullet& bullet) -> void {
+auto moo::game::process_alien_bullet(Bullet& bullet) -> bool {
+   bool kill_bullet = false;
    bool ufo_killed = false;
    const ScreenCoord ufo_dimensions{ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) };
    if (!m_ufo->is_invul() && does_bullet_hit(bullet, m_ufo->m_pos, ufo_dimensions, BulletStyle::Rocket)) {
-      bullet.m_head_alive = false;
+      kill_bullet = true;
       ufo_killed = m_ufo->hit();
    }
    if (ufo_killed) {
@@ -657,6 +658,7 @@ auto moo::game::process_alien_bullet(Bullet& bullet) -> void {
       m_ufo_spawn_timer.restart();
       ++m_level;
    }
+   return kill_bullet;
 }
 
 
@@ -681,13 +683,18 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
       bullet.move(dt);
       });
    discard_ground_bullets(m_registry);
-   m_registry.view<Bullet>().each([&](Bullet& bullet) {
+   m_registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
       const ScreenCoord player_dim{ m_player_animation.m_width / (2.0 * static_columns), m_player_animation.m_height / (2.0 * static_rows) };
-      process_alien_bullet(bullet);
+      const auto kill_bullet = process_alien_bullet(bullet);
+      if (kill_bullet) {
+         m_registry.destroy(bullet_entity);
+         return;
+      }
       if (does_bullet_hit(bullet, m_player.m_pos, player_dim, BulletStyle::Alien)) {
          m_player.m_hitpoints -= 1.0;
-         m_player.m_hit_timer = get_config().player_hit_invul_duration;;
-         bullet.m_head_alive = false;
+         m_player.m_hit_timer = get_config().player_hit_invul_duration;
+         m_registry.destroy(bullet_entity);
+         return;
       }
       });
 
