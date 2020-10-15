@@ -861,7 +861,7 @@ void moo::game::write_logo(){
    const auto logo_lines = get_split_string(logo_str, "\n");
 
    LineCoord logo_start{ 0, 0 };
-   const auto color_fun = [](const double x) {
+   const auto pulse_color_fun = [](const double x) {
       const double factor = 0.75 + 0.25 * std::sin(x);
       const RGB color = factor * RGB{ 255, 180, 0 };
       return color;
@@ -870,7 +870,7 @@ void moo::game::write_logo(){
       const auto& line = logo_lines[i];
       const unsigned char value = static_cast<unsigned char>(i * 40);
       const double vertica_ratio = 1.0 * i / (logo_lines.size() - 1);
-      write_screen_text(line, logo_start, color_fun(5.0 * vertica_ratio - 100.0 * m_time));
+      write_screen_text(line, logo_start, pulse_color_fun(5.0 * vertica_ratio - 100.0 * m_time));
       ++logo_start.i;
    }
    ++logo_start.i;
@@ -879,7 +879,12 @@ void moo::game::write_logo(){
    constexpr int start_width = 23;
 
    logo_start.j += (logo_width - start_width) / 2;
-   write_screen_text(start_str, logo_start, color_fun(100.0 * m_time));
+   const auto blink_color_fun = [](const double x) {
+      const double factor = 0.5 + 0.5 * get_rect_fun(x, 1.0);
+      const RGB color = factor * RGB{ 255, 180, 0 };
+      return color;
+   };
+   write_screen_text(start_str, logo_start, blink_color_fun(m_time * get_config().day_length));
 }
 
 
