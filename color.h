@@ -45,7 +45,8 @@ namespace moo {
    const int c
 ) -> unsigned char
 {
-   return static_cast<unsigned char>(std::clamp(c, 0, 255));
+   constexpr int uchar_max = 255;
+   return static_cast<unsigned char>(std::clamp(c, 0, uchar_max));
 }
 
 
@@ -143,8 +144,7 @@ constexpr auto moo::get_shot_trail_start_color(const BulletStyle& bullet_style) 
    constexpr RGB rocket_orange{ 239, 147, 0 };
    if (bullet_style == BulletStyle::Rocket)
       return rocket_orange;
-   else
-      return purple;
+   return purple;
 }
 
 
@@ -154,6 +154,5 @@ constexpr auto moo::get_shot_trail_end_color(const BulletStyle& bullet_style) ->
 
    if (bullet_style == BulletStyle::Rocket)
       return gray;
-   else
-      return green;
+   return green;
 }

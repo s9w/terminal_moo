@@ -46,7 +46,7 @@ namespace moo {
    struct IntCoordIt {
       constexpr IntCoordIt(const int max_width, const int max_height);
       IntCoordIt(const ImageWrapper& image); // this not constexpr to not introduce a dependency on that header
-      constexpr IntCoordIt& operator++();
+      constexpr auto operator++() ->IntCoordIt&;
       [[nodiscard]] constexpr auto is_valid() const -> bool;
       [[nodiscard]] constexpr auto operator->() const -> const T*;
       [[nodiscard]] constexpr auto operator*() const -> const T&;
@@ -67,20 +67,20 @@ namespace moo {
 
    [[nodiscard]] constexpr auto get_screen_it() ->LineCoordIt;
 
-   [[nodiscard]] constexpr auto to_line_coord(const ScreenCoord& pos)->LineCoord;
-   [[nodiscard]] constexpr auto to_line_coord(const PixelCoord& pos)->LineCoord;
+   [[nodiscard]] auto to_line_coord(const ScreenCoord& pos)->LineCoord;
+   [[nodiscard]] auto to_line_coord(const PixelCoord& pos)->LineCoord;
    [[nodiscard]] constexpr auto to_pixel_coord_tl(const LineCoord& pos)->PixelCoord;
-   [[nodiscard]] constexpr auto to_pixel_coord(const ScreenCoord& pos)->PixelCoord;
-   [[nodiscard]] constexpr auto get_screen_clamped(const PixelCoord& pos)->PixelCoord;
-   [[nodiscard]] constexpr auto get_beam_aligned_pixel_coord(const ScreenCoord& pos)->PixelCoord;
-   [[nodiscard]] constexpr auto get_beam_aligned_coord(const ScreenCoord& pos)->ScreenCoord;
-   [[nodiscard]] constexpr auto get_screen_coord(const PixelCoord& pos)->ScreenCoord;
+   [[nodiscard]] auto to_pixel_coord(const ScreenCoord& pos)->PixelCoord;
+   [[nodiscard]] auto get_screen_clamped(const PixelCoord& pos)->PixelCoord;
+   [[nodiscard]] auto get_beam_aligned_pixel_coord(const ScreenCoord& pos)->PixelCoord;
+   [[nodiscard]] auto get_beam_aligned_coord(const ScreenCoord& pos)->ScreenCoord;
+   [[nodiscard]] auto get_screen_coord(const PixelCoord& pos)->ScreenCoord;
 
    template<class T>
    [[nodiscard]] constexpr auto get_top_left(const T& center, const T& area_dim)->T;
 
-   [[nodiscard]] constexpr auto to_screen_index(const LineCoord& pos)->size_t;
-   [[nodiscard]] constexpr auto to_screen_index(const PixelCoord& pos)->size_t;
+   [[nodiscard]] auto to_screen_index(const LineCoord& pos)->size_t;
+   [[nodiscard]] auto to_screen_index(const PixelCoord& pos)->size_t;
    [[nodiscard]] constexpr auto is_on_screen(const LineCoord& pos) -> bool;
    [[nodiscard]] constexpr auto is_on_screen(const PixelCoord& pos) -> bool;
 
@@ -153,7 +153,7 @@ constexpr auto moo::IntCoordIt<T>::is_valid() const -> bool {
 }
 
 template<class T>
-constexpr moo::IntCoordIt<T>& moo::IntCoordIt<T>::operator++() {
+constexpr auto moo::IntCoordIt<T>::operator++() -> IntCoordIt<T>& {
    ++m_pos.j;
    if (m_pos.j == m_max_width) {
       m_pos.j = 0;
@@ -162,56 +162,9 @@ constexpr moo::IntCoordIt<T>& moo::IntCoordIt<T>::operator++() {
    return *this;
 }
 
-constexpr auto moo::to_line_coord(const ScreenCoord& pos) -> LineCoord {
-   const int i = static_cast<int>(pos.y * static_rows);
-   const int j = static_cast<int>(pos.x * static_columns);
-   return { i, j };
-}
-
-
-constexpr auto moo::to_line_coord(const PixelCoord& pos) -> LineCoord {
-   //const int i = static_cast<int>(pos.y * static_rows);
-   //const int j = static_cast<int>(pos.x * static_columns);
-   return { pos.i / 2, pos.j / 2 };
-}
 
 constexpr auto moo::to_pixel_coord_tl(const LineCoord& pos)->PixelCoord {
    return { 2 * pos.i, 2 * pos.j };
-}
-
-
-constexpr auto moo::to_pixel_coord(const ScreenCoord& pos) -> PixelCoord {
-   const int i = static_cast<int>(pos.y * 2 * static_rows);
-   const int j = static_cast<int>(pos.x * 2 * static_columns);
-   return { i, j };
-}
-
-
-constexpr auto moo::get_screen_clamped(const PixelCoord& pos)->PixelCoord {
-   PixelCoord clamped = pos;
-   clamped.i = std::clamp(clamped.i, 0, 2 * static_rows - 1);
-   clamped.j = std::clamp(clamped.j, 0, 2 * static_columns - 1);
-   return clamped;
-}
-
-
-constexpr auto moo::get_screen_coord(const PixelCoord& pos)->ScreenCoord {
-   const double x = static_cast<double>(pos.j) / (2 * static_columns);
-   const double y = static_cast<double>(pos.i) / (2 * static_rows);
-   return {x, y};
-}
-
-
-constexpr auto moo::get_beam_aligned_pixel_coord(const ScreenCoord& pos)->PixelCoord {
-   PixelCoord pixel_coord = to_pixel_coord(pos);
-   pixel_coord.i = (pixel_coord.i / 2) * 2;
-   pixel_coord.j = (pixel_coord.j / 2) * 2;
-   return pixel_coord;
-}
-
-
-constexpr auto moo::get_beam_aligned_coord(const ScreenCoord& pos)->ScreenCoord {
-   return get_screen_coord(get_beam_aligned_pixel_coord(pos));
 }
 
 
@@ -222,15 +175,6 @@ constexpr auto moo::get_top_left(
 )->T
 {
    return center - area_dim / 2;
-}
-
-
-constexpr auto moo::to_screen_index(const LineCoord& pos) -> size_t {
-   return pos.i * static_columns + pos.j;
-}
-
-constexpr auto moo::to_screen_index(const PixelCoord& pos)->size_t {
-   return pos.i * 2 * static_columns + pos.j;
 }
 
 constexpr auto moo::is_on_screen(const LineCoord& pos) -> bool {

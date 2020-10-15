@@ -667,10 +667,8 @@ auto moo::game::do_logic(const Seconds dt) -> void {
    if(m_ufo.has_value())
       run_ufo_strategy_logic(dt);
    
-   {
-      const bool is_inactive = m_draw_logo;
-      spawn_new_cows(m_registry, m_draw_logo);
-   }
+
+   spawn_new_cows(m_registry, m_draw_logo);
    m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt);
    iterate_grass_movement(dt);
    do_cow_logic(dt);
@@ -867,7 +865,6 @@ void moo::game::write_logo(){
    };
    for(int i=0; i< logo_lines.size(); ++i){
       const auto& line = logo_lines[i];
-      const unsigned char value = static_cast<unsigned char>(i * 40);
       const double vertica_ratio = 1.0 * i / (logo_lines.size() - 1);
       write_screen_text(line, logo_start, pulse_color_fun(5.0 * vertica_ratio - 100.0 * m_time));
       ++logo_start.i;
@@ -961,13 +958,9 @@ void moo::game::refresh_window_rect(){
 
 void moo::game::handle_mouse_click(){
    const bool lmb_clicked = get_config().enable_mouse && GetKeyState(VK_LBUTTON) < 0;
-   const bool mmb_clicked = get_config().enable_mouse && GetKeyState(VK_MBUTTON) < 0;
    const bool space_clicked = GetKeyState(VK_SPACE) < 0;
    if (lmb_clicked || space_clicked)
       m_player.try_to_fire(m_registry);
-   //if (mmb_clicked){
-   //   set_new_ufo_strategies();
-   //}
 }
 
 

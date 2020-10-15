@@ -12,12 +12,12 @@ namespace moo {
    }
 
 
-   [[nodiscard]] constexpr auto get_pixel_count() -> size_t {
+   [[nodiscard]] inline auto get_pixel_count() -> size_t {
       return 2 * static_rows * 2 * static_columns;
    }
 
 
-   [[nodiscard]] constexpr auto get_char_count() -> size_t {
+   [[nodiscard]] inline auto get_char_count() -> size_t {
       return static_rows * static_columns;
    }
 

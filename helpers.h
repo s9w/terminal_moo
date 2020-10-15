@@ -42,7 +42,7 @@ namespace moo {
    }
 
 
-   [[nodiscard]] constexpr bool is_hit(const ScreenCoord& bullet_pos, const ScreenCoord& target_pos, const ScreenCoord& target_dimensions);
+   [[nodiscard]] constexpr auto is_hit(const ScreenCoord& bullet_pos, const ScreenCoord& target_pos, const ScreenCoord& target_dimensions) -> bool;
 
 
    template<typename T, typename... Args, typename TFun>
