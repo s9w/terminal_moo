@@ -17,19 +17,21 @@
 
 namespace {
 
+   using namespace moo;
+
    template<class T>
    [[nodiscard]] auto get_closest_cow_if(
-      const moo::ScreenCoord& pos,
+      const ScreenCoord& pos,
       entt::registry& registry,
       const T& pred
    ) -> std::optional<entt::entity>
    {
-      const auto cows = registry.view<moo::IsCow, moo::LanePosition>();
+      const auto cows = registry.view<IsCow, LanePosition>();
       if (cows.empty())
          return std::nullopt;
       entt::entity closest_entity;
       double closest_dist = 10.0;
-      cows.each([&](entt::entity entity, const moo::LanePosition& cow_pos) {
+      cows.each([&](entt::entity entity, const LanePosition& cow_pos) {
          const double dist = std::abs(cow_pos.m_x_pos - pos.x);
          if (dist < closest_dist && pred(cow_pos)) {
             closest_entity = entity;
@@ -44,14 +46,14 @@ namespace {
 
    /// <summary>First look for closest cow on the right. Then look everywhere.</summary>
    [[nodiscard]] auto get_closest_cow(
-      const moo::ScreenCoord& pos,
+      const ScreenCoord& pos,
       entt::registry& registry
    ) -> std::optional<entt::entity>
    {
-      const auto is_right = [&](const moo::LanePosition& cow_pos) {
+      const auto is_right = [&](const LanePosition& cow_pos) {
          return cow_pos.m_x_pos > pos.x;
       };
-      const auto always_true = [](const moo::LanePosition&) {return true; };
+      const auto always_true = [](const LanePosition&) {return true; };
       const auto closest_right_cow = get_closest_cow_if(pos, registry, is_right);
       if (closest_right_cow.has_value())
          return closest_right_cow.value();
@@ -60,28 +62,41 @@ namespace {
 
 
    auto get_new_ufo_pos(
-      const moo::ScreenCoord& ufo_pos,
+      const ScreenCoord& ufo_pos,
       const double ufo_speed,
-      const moo::PixelCoord& target,
-      const moo::Seconds& dt
-   ) -> moo::ScreenCoord
+      const PixelCoord& target,
+      const Seconds& dt
+   ) -> ScreenCoord
    {
-      const moo::ScreenCoord pos_diff = get_screen_coord(target) - ufo_pos;
-      const moo::ScreenCoord pos_change = dt.m_value * ufo_speed * moo::get_normalized(pos_diff);
+      const ScreenCoord pos_diff = get_screen_coord(target) - ufo_pos;
+      const ScreenCoord pos_change = dt.m_value * ufo_speed * get_normalized(pos_diff);
       return ufo_pos + pos_change;
    }
 
 
    [[nodiscard]] auto get_cow_width(entt::registry& registry) -> double {
-      const auto cow_anim_ett = registry.view<moo::CowAnimation>().front();
-      const moo::CowAnimation& cow_animation = registry.get<moo::CowAnimation>(cow_anim_ett);
-      const double fractional_cow_bitmap_width = 1.0 * cow_animation.m_width / moo::static_columns;
+      const auto cow_anim_ett = registry.view<CowAnimation>().front();
+      const CowAnimation& cow_animation = registry.get<CowAnimation>(cow_anim_ett);
+      const double fractional_cow_bitmap_width = 1.0 * cow_animation.m_width / static_columns;
       return fractional_cow_bitmap_width;
    }
 
 
    [[nodiscard]] auto get_ufo_speed(const int level) -> double {
-      return moo::get_config().ufo_base_speed + level * moo::get_config().ufo_speed_increment;
+      return get_config().ufo_base_speed + level * get_config().ufo_speed_increment;
+   }
+
+
+   auto add_trail_puffs(
+      const Bullet& bullet,
+      Trail& trail,
+      const Seconds& dt
+   ) -> void
+   {
+      const double path_progress = get_length(bullet.m_pos - bullet.m_initial_pos);
+      const ScreenCoord pos_change = dt.m_value * (bullet.m_bullet_speed * bullet.m_trajectory + bullet.m_gravity_speed);
+      const ScreenCoord new_pos = bullet.m_pos + pos_change;
+      trail.add_puff(new_pos, bullet.m_pos, path_progress);
    }
 
 } // namespace {}
@@ -190,4 +205,38 @@ auto moo::spawn_new_cows(
       registry.emplace<AnimationFrame>(cow_entity, 2, 1.0, grazing_progress_dist(get_rng()));
       registry.emplace<CowVariant>(cow_entity, get_random_view_entity<CowAnimation>(registry));
    }
+}
+
+
+
+
+auto moo::do_trail_logic(
+   entt::registry& registry,
+   const Seconds dt
+) -> void
+{
+   registry.view<Trail>().each([&](auto trail_entity, Trail& trail) {
+      trail.thin_trail(dt);
+      const bool is_bullet_still_alive = registry.valid(trail.m_bullet_ref);
+      if (trail.m_smoke_puffs.empty() && !is_bullet_still_alive)
+         registry.destroy(trail_entity);
+      });
+
+   registry.view<Bullet>().each([&](Bullet& bullet) {
+      Trail& trail = registry.get<Trail>(bullet.m_trail);
+      trail.update_puff_colors(bullet.m_pos);
+      if (bullet.m_head_alive)
+         add_trail_puffs(bullet, trail, dt);
+      });
+}
+
+
+auto moo::discard_ground_bullets(entt::registry& registry) -> void{
+   registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
+      const bool bullet_under_horizon = bullet.m_pos.y > (get_sky_row_height() + 0.5 * get_ground_row_height()) / static_rows;
+      const bool remove_bullet = !bullet.m_head_alive || !bullet.m_pos.is_on_screen() || bullet_under_horizon;
+
+      if (remove_bullet)
+         registry.destroy(bullet_entity);
+      });
 }

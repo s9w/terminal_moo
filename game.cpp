@@ -640,7 +640,7 @@ auto moo::game::do_cloud_logic(const Seconds dt) -> void{
 }
 
 
-auto moo::game::process_alien_bullets(Bullet& bullet) -> void {
+auto moo::game::process_alien_bullet(Bullet& bullet) -> void {
    bool ufo_killed = false;
    const ScreenCoord ufo_dimensions{ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) };
    if (!m_ufo->is_invul() && does_bullet_hit(bullet, m_ufo->m_pos, ufo_dimensions, BulletStyle::Rocket)) {
@@ -676,38 +676,20 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
    do_cloud_logic(dt);
    do_mountain_logic(dt);
 
-   m_registry.view<Trail>().each([&](auto trail_entity, Trail& trail) {
-      trail.thin_trail(dt);
-      const bool bullet_still_alive = m_registry.valid(trail.m_bullet_ref);
-      if (trail.m_smoke_puffs.empty() && !bullet_still_alive)
-         m_registry.destroy(trail_entity);
-      });
+   do_trail_logic(m_registry, dt);
 
+   discard_ground_bullets(m_registry);
    m_registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
       bullet.progress(dt);
-      Trail& trail = m_registry.get<Trail>(bullet.m_trail);
-      trail.update_puff_colors(bullet.m_pos);
-      if (bullet.m_head_alive) {
-         const double path_progress = get_length(bullet.m_pos - bullet.m_initial_pos);
-         const ScreenCoord pos_change = dt.m_value * (bullet.m_bullet_speed * bullet.m_trajectory + bullet.m_gravity_speed);
-         const ScreenCoord new_pos = bullet.m_pos + pos_change;
-         trail.add_puff(new_pos, bullet.m_pos, path_progress);
+      });
+   m_registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
+      const ScreenCoord player_dim{ m_player_animation.m_width / (2.0 * static_columns), m_player_animation.m_height / (2.0 * static_rows) };
+      process_alien_bullet(bullet);
+      if (does_bullet_hit(bullet, m_player.m_pos, player_dim, BulletStyle::Alien)) {
+         m_player.m_hitpoints -= 1.0;
+         m_player.m_hit_timer = get_config().player_hit_invul_duration;;
+         bullet.m_head_alive = false;
       }
-
-      const bool bullet_under_horizon = bullet.m_pos.y > (get_sky_row_height() + 0.5 * get_ground_row_height()) / static_rows;
-      const bool remove_bullet = !bullet.m_head_alive || !bullet.m_pos.is_on_screen() || bullet_under_horizon;
-
-      if (!remove_bullet) {
-         const ScreenCoord player_dim{ m_player_animation.m_width / (2.0 * static_columns), m_player_animation.m_height / (2.0 * static_rows) };
-         process_alien_bullets(bullet);
-         if (does_bullet_hit(bullet, m_player.m_pos, player_dim, BulletStyle::Alien)) {
-            m_player.m_hitpoints -= 1.0;
-            m_player.m_hit_timer = get_config().player_hit_invul_duration;;
-            bullet.m_head_alive = false;
-         }
-      }
-      if (remove_bullet)
-         m_registry.destroy(bullet_entity);
       });
 
    if(m_ufo.has_value())

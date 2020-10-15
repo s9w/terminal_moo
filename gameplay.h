@@ -20,4 +20,6 @@ namespace moo {
 
    [[nodiscard]] auto get_new_cow_position(entt::registry& registry) -> std::optional<LanePosition>;
    auto spawn_new_cows(entt::registry& registry, const bool inactive) -> void;
+   auto do_trail_logic(entt::registry& registry, const Seconds dt) -> void;
+   auto discard_ground_bullets(entt::registry& registry) -> void;
 }
