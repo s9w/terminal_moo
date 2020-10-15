@@ -675,14 +675,13 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
    do_cow_logic(dt);
    do_cloud_logic(dt);
    do_mountain_logic(dt);
-
    do_trail_logic(m_registry, dt);
 
-   discard_ground_bullets(m_registry);
-   m_registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
-      bullet.progress(dt);
+   m_registry.view<Bullet>().each([&](Bullet& bullet) {
+      bullet.move(dt);
       });
-   m_registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
+   discard_ground_bullets(m_registry);
+   m_registry.view<Bullet>().each([&](Bullet& bullet) {
       const ScreenCoord player_dim{ m_player_animation.m_width / (2.0 * static_columns), m_player_animation.m_height / (2.0 * static_rows) };
       process_alien_bullet(bullet);
       if (does_bullet_hit(bullet, m_player.m_pos, player_dim, BulletStyle::Alien)) {

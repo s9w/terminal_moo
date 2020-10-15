@@ -45,7 +45,7 @@ moo::Bullet::Bullet(const ScreenCoord& initial_pos, const ScreenCoord& trajector
 }
 
 
-auto moo::Bullet::progress(
+auto moo::Bullet::move(
    const Seconds dt
 ) -> void
 {
