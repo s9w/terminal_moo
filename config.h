@@ -17,7 +17,7 @@ namespace moo {
       double new_strategy_interval = 8.0;
       double ufo_shooting_interal = 1.0;
       double ufo_base_speed = 0.1;
-      double ufo_speed_bonus = 0.1;
+      double ufo_speed_increment = 0.1;
    };
 
    auto setup_config() -> void;

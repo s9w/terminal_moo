@@ -81,7 +81,7 @@ namespace {
 
 
    [[nodiscard]] auto get_ufo_speed(const int level) -> double {
-      return moo::get_config().ufo_base_speed + level * moo::get_config().ufo_speed_bonus;
+      return moo::get_config().ufo_base_speed + level * moo::get_config().ufo_speed_increment;
    }
 
 } // namespace {}
