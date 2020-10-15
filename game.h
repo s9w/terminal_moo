@@ -38,11 +38,10 @@ namespace moo {
    
 
    enum class WriteAlignment{Center, BottomCenter};
-   enum class ContinueWish{Continue, Exit};
+   enum class ContinueWish{Continue, Exit, GameOver};
 
    struct game {
       game();
-      ~game();
       auto run() -> void;
       [[nodiscard]] auto game_loop() -> ContinueWish;
       void combine_buffers(const bool draw_fg);
@@ -75,7 +74,7 @@ namespace moo {
       auto do_cow_logic(const Seconds dt) -> void;
       auto do_cloud_logic(const Seconds dt) -> void;
       auto process_alien_bullets(Bullet& bullet) -> void;
-      auto do_logic(const Seconds dt) -> void;
+      auto do_logic(const Seconds dt) -> std::optional<ContinueWish>;
       auto do_drawing(const bool draw_fg) -> void;
       auto draw_gui() -> void;
       

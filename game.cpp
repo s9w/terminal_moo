@@ -265,12 +265,6 @@ moo::game::game()
 }
 
 
-moo::game::~game(){
-   set_console_state(m_initial_console_state);
-   clear_screen();
-}
-
-
 void moo::game::early_test(const bool use_colors) {
    constexpr int color_count = 1000;
    constexpr int color_keep_period = 4;
@@ -331,18 +325,24 @@ void moo::game::early_test(const bool use_colors) {
 auto moo::game::run() -> void{
    while (true) {
       const ContinueWish continue_return = game_loop();
-      if (continue_return == ContinueWish::Exit)
+      if (continue_return == ContinueWish::Exit) {
+         set_console_state(m_initial_console_state);
+         clear_screen();
          return;
+      }
+      else if (continue_return == ContinueWish::GameOver) {
+         set_console_state(m_initial_console_state);
+         clear_screen();
+         printf("Game Over at level: %i\n", m_level);
+         return;
+      }
    }
 }
 
 
 auto moo::game::game_loop() -> ContinueWish {
-   if (is_esc_pressed()) {
-      set_console_state(m_initial_console_state);
-      clear_screen();
+   if (is_esc_pressed())
       return ContinueWish::Exit;
-   }
    if (m_draw_logo && GetKeyState(VK_SPACE) < 0) {
       m_draw_logo = false;
       m_draw_fg = true;
@@ -361,7 +361,9 @@ auto moo::game::game_loop() -> ContinueWish {
    m_time += dt / day_len_in_s;
 
    clear_buffers();
-   do_logic(dt);
+   const auto logic_result = do_logic(dt);
+   if (logic_result.has_value())
+      return logic_result.value();
    do_drawing(m_draw_fg);
 
    if(m_draw_logo)
@@ -658,7 +660,7 @@ auto moo::game::process_alien_bullets(Bullet& bullet) -> void {
 }
 
 
-auto moo::game::do_logic(const Seconds dt) -> void {
+auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
    m_ufo_spawn_timer.iterate(dt);
    if (m_ufo_spawn_timer.get_ready()) {
       m_ufo = get_ufo();
@@ -666,7 +668,6 @@ auto moo::game::do_logic(const Seconds dt) -> void {
    }
    if(m_ufo.has_value())
       run_ufo_strategy_logic(dt);
-   
 
    spawn_new_cows(m_registry, m_draw_logo);
    m_player.move_towards(get_player_target(get_keyboard_intention(), m_mouse_pos, m_player.m_pos), dt);
@@ -729,6 +730,11 @@ auto moo::game::do_logic(const Seconds dt) -> void {
          m_player.m_hitpoints += 0.1;
       }
       });
+   
+   if (less_equal(m_player.m_hitpoints, 0.0)) {
+      return ContinueWish::GameOver;
+   }
+   return std::nullopt;
 }
 
 
