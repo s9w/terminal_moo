@@ -25,6 +25,8 @@
 
 namespace moo {
 
+   struct Trail;
+
    struct GrassNoise {
       GrassNoise(const int grass_rows, const int columns);
       std::vector<std::vector<int>> m_row_noise;

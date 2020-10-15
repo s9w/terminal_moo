@@ -8,10 +8,10 @@
 #include "rng.h"
 #include "screencoord.h"
 #include "strategy.h"
+#include "trail.h"
 #include "ufo.h"
 
 #include <entt/entt.hpp>
-
 
 
 

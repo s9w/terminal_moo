@@ -3,6 +3,7 @@
 #include "config.h"
 #include "entt_types.h"
 #include "lane_position.h"
+#include "trail.h"
 
 #include <entt/entt.hpp>
 

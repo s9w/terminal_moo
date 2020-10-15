@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "rng.h"
+#include "trail.h"
 
 #include <algorithm>
 

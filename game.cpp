@@ -11,6 +11,7 @@ namespace fs = std::filesystem;
 #include "helpers.h"
 #include "rng.h"
 #include "tweening.h"
+#include "trail.h"
 
 #include <fmt\format.h>
 #include <Tracy.hpp>
