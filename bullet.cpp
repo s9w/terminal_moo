@@ -6,11 +6,11 @@
 
 
 moo::Bullet::Bullet(const ScreenCoord& initial_pos, const ScreenCoord& trajectory, const BulletStyle style, entt::entity trail)
-   : m_pos(initial_pos)
+   : m_trajectory(trajectory)
+   , m_pos(initial_pos)
    , m_initial_pos(initial_pos)
-   , m_trajectory(trajectory)
-   , m_style(style)
    , m_trail(trail)
+   , m_style(style)
 {
 
 }

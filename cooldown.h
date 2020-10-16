@@ -49,8 +49,8 @@ namespace moo {
 
 
 constexpr moo::Cooldown::Cooldown(const double period)
-   : m_period(period)
-   , m_state(Inactive{})
+   : m_state(Inactive{})
+   , m_period(period)
 {
 
 }

@@ -13,7 +13,7 @@ namespace moo {
       Bullet(Bullet&& move) noexcept = default;
       Bullet& operator=(Bullet&& move) noexcept = default;
 
-      [[nodiscard]] auto move(const Seconds dt) -> void;
+      auto move(const Seconds dt) -> void;
 
       ScreenCoord m_trajectory;
       ScreenCoord m_pos;
