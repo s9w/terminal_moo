@@ -745,16 +745,17 @@ auto moo::game::do_drawing(const bool draw_fg) -> void{
 
 auto moo::game::draw_gui() -> void{
    ZoneScopedN("Drawing GUI");
-   const std::string gui_text = fmt::format(
-      "FPS: {:.1f}, color changes: {}, HP: {:.1f}, level: {}, strategy CD: {}, ufo alive: {}, ufo spawn CD: {}",
+   std::string gui_text = fmt::format(
+      "FPS: {:.1f}, color changes: {}, HP: {:.1f}, level: {}",
       m_fps_counter.m_current_fps,
       m_painter.get_paint_count(),
       m_player.m_hitpoints,
-      m_level,
-      m_strategy_change_cooldown.to_string(),
-      m_ufo.has_value(),
-      m_ufo_spawn_timer.to_string()
+      m_level
    );
+   if (m_ufo.has_value())
+      gui_text += fmt::format(", strategy change in: {}", m_strategy_change_cooldown.to_string());
+   if (!m_ufo.has_value())
+      gui_text += fmt::format(", ufo spawn in: {}", m_ufo_spawn_timer.to_string());
    write_screen_text(gui_text, { 0, 0 }, RGB{255, 0, 0});
 }
 
