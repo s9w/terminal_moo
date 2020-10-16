@@ -8,7 +8,7 @@
 
 A precompiled 64bit windows `.exe` can be found under [Releases](https://github.com/s9w/terminal_moo/releases). You can double-click it, or start it from an existing `cmd` session.
 
-For this to work properly, you'll need to use a font that contains block elements. Some other fonts have those, but with inconsistent sizes. Here's an overview of popular monospace fonts:
+For this to work properly, you'll need to use a font that contains block elements. Here's an overview of popular monospace fonts and how well they work:
 
 - Great: [Hack](https://github.com/source-foundry/Hack), [3270font](https://github.com/rbanffy/3270font), [PragmataPro](https://github.com/fabrizioschiavi/pragmatapro), [Source Code Pro](https://github.com/adobe-fonts/source-code-pro), [Fira Mono](https://mozilla.github.io/Fira/)
 - Minor distortions: mononoki, iosevka, 
