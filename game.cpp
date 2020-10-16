@@ -651,6 +651,8 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
    m_registry.view<Bullet>().each([&](auto bullet_entity, Bullet& bullet) {
       bullet.move(dt);
       discard_ground_bullet(m_registry, bullet_entity, bullet);
+      if (!m_registry.valid(bullet_entity))
+         return;
       
       if (m_ufo.has_value()) {
          if (does_bullet_hit_ufo(bullet, m_ufo.value(), ufo_dimensions)) {
