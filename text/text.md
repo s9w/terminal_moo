@@ -187,31 +187,6 @@ Also I used one globally accessible random number generator since that was requi
 
 Last thing is the config. Needed in many random places, so there's a global access function that returns a static object.
 
-## Git
-This is going to be blunt and potentially controversial. Please don't read this if you're a Git fan.
-
-I don't like Git at all. In SVN you have nice revision numbers to refer to. In Git you don't. Want to change a commit message in SVN? right click the commit in TSVN and select the command. In Git? You need to consult one [of the many sites dedicated to fixing Git](https://ohshitgit.com/). And god forbid it's not the latest commit. And the worst thing is the insane number of files in the .git folder. After just one commit it's in the thousands. By now terminal moos .git is *over 26K files*, hundreds of folders and 153 MB in size. It's a tiny project with ~130KB of code in ~130 commits. That is *orders of magnitude* beyond reason. In good Git tradition there is a whole range of commands to fix this. But as a cruel joke these fixes are mostly gone after the next commit, adding insult to injury.
-
-Also sometimes there's these artifacts randomly occurring in your log view. But only on *some* versions of the installed Git binary:
-
-![](git_artifacts.png)
-
-In another project I tried submodules once. They're horrible. Also sometimes Git randomly crashes while committing, it did so two times just during this project. Like real actually crashes with a windows error message. There's also these fun little commit errors (this is on top of the crashes, not the same thing):
-
-![](nice_git_error.gif)
-
-You can click 'abort' in the other window. The commit has still been made (???) - or has it? No one knows, it's Git after all. This occurs on about every third commit.
-
-Another of my all-time favorites are the randomly occurring local changes of changed line endings.
-
-![](git_newlines.png)
-
-Of course there are *multiple* ways of fixing this, but they only work sometimes. Yes I know about the `autocrlf` setting. Yes I know about the `.gitattributes` thing. It worked for about two weeks in this project, then randomly stopped literally overnight.
-
-I'm sure Git is a technical marvel if you dig into things. I'm sure I'm doing things wrong. And part of the blame is tooling - I'm sure there is a better Git GUI that wraps all that for fools like me. But for mere mortals it's hard to see any benefit besides its place as de facto standard because of Github. I would even say that for simple programs, not using any VCS at all might be better than using Git.
-
-I've used Git for over 9 years now. I have thousands of commits in dozens of repos, but it never worked well for me - or even at all realiably for any reasonable time. I've had Git data loss two times, both times my ass got saved by the repo being in my Dropbox - which I've been made fun of repeatedly. Even my most basic demands have been shattered so many times that I would never dare to use any functionality besides the trivial. I'm too afraid to use branches. I don't even want to know what a rebase is. I would never trust Git's revert feature to not just destroy the repo. Just let that sink in. It's like a Monty Python sketch of a VCS and no one is allowed to laugh because the Git zealots wait in every corner ready to ridicule and crucify. Humanity made a grave mistake by allowing Git to win.
-
 ## Static analysis
 Visual Studios highest practical warning level is `/W4`. With `/Wall` you get endless errors from 3rd party libraries, the standard library itself and warnings that are trivial if you don't do infosec. But why does the relatively high `/W4` not warn me about passing a `bool` into an `int` parameter and the other way round? That warning actually existed in earlier versions [but was apparently removed](https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4800?view=vs-2017).
 
