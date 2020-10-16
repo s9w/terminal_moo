@@ -125,7 +125,7 @@ void moo::write(HANDLE& output_handle, const std::wstring& str){
 }
 
 
-auto moo::get_console_buffer() -> std::vector<CHAR_INFO> {
+auto moo::get_console_buffer() -> std::optional<std::vector<CHAR_INFO>> {
    HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
    std::vector<CHAR_INFO> ch_buffer(static_rows * static_columns);
 
@@ -154,5 +154,16 @@ auto moo::get_console_buffer() -> std::vector<CHAR_INFO> {
       printf("ReadConsoleOutput failed - (%d)\n", GetLastError());
       std::terminate();
    }
+
+   const bool screen_is_empty = std::all_of(
+      ch_buffer.begin(),
+      ch_buffer.end(),
+      [](const CHAR_INFO& char_info) {
+         return char_info.Char.UnicodeChar == ' ';
+      }
+   );
+   if (screen_is_empty)
+      return std::nullopt;
+
    return ch_buffer;
 }

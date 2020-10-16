@@ -60,7 +60,11 @@ int main() {
    const int rows = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
    moo::update_screen_size(rows, columns);
    moo::game game_instance;
-   run_intro(moo::get_console_buffer(), output_handle);
+   {
+      const auto console_buffer = moo::get_console_buffer();
+      if(console_buffer.has_value())
+         run_intro(console_buffer.value(), output_handle);
+   }
    game_instance.run();
 
    return 0;
