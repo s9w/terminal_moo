@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{eb8d00ac-cf8f-402c-8d75-a9134cdea2b8}</ProjectGuid>
+    <RootNamespace>terminalmoo</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(SolutionDir)\fmt-7.0.3\include;$(SolutionDir)\..\sr\external libs\tracy-0.7.1;$(IncludePath)</IncludePath>
+    <EnableMicrosoftCodeAnalysis>false</EnableMicrosoftCodeAnalysis>
+    <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(SolutionDir)\fmt-7.0.3\include;$(SolutionDir)\..\sr\external libs\tracy-0.7.1;$(IncludePath)</IncludePath>
+    <EnableMicrosoftCodeAnalysis>false</EnableMicrosoftCodeAnalysis>
+    <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;TRACY_NO_BROADCAST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;TRACY_NO_BROADCAST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\sr\external libs\tracy-0.7.1\TracyClient.cpp" />
+    <ClCompile Include="bullet.cpp" />
+    <ClCompile Include="cc.cpp" />
+    <ClCompile Include="color.cpp" />
+    <ClCompile Include="config.cpp" />
+    <ClCompile Include="cooldown.cpp" />
+    <ClCompile Include="fps_counter.cpp" />
+    <ClCompile Include="game.cpp" />
+    <ClCompile Include="gameplay.cpp" />
+    <ClCompile Include="helpers.cpp" />
+    <ClCompile Include="image.cpp" />
+    <ClCompile Include="lane_position.cpp" />
+    <ClCompile Include="mountain_range.cpp" />
+    <ClCompile Include="painter.cpp" />
+    <ClCompile Include="player.cpp" />
+    <ClCompile Include="rng.cpp" />
+    <ClCompile Include="terminal_moo.cpp" />
+    <ClCompile Include="trail.cpp" />
+    <ClCompile Include="ufo.cpp" />
+    <ClCompile Include="win_api_helper.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="animation_frame.h" />
+    <ClInclude Include="block_char.h" />
+    <ClInclude Include="buffer.h" />
+    <ClInclude Include="bullet.h" />
+    <ClInclude Include="cc.h" />
+    <ClInclude Include="color.h" />
+    <ClInclude Include="config.h" />
+    <ClInclude Include="cooldown.h" />
+    <ClInclude Include="entt_helper.h" />
+    <ClInclude Include="entt_types.h" />
+    <ClInclude Include="fps_counter.h" />
+    <ClInclude Include="game.h" />
+    <ClInclude Include="gameplay.h" />
+    <ClInclude Include="helpers.h" />
+    <ClInclude Include="image.h" />
+    <ClInclude Include="lane_position.h" />
+    <ClInclude Include="mountain_range.h" />
+    <ClInclude Include="painter.h" />
+    <ClInclude Include="player.h" />
+    <ClInclude Include="rng.h" />
+    <ClInclude Include="screencoord.h" />
+    <ClInclude Include="screen_size.h" />
+    <ClInclude Include="strategy.h" />
+    <ClInclude Include="streak_preventer.h" />
+    <ClInclude Include="tools_math.h" />
+    <ClInclude Include="trail.h" />
+    <ClInclude Include="tweening.h" />
+    <ClInclude Include="ufo.h" />
+    <ClInclude Include="win_api_helper.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
