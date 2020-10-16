@@ -261,23 +261,11 @@ auto moo::set_new_ufo_strategies(
 }
 
 
-auto moo::process_human_bullet(
-   Bullet& bullet,
-   entt::registry& registry,
-   Ufo& ufo,
+auto moo::does_bullet_hit_ufo(
+   const Bullet& bullet,
+   const Ufo& ufo,
    const ScreenCoord& ufo_dimensions
-) -> BulletRunResult
+) -> bool
 {
-   BulletRunResult result;
-   
-   if (!ufo.is_invul() && does_bullet_hit(bullet, ufo.m_pos, ufo_dimensions, BulletStyle::Rocket)) {
-      result.m_kill_bullet = true;
-      result.m_ufo_killed = ufo.hit();
-   }
-   if (result.m_ufo_killed && std::holds_alternative<Abduct>(ufo.m_strategy)) {
-         auto target_cow = std::get<Abduct>(ufo.m_strategy).m_target_cow;
-         BeingBeamed& cow_being_beamed = registry.get<BeingBeamed>(target_cow);
-         cow_being_beamed.value = false;
-   }
-   return result;
+   return !ufo.is_invul() && does_bullet_hit(bullet, ufo.m_pos, ufo_dimensions, BulletStyle::Rocket);
 }

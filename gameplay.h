@@ -14,11 +14,6 @@ namespace moo {
    struct Ufo;
    struct Bullet;
 
-   struct BulletRunResult {
-      bool m_kill_bullet = false;
-      bool m_ufo_killed = false;
-   };
-
    auto set_ufo_abducting(Ufo& ufo, entt::registry& registry) -> void;
    auto set_ufo_shooting(Ufo& ufo, entt::registry& registry) -> void;
 
@@ -29,5 +24,5 @@ namespace moo {
    auto do_trail_logic(entt::registry& registry, const Seconds dt) -> void;
    auto discard_ground_bullet(entt::registry& registry, entt::entity bullet_entity, const Bullet& bullet) -> void;
    auto set_new_ufo_strategies(entt::registry& registry, Ufo& ufo) -> void;
-   [[nodiscard]] auto process_human_bullet(Bullet& bullet, entt::registry& registry, Ufo& ufo, const ScreenCoord& ufo_dimensions)->BulletRunResult;
+   [[nodiscard]] auto does_bullet_hit_ufo(const Bullet& bullet, const Ufo& ufo, const ScreenCoord& ufo_dimensions)->bool;
 }

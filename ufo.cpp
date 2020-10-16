@@ -17,17 +17,21 @@ moo::Ufo::Ufo(const ScreenCoord& initial_pos, const double anim_progress)
 }
 
 
-auto moo::Ufo::hit() -> bool{
+auto moo::Ufo::damage() -> void {
    m_health -= 0.1;
    m_hit_timer = get_config().ufo_hit_invul_duration;
-   const bool is_dead = less_equal(m_health, 0.0);
-   return is_dead;
 }
 
 
 auto moo::Ufo::is_invul() const -> bool{
    return !is_zero(m_hit_timer.m_value);
 }
+
+auto moo::Ufo::is_dead() const -> bool{
+   const bool is_dead = less_equal(m_health, 0.0);
+   return is_dead;
+}
+
 
 auto moo::Ufo::fire(
    const ScreenCoord& player_pos,

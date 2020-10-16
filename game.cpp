@@ -651,11 +651,16 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
       discard_ground_bullet(m_registry, bullet_entity, bullet);
       
       if (m_ufo.has_value()) {
-         const BulletRunResult human_bullet_result = process_human_bullet(bullet, m_registry, m_ufo.value(), ufo_dimensions);
-         if (human_bullet_result.m_kill_bullet) {
+         if (does_bullet_hit_ufo(bullet, m_ufo.value(), ufo_dimensions)) {
+            m_ufo->damage();
             m_registry.destroy(bullet_entity);
          }
-         if (human_bullet_result.m_ufo_killed) {
+         if (m_ufo->is_dead()) {
+            if (std::holds_alternative<Abduct>(m_ufo->m_strategy)) {
+               auto target_cow = std::get<Abduct>(m_ufo->m_strategy).m_target_cow;
+               BeingBeamed& cow_being_beamed = m_registry.get<BeingBeamed>(target_cow);
+               cow_being_beamed.value = false;
+            }
             m_ufo.reset();
             m_ufo_spawn_timer.restart();
             ++m_level;
