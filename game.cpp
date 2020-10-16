@@ -237,9 +237,9 @@ moo::game::game()
    , m_input_handle(GetStdHandle(STD_INPUT_HANDLE))
    , m_grass_noise(get_ground_row_height(), static_columns)
    , m_screen_text(get_char_count(), { '\0', std::nullopt })
-   , m_player_animation(load_animation("player.png"))
+   , m_player_animation(load_animation("gfx/player.png"))
    , m_player_anim_frame(2, 0.08, 0.0)
-   , m_ufo_animation(load_ufo_animation("ufo.png"))
+   , m_ufo_animation(load_ufo_animation("gfx/ufo.png"))
    , m_pixel_buffer(get_pixel_count(), RGB{})
    , m_t_last(std::chrono::system_clock::now())
    , m_front_mountain(0, RGB{62, 85, 103})
@@ -247,11 +247,11 @@ moo::game::game()
    , m_back_mountain(4, RGB{ 104, 145, 165 })
    , m_strategy_change_cooldown(get_config().new_strategy_interval)
 {
-   for (Animation& animation : load_animations(true, "cow_brown.png", "cow_white_brown.png", "cow_white_black.png")) {
+   for (Animation& animation : load_animations(true, "gfx/cow_brown.png", "gfx/cow_white_brown.png", "gfx/cow_white_black.png")) {
       auto entity = m_registry.create();
       m_registry.emplace<CowAnimation>(entity, std::move(animation));
    }
-   for (SingleImage& cloud_image : load_images("cloud.png", false)) {
+   for (SingleImage& cloud_image : load_images("gfx/cloud.png", false)) {
       auto entity = m_registry.create();
       m_registry.emplace<CloudImage>(entity, std::move(cloud_image));
    }
