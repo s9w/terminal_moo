@@ -10,6 +10,58 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\animation_frame.h" />
+    <ClInclude Include="src\block_char.h" />
+    <ClInclude Include="src\buffer.h" />
+    <ClInclude Include="src\bullet.h" />
+    <ClInclude Include="src\cc.h" />
+    <ClInclude Include="src\color.h" />
+    <ClInclude Include="src\config.h" />
+    <ClInclude Include="src\cooldown.h" />
+    <ClInclude Include="src\entt_helper.h" />
+    <ClInclude Include="src\entt_types.h" />
+    <ClInclude Include="src\fps_counter.h" />
+    <ClInclude Include="src\game.h" />
+    <ClInclude Include="src\gameplay.h" />
+    <ClInclude Include="src\helpers.h" />
+    <ClInclude Include="src\image.h" />
+    <ClInclude Include="src\lane_position.h" />
+    <ClInclude Include="src\mountain_range.h" />
+    <ClInclude Include="src\painter.h" />
+    <ClInclude Include="src\player.h" />
+    <ClInclude Include="src\rng.h" />
+    <ClInclude Include="src\screencoord.h" />
+    <ClInclude Include="src\screen_size.h" />
+    <ClInclude Include="src\strategy.h" />
+    <ClInclude Include="src\streak_preventer.h" />
+    <ClInclude Include="src\tools_math.h" />
+    <ClInclude Include="src\trail.h" />
+    <ClInclude Include="src\tweening.h" />
+    <ClInclude Include="src\ufo.h" />
+    <ClInclude Include="src\win_api_helper.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\bullet.cpp" />
+    <ClCompile Include="src\cc.cpp" />
+    <ClCompile Include="src\color.cpp" />
+    <ClCompile Include="src\config.cpp" />
+    <ClCompile Include="src\cooldown.cpp" />
+    <ClCompile Include="src\fps_counter.cpp" />
+    <ClCompile Include="src\game.cpp" />
+    <ClCompile Include="src\gameplay.cpp" />
+    <ClCompile Include="src\helpers.cpp" />
+    <ClCompile Include="src\image.cpp" />
+    <ClCompile Include="src\lane_position.cpp" />
+    <ClCompile Include="src\mountain_range.cpp" />
+    <ClCompile Include="src\painter.cpp" />
+    <ClCompile Include="src\player.cpp" />
+    <ClCompile Include="src\rng.cpp" />
+    <ClCompile Include="src\terminal_moo.cpp" />
+    <ClCompile Include="src\trail.cpp" />
+    <ClCompile Include="src\ufo.cpp" />
+    <ClCompile Include="src\win_api_helper.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -91,59 +143,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\sr\external libs\tracy-0.7.1\TracyClient.cpp" />
-    <ClCompile Include="bullet.cpp" />
-    <ClCompile Include="cc.cpp" />
-    <ClCompile Include="color.cpp" />
-    <ClCompile Include="config.cpp" />
-    <ClCompile Include="cooldown.cpp" />
-    <ClCompile Include="fps_counter.cpp" />
-    <ClCompile Include="game.cpp" />
-    <ClCompile Include="gameplay.cpp" />
-    <ClCompile Include="helpers.cpp" />
-    <ClCompile Include="image.cpp" />
-    <ClCompile Include="lane_position.cpp" />
-    <ClCompile Include="mountain_range.cpp" />
-    <ClCompile Include="painter.cpp" />
-    <ClCompile Include="player.cpp" />
-    <ClCompile Include="rng.cpp" />
-    <ClCompile Include="terminal_moo.cpp" />
-    <ClCompile Include="trail.cpp" />
-    <ClCompile Include="ufo.cpp" />
-    <ClCompile Include="win_api_helper.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="animation_frame.h" />
-    <ClInclude Include="block_char.h" />
-    <ClInclude Include="buffer.h" />
-    <ClInclude Include="bullet.h" />
-    <ClInclude Include="cc.h" />
-    <ClInclude Include="color.h" />
-    <ClInclude Include="config.h" />
-    <ClInclude Include="cooldown.h" />
-    <ClInclude Include="entt_helper.h" />
-    <ClInclude Include="entt_types.h" />
-    <ClInclude Include="fps_counter.h" />
-    <ClInclude Include="game.h" />
-    <ClInclude Include="gameplay.h" />
-    <ClInclude Include="helpers.h" />
-    <ClInclude Include="image.h" />
-    <ClInclude Include="lane_position.h" />
-    <ClInclude Include="mountain_range.h" />
-    <ClInclude Include="painter.h" />
-    <ClInclude Include="player.h" />
-    <ClInclude Include="rng.h" />
-    <ClInclude Include="screencoord.h" />
-    <ClInclude Include="screen_size.h" />
-    <ClInclude Include="strategy.h" />
-    <ClInclude Include="streak_preventer.h" />
-    <ClInclude Include="tools_math.h" />
-    <ClInclude Include="trail.h" />
-    <ClInclude Include="tweening.h" />
-    <ClInclude Include="ufo.h" />
-    <ClInclude Include="win_api_helper.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
