@@ -247,7 +247,7 @@ moo::game::game()
    , m_back_mountain(4, RGB{ 104, 145, 165 })
    , m_strategy_change_cooldown(get_config().new_strategy_interval)
 {
-   for (Animation& animation : load_animations(true, "cow.png", "cow_white_brown.png", "cow_white_black.png")) {
+   for (Animation& animation : load_animations(true, "cow_brown.png", "cow_white_brown.png", "cow_white_black.png")) {
       auto entity = m_registry.create();
       m_registry.emplace<CowAnimation>(entity, std::move(animation));
    }
