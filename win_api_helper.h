@@ -5,6 +5,7 @@
 #include <windows.h>
 
 #include <iostream>
+#include <vector>
 
 namespace moo {
 
@@ -34,5 +35,6 @@ namespace moo {
    void disable_selection();
 
    void write(HANDLE& output_handle, const std::wstring& str);
+   [[nodiscard]] auto get_console_buffer() ->std::vector<CHAR_INFO>;
 
 }

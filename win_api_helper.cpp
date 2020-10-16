@@ -123,3 +123,36 @@ void moo::write(HANDLE& output_handle, const std::wstring& str){
    LPDWORD chars_written = 0;
    WriteConsole(output_handle, str.c_str(), static_cast<DWORD>(str.length()), chars_written, 0);
 }
+
+
+auto moo::get_console_buffer() -> std::vector<CHAR_INFO> {
+   HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+   std::vector<CHAR_INFO> ch_buffer(static_rows * static_columns);
+
+   COORD coordBufSize;
+   coordBufSize.X = static_cast<short>(static_columns);
+   coordBufSize.Y = static_cast<short>(static_rows);
+
+   COORD coordBufCoord;
+   coordBufCoord.X = 0;
+   coordBufCoord.Y = 0;
+
+   SMALL_RECT srctReadRect;
+   srctReadRect.Top = 0;
+   srctReadRect.Left = 0;
+   srctReadRect.Bottom = static_cast<short>(static_rows - 1);
+   srctReadRect.Right = static_cast<short>(static_columns - 1);
+
+   const auto read_success = ReadConsoleOutput(
+      hStdout,        // screen buffer to read from 
+      ch_buffer.data(),      // buffer to copy into 
+      coordBufSize,   // col-row size of chiBuffer 
+      coordBufCoord,  // top left dest. cell in chiBuffer 
+      &srctReadRect); // screen buffer source rectangle 
+   if (!read_success)
+   {
+      printf("ReadConsoleOutput failed - (%d)\n", GetLastError());
+      std::terminate();
+   }
+   return ch_buffer;
+}
