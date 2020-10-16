@@ -12,8 +12,13 @@ namespace moo {
       bool value = false;
    };
 
-   using IsCow = entt::tag<"is_cow"_hs>;
-   using IsCloud = entt::tag<"is_cloud"_hs>;
+   struct GravitySpeed {
+      double value = 0.0;
+   };
+
+   struct IsCow {};
+   struct IsCloud {};
+   struct PuffSpawner {};
    using CowVariant = entt::entity;
    using CloudImageRef = entt::entity;
 

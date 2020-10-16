@@ -530,14 +530,18 @@ auto moo::game::draw_background() -> void {
 }
 
 
+auto moo::game::draw_puff(const ScreenCoord& puff_screen_pos, const RGB& color) -> void{
+   if (!puff_screen_pos.is_on_screen())
+      return;
+   const PixelCoord puff_pos = to_pixel_coord(puff_screen_pos);
+   const size_t index = to_screen_index(get_screen_clamped(puff_pos));
+   const size_t bg_index = (puff_pos.i / 2) * static_columns + puff_pos.j / 2;
+   m_pixel_buffer[index] = get_color_mix(m_bg_buffer[bg_index], color, 0.7);
+}
+
 auto moo::game::draw_trail(const Trail& trail) -> void{
    for (const TrailPuff& puff : trail.m_smoke_puffs) {
-      if (!puff.pos.is_on_screen())
-         continue;
-      const PixelCoord puff_pos = to_pixel_coord(puff.pos);
-      const size_t index = to_screen_index(get_screen_clamped(puff_pos));
-      const size_t bg_index = (puff_pos.i / 2) * static_columns + puff_pos.j / 2;
-      m_pixel_buffer[index] = get_color_mix(m_bg_buffer[bg_index], puff.color, 0.7);
+      draw_puff(puff.pos, puff.color);
    }
 }
 
@@ -628,9 +632,6 @@ auto moo::game::do_cloud_logic(const Seconds dt) -> void{
 }
 
 
-
-
-
 auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
    run_ufo_spawning_logic(dt);
    run_ufo_strategy_logic(dt);
@@ -642,6 +643,7 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
    do_cloud_logic(dt);
    do_mountain_logic(dt);
    do_trail_logic(m_registry, dt);
+   do_explosion_logic(m_registry, dt);
 
    const ScreenCoord ufo_dimensions{ m_ufo_animation.m_width / (2.0 * static_columns), m_ufo_animation.m_height / (2.0 * static_rows) };
    const ScreenCoord player_dim{ m_player_animation.m_width / (2.0 * static_columns), m_player_animation.m_height / (2.0 * static_rows) };
@@ -661,6 +663,8 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
                BeingBeamed& cow_being_beamed = m_registry.get<BeingBeamed>(target_cow);
                cow_being_beamed.value = false;
             }
+            create_explosion(m_registry, m_ufo->m_pos);
+
             m_ufo.reset();
             m_ufo_spawn_timer.restart();
             ++m_level;
@@ -713,6 +717,9 @@ auto moo::game::do_drawing(const bool draw_fg) -> void{
    draw_cows();
    m_registry.view<Trail>().each([&](Trail& trail) {
       draw_trail(trail);
+      });
+   m_registry.view<TrailPuff>().each([&](const TrailPuff& puff) {
+      draw_puff(puff.pos, puff.color);
       });
    m_registry.view<Bullet>().each([&](Bullet& bullet) {
       draw_bullet(bullet);

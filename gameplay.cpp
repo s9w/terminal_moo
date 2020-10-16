@@ -14,6 +14,13 @@
 #include <entt/entt.hpp>
 
 
+#if _MSC_VER < 1928 // Visual Studio 2019 version 16.8
+constexpr double pi = 3.14159265359;
+#else
+#include <numbers>
+constexpr double pi = std::numbers::pi;
+#endif // _MSC_VER
+
 
 namespace {
 
@@ -97,6 +104,21 @@ namespace {
       const ScreenCoord pos_change = dt.m_value * (bullet.m_bullet_speed * bullet.m_trajectory + bullet.m_gravity_speed);
       const ScreenCoord new_pos = bullet.m_pos + pos_change;
       trail.add_puff(new_pos, bullet.m_pos, path_progress);
+   }
+
+
+   auto add_puff(
+      entt::registry& registry,
+      const ScreenCoord& pos
+   ) -> void
+   {
+      auto entity = registry.create();
+      constexpr double puff_variation = 0.02;
+      const std::uniform_real_distribution<double> pos_var_dist(-puff_variation, puff_variation);
+      const std::uniform_int_distribution<> green_dist(0, 255);
+      const ScreenCoord puff_pos = pos + ScreenCoord{ pos_var_dist(get_rng()), pos_var_dist(get_rng()) };
+      const RGB color{ 255, static_cast<unsigned char>(green_dist(get_rng())), 0 };
+      registry.emplace<TrailPuff>(entity, TrailPuff{ puff_pos, color });
    }
 
 } // namespace {}
@@ -230,6 +252,28 @@ auto moo::do_trail_logic(
 }
 
 
+auto moo::do_explosion_logic(entt::registry& registry, const Seconds dt) -> void{
+   const auto puff_spawners = registry.view<PuffSpawner, ScreenCoord, Direction, GravitySpeed>();
+   puff_spawners.each([&](entt::entity entity, ScreenCoord& pos, Direction& direction, GravitySpeed& gravity_speed) {
+      gravity_speed.value += dt.m_value * moo::get_config().gravity_strength;
+
+      constexpr double speed = 1;
+      pos += dt.m_value * (speed * static_cast<ScreenCoord>(direction) + gravity_speed.value * ScreenCoord{0.0, 1.0});
+      add_puff(registry, pos);
+      if (!pos.is_on_screen()) {
+         registry.destroy(entity);
+      }
+      });
+
+   const std::uniform_real_distribution<double> one_dist(0.0, 1.0);
+   const double elim_threshold = 5.0 * dt;
+   registry.view<TrailPuff>().each([&](entt::entity entity, TrailPuff&) {
+      if (one_dist(get_rng()) < elim_threshold)
+         registry.destroy(entity);
+      });
+}
+
+
 auto moo::discard_ground_bullet(
    entt::registry& registry,
    entt::entity bullet_entity,
@@ -268,4 +312,33 @@ auto moo::does_bullet_hit_ufo(
 ) -> bool
 {
    return !ufo.is_invul() && does_bullet_hit(bullet, ufo.m_pos, ufo_dimensions, BulletStyle::Rocket);
+}
+
+
+auto moo::create_explosion_streak(
+   entt::registry& registry,
+   const ScreenCoord& start_pos,
+   const Direction& direction
+) -> void
+{
+   auto trail_entity = registry.create();
+   registry.emplace<PuffSpawner>(trail_entity);
+   registry.emplace<ScreenCoord>(trail_entity, start_pos);
+   registry.emplace<Direction>(trail_entity, direction);
+   registry.emplace<GravitySpeed>(trail_entity, GravitySpeed{});
+}
+
+
+auto moo::create_explosion(entt::registry& registry, const ScreenCoord& start_pos) -> void{
+   constexpr int explosion_streak_count = 8;
+
+   const double average_angle = 2.0 * pi / explosion_streak_count;
+   const double angle_var = 0.5 * average_angle;
+   const std::uniform_real_distribution<double> angle_var_dist(-angle_var, angle_var);
+
+   for (int i = 0; i < explosion_streak_count; ++i) {
+      const double angle = i * average_angle + angle_var_dist(get_rng());
+      Direction dir{std::cos(angle), std::sin(angle)};
+      create_explosion_streak(registry, start_pos, dir);
+   }
 }

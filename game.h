@@ -69,6 +69,7 @@ namespace moo {
       auto draw_mountain_range(const MountainRange& mountains) -> void;
       auto draw_mountains() -> void;
       auto draw_background() -> void;
+      auto draw_puff(const ScreenCoord& puff_screen_pos, const RGB& color) -> void;
       auto draw_trail(const Trail& trail) -> void;
       auto draw_bullet(const Bullet& bullet) -> void;
       auto draw_beam(const Ufo& ufo) -> void;

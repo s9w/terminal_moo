@@ -38,8 +38,7 @@ namespace moo {
    };
 
    struct ScreenCoord : public DoubleCoord {};
-   //struct Trajectory : public DoubleCoord {};
-   //struct InitialBulletPos : public DoubleCoord {};
+   struct Direction : public ScreenCoord {};
 
 
    template<moo::CoordType T> // I don't understand why I need to repeat the namespace
