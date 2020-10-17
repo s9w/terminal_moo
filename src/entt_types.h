@@ -18,6 +18,7 @@ namespace moo {
 
    struct IsCow {};
    struct IsCloud {};
+   struct IsPuff {};
    struct PuffSpawner {};
    using CowVariant = entt::entity;
    using CloudImageRef = entt::entity;

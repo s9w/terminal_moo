@@ -720,8 +720,8 @@ auto moo::game::do_drawing(const bool draw_fg) -> void{
    m_registry.view<Trail>().each([&](Trail& trail) {
       draw_trail(trail);
       });
-   m_registry.view<TrailPuff>().each([&](const TrailPuff& puff) {
-      draw_puff(puff.pos, puff.color);
+   m_registry.view<IsPuff, ScreenCoord, RGB>().each([&](const ScreenCoord& pos, const RGB& color) {
+      draw_puff(pos, color);
       });
    m_registry.view<Bullet>().each([&](Bullet& bullet) {
       draw_bullet(bullet);

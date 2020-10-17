@@ -118,7 +118,9 @@ namespace {
       const std::uniform_int_distribution<> green_dist(0, 255);
       const ScreenCoord puff_pos = pos + ScreenCoord{ pos_var_dist(get_rng()), pos_var_dist(get_rng()) };
       const RGB color{ 255, static_cast<unsigned char>(green_dist(get_rng())), 0 };
-      registry.emplace<TrailPuff>(entity, TrailPuff{ puff_pos, color });
+      registry.emplace<IsPuff>(entity);
+      registry.emplace<ScreenCoord>(entity, puff_pos);
+      registry.emplace<RGB>(entity, color);
    }
 
 } // namespace {}
@@ -267,9 +269,9 @@ auto moo::do_explosion_logic(entt::registry& registry, const Seconds dt) -> void
 
    const std::uniform_real_distribution<double> one_dist(0.0, 1.0);
    const double elim_threshold = 5.0 * dt;
-   registry.view<TrailPuff>().each([&](entt::entity entity, TrailPuff&) {
+   registry.view<IsPuff>().each([&](entt::entity ett) {
       if (one_dist(get_rng()) < elim_threshold)
-         registry.destroy(entity);
+         registry.destroy(ett);
       });
 }
 
