@@ -150,7 +150,7 @@ auto moo::set_ufo_shooting(
       const moo::Abduct& strategy = std::get<moo::Abduct>(ufo.m_strategy);
       if (registry.valid(strategy.m_target_cow)) {
          moo::BeingBeamed& being_beamed = registry.get<moo::BeingBeamed>(strategy.m_target_cow);
-         being_beamed.value = false;
+         being_beamed = false;
       }
       ufo.m_beaming = false;
    }
@@ -191,7 +191,7 @@ auto moo::ufo_progress(
       const bool position_reached = to_pixel_coord(ufo.m_pos) == target_pixel_coord;
       if (position_reached) {
          BeingBeamed& being_beamed = registry.get<BeingBeamed>(strategy.m_target_cow);
-         being_beamed.value = true;
+         being_beamed = true;
          ufo.m_beaming = true;
       }
       ufo.m_pos = get_new_ufo_pos(ufo.m_pos, get_ufo_speed(level), target_pixel_coord, dt);
@@ -257,10 +257,10 @@ auto moo::do_trail_logic(
 auto moo::do_explosion_logic(entt::registry& registry, const Seconds dt) -> void{
    const auto puff_spawners = registry.view<PuffSpawner, ScreenCoord, Direction, GravitySpeed>();
    puff_spawners.each([&](entt::entity entity, ScreenCoord& pos, Direction& direction, GravitySpeed& gravity_speed) {
-      gravity_speed.value += dt.m_value * moo::get_config().gravity_strength;
+      gravity_speed += dt.m_value * moo::get_config().gravity_strength;
 
       constexpr double speed = 1;
-      pos += dt.m_value * (speed * static_cast<ScreenCoord>(direction) + gravity_speed.value * ScreenCoord{0.0, 1.0});
+      pos += dt.m_value * (speed * static_cast<ScreenCoord>(direction) + gravity_speed * ScreenCoord{0.0, 1.0});
       add_puff(registry, pos);
       if (!pos.is_on_screen()) {
          registry.destroy(entity);

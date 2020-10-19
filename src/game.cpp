@@ -596,20 +596,19 @@ auto moo::game::draw_beam(const Ufo& ufo) -> void{
 auto moo::game::do_cow_logic(const Seconds dt) -> void{
    ZoneScoped;
    m_registry.view<IsCow, Alpha>().each([&](auto cow_entity, Alpha& alpha) {
-      bool& being_beamed = m_registry.get<BeingBeamed>(cow_entity).value;
       m_registry.get<AnimationFrame>(cow_entity).progress(dt);
-      if (being_beamed) {
+      if (m_registry.get<BeingBeamed>(cow_entity)) {
          constexpr double seconds_to_fade = 3.0;
-         alpha.value -= dt / seconds_to_fade;
-         if (alpha.value < 0) {
+         alpha -= dt / seconds_to_fade;
+         if (alpha < 0) {
             m_registry.destroy(cow_entity);
             m_ufo->m_beaming = false;
             set_ufo_abducting(m_ufo.value(), m_registry);
          }
-         alpha.value = std::clamp(alpha.value, 0.0, 1.0);
+         alpha = std::clamp(alpha.get(), 0.0, 1.0);
       }
       else {
-         alpha.value = 1.0;
+         alpha = 1.0;
       }
       });
 }
@@ -662,8 +661,7 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
          if (m_ufo->is_dead()) {
             if (std::holds_alternative<Abduct>(m_ufo->m_strategy)) {
                auto target_cow = std::get<Abduct>(m_ufo->m_strategy).m_target_cow;
-               BeingBeamed& cow_being_beamed = m_registry.get<BeingBeamed>(target_cow);
-               cow_being_beamed.value = false;
+               m_registry.get<BeingBeamed>(target_cow) = false;
             }
             create_explosion(m_registry, m_ufo->m_pos);
 
@@ -693,7 +691,7 @@ auto moo::game::do_logic(const Seconds dt) -> std::optional<ContinueWish> {
       }
    }
    m_registry.view<IsCow, BeingBeamed, LanePosition>().each([&](auto cow, BeingBeamed& being_beamed, LanePosition& pos) {
-      if (being_beamed.value)
+      if (being_beamed)
          return;
       pos.m_x_pos -= get_lane_speed(pos.m_lane, dt);
       if (pos.is_gone()) {
@@ -772,7 +770,7 @@ auto moo::game::draw_cows() -> void{
             m_registry.get<CowAnimation>(cow_variant)[animation_index],
             lane_pos.get_screen_pos(),
             WriteAlignment::BottomCenter,
-            alpha.value,
+            alpha,
             std::nullopt,
             get_cow_fade(lane_pos)
          );
